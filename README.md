@@ -69,22 +69,69 @@ cargo run submit-and-wait --file task_definitions/docker_task.yaml --input '{"nu
 
 # Task with external code source (GitHub Gist)
 cargo run submit-and-wait --file task_definitions/factorial_from_url.yaml --input '{"number": 5}'
+
+# Task with dependencies (requires specific worker capabilities)
+cargo run submit-and-wait --file task_definitions/python_with_dependencies.yaml --input '{"number": 8}'
+cargo run submit-and-wait --file task_definitions/docker_with_dependencies.yaml --input '{"number": 6}'
+cargo run submit-and-wait --file task_definitions/multi_dependency_task.yaml --input '{"text": "Hello Qwen!"}'
 ```
 
 ### Available Task Definition Files
 
-| File | Type | Language | Code Source | Description |
-|------|------|----------|-------------|-------------|
-| `factorial_task.yaml` | expression | Python | Embedded | Basic factorial computation |
-| `factorial_from_url.yaml` | expression | Python | GitHub Gist URL | Factorial from external URL |
-| `factorial_wasm.yaml` | wasm | Rust | Local | Local WASM factorial module |
-| `factorial_wasm_url.yaml` | wasm | Rust | URL | WASM factorial from external URL |
-| `factorial_docker.yaml` | docker | Python | Docker | Docker containerized factorial |
-| `fibonacci_task.json` | expression | Python | Embedded | Basic Fibonacci sequence |
-| `fibonacci_from_gist.json` | expression | Python | GitHub Gist | Fibonacci from GitHub Gist |
-| `docker_task.yaml` | docker | Python | Docker | Generic Docker task example |
-| `git_repo_task.json` | expression | Python | Git Repository | Task from Git repository |
-| `mixed_sources_demo.yaml` | expression | Python | Multiple | Demo with various code sources |
+| File | Type | Language | Code Source | Dependencies | Description |
+|------|------|----------|-------------|--------------|-------------|
+| `factorial_task.yaml` | expression | Python | Embedded | None | Basic factorial computation |
+| `factorial_from_url.yaml` | expression | Python | GitHub Gist URL | None | Factorial from external URL |
+| `factorial_wasm.yaml` | wasm | Rust | Local | None | Local WASM factorial module |
+| `factorial_wasm_url.yaml` | wasm | Rust | URL | None | WASM factorial from external URL |
+| `factorial_docker.yaml` | docker | Python | Docker | None | Docker containerized factorial |
+| `fibonacci_task.json` | expression | Python | Embedded | None | Basic Fibonacci sequence |
+| `fibonacci_from_gist.json` | expression | Python | GitHub Gist | None | Fibonacci from GitHub Gist |
+| `docker_task.yaml` | docker | Python | Docker | None | Generic Docker task example |
+| `git_repo_task.json` | expression | Python | Git Repository | None | Task from Git repository |
+| `mixed_sources_demo.yaml` | expression | Python | Multiple | None | Demo with various code sources |
+| `python_with_dependencies.yaml` | expression | Python | Embedded | python | Python task with dependency requirement |
+| `docker_with_dependencies.yaml` | docker | Python | Docker | docker | Docker task with dependency requirement |
+| `multi_dependency_task.yaml` | expression | Python | Embedded | python,qwen | Multi-capability task example |
+
+## Task Dependencies
+
+The examples include tasks that demonstrate the dependency system:
+
+### How Dependencies Work
+
+1. **Worker Capabilities**: Workers are configured with specific capabilities (e.g., `python`, `docker`, `qwen`)
+2. **Task Requirements**: Tasks can specify dependencies they need
+3. **Automatic Matching**: Only workers with matching capabilities will claim tasks
+4. **Flexible Configuration**: Workers can have multiple capabilities
+
+### Example Usage
+
+```bash
+# Start daemon with workers having different capabilities
+cd ../corebrum-rust
+cargo run daemon 3 --capabilities "python,docker" "python,qwen" "docker,wasm"
+
+# In another terminal, submit tasks with dependencies
+cd ../corebrum-cli
+
+# This task will only be claimed by workers with 'python' capability
+cargo run submit-and-wait --file ../corebrum-examples/task_definitions/python_with_dependencies.yaml --input '{"number": 8}'
+
+# This task will only be claimed by workers with 'docker' capability
+cargo run submit-and-wait --file ../corebrum-examples/task_definitions/docker_with_dependencies.yaml --input '{"number": 6}'
+
+# This task will only be claimed by workers with BOTH 'python' AND 'qwen' capabilities
+cargo run submit-and-wait --file ../corebrum-examples/task_definitions/multi_dependency_task.yaml --input '{"text": "Hello Qwen!"}'
+```
+
+### Available Dependencies
+
+- **python**: Required for Python script execution
+- **docker**: Required for Docker containerized tasks
+- **qwen**: Required for Qwen model inference
+- **wasm**: Required for WebAssembly module execution
+- **javascript**: Required for JavaScript/Node.js execution
 
 ## WebAssembly Examples
 
