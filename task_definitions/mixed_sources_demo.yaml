@@ -1,0 +1,53 @@
+task_definition:
+  name: "mixed_sources_demo"
+  version: "1.0"
+  description: "Demonstrates multiple external code source types in one task"
+  
+  inputs:
+    - name: "computation_type"
+      type: "string"
+      required: true
+      default: "factorial"
+      description: "Type of computation to perform"
+    - name: "value"
+      type: "integer"
+      required: true
+      default: 10
+      description: "Value to compute with"
+  
+  outputs:
+    - name: "result"
+      type: "object"
+      description: "The computation result with source information"
+    - name: "source_info"
+      type: "object"
+      description: "Information about the code source used"
+  
+  compute_logic:
+    type: "expression"
+    language: "python"
+    code_source:
+      type: "url"
+      url: "https://raw.githubusercontent.com/example/mixed-compute/main/compute.py"
+      auth_token: null
+    timeout_seconds: 30
+  
+  validation:
+    - field: "computation_type"
+      allowed_values: ["factorial", "fibonacci", "prime", "square"]
+      message: "Computation type must be one of: factorial, fibonacci, prime, square"
+    - field: "value"
+      min: 1
+      max: 100
+      message: "Value must be between 1 and 100"
+  
+  metadata:
+    estimated_duration_ms: 150
+    memory_requirement_mb: 20
+    cpu_intensive: false
+    supports_external_sources: true
+    example_sources:
+      - "URL: https://raw.githubusercontent.com/example/compute/main/script.py"
+      - "GitHub Gist: https://gist.github.com/user/1234567890abcdef"
+      - "Docker: my-compute-image:latest"
+      - "Git Repo: https://github.com/example/algorithms.git"

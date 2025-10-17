@@ -1,0 +1,56 @@
+{
+  "task_definition": {
+    "name": "fibonacci_from_gist",
+    "version": "1.0",
+    "description": "Generate Fibonacci sequence using code from GitHub Gist",
+    
+    "inputs": [
+      {
+        "name": "terms",
+        "type": "integer",
+        "required": true,
+        "default": 10,
+        "description": "Number of terms to generate"
+      }
+    ],
+    
+    "outputs": [
+      {
+        "name": "sequence",
+        "type": "array",
+        "description": "The Fibonacci sequence"
+      },
+      {
+        "name": "terms",
+        "type": "integer",
+        "description": "Number of terms generated"
+      }
+    ],
+    
+    "compute_logic": {
+      "type": "expression",
+      "language": "python",
+      "code_source": {
+        "type": "githubgist",
+        "url": "https://gist.github.com/chrismatthieu/8c1e57cc82afe0f42b31f817506dba9d",
+        "auth_token": null
+      },
+      "timeout_seconds": 30
+    },
+    
+    "validation": [
+      {
+        "field": "terms",
+        "min": 1,
+        "max": 50,
+        "message": "Terms must be between 1 and 50"
+      }
+    ],
+    
+    "metadata": {
+      "estimated_duration_ms": 50,
+      "memory_requirement_mb": 5,
+      "cpu_intensive": false
+    }
+  }
+}

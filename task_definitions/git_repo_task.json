@@ -1,0 +1,57 @@
+{
+  "task_definition": {
+    "name": "git_repo_computation",
+    "version": "1.0",
+    "description": "Execute computation using code from a Git repository",
+    
+    "inputs": [
+      {
+        "name": "input_value",
+        "type": "number",
+        "required": true,
+        "default": 42,
+        "description": "Numeric input for computation"
+      }
+    ],
+    
+    "outputs": [
+      {
+        "name": "computed_value",
+        "type": "number",
+        "description": "The computed result"
+      },
+      {
+        "name": "repository_info",
+        "type": "object",
+        "description": "Information about the Git repository used"
+      }
+    ],
+    
+    "compute_logic": {
+      "type": "expression",
+      "language": "python",
+      "code_source": {
+        "type": "gitrepo",
+        "url": "https://github.com/example/compute-algorithms.git",
+        "entrypoint": "algorithms/main.py"
+      },
+      "timeout_seconds": 45
+    },
+    
+    "validation": [
+      {
+        "field": "input_value",
+        "min": 0,
+        "max": 1000,
+        "message": "Input value must be between 0 and 1000"
+      }
+    ],
+    
+    "metadata": {
+      "estimated_duration_ms": 200,
+      "memory_requirement_mb": 25,
+      "cpu_intensive": true,
+      "requires_git": true
+    }
+  }
+}

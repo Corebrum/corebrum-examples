@@ -1,0 +1,70 @@
+[package]
+name = "corebrum-examples"
+version = "0.1.0"
+edition = "2021"
+authors = ["Corebrum Team"]
+license = "All Rights Reserved"
+description = "Examples and demonstrations for the Corebrum decentralized mesh computing platform"
+repository = "https://github.com/corebrum/corebrum-rust"
+
+[dependencies]
+zenoh = "1.5"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1.0", features = ["full"] }
+uuid = { version = "1.0", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+anyhow = "1.0"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+tempfile = "3.0"
+reqwest = { version = "0.11", features = ["json", "stream"] }
+git2 = "0.18"
+tar = "0.4"
+flate2 = "1.0"
+serde_yaml = "0.9"
+wasmtime = "19.0"
+wasmtime-wasi = "19.0"
+bollard = "0.16"
+tokio-util = "0.7"
+futures-util = "0.3"
+futures = "0.3"
+
+# Add corebrum as a dependency to use the core functionality
+corebrum = { path = "../corebrum-rust" }
+
+[[bin]]
+name = "simple_user_demo"
+path = "src/simple_user_demo.rs"
+
+[[bin]]
+name = "simple_user_zenoh_demo"
+path = "src/simple_user_zenoh_demo.rs"
+
+[[bin]]
+name = "simple_zenoh_demo"
+path = "src/simple_zenoh_demo.rs"
+
+[[bin]]
+name = "simple_zenoh_demo_fixed"
+path = "src/simple_zenoh_demo_fixed.rs"
+
+[[bin]]
+name = "fixed_user_demo"
+path = "src/fixed_user_demo.rs"
+
+[[bin]]
+name = "fixed_zenoh_demo"
+path = "src/fixed_zenoh_demo.rs"
+
+[[bin]]
+name = "user_demo"
+path = "src/user_demo.rs"
+
+[[bin]]
+name = "working_user_demo"
+path = "src/working_user_demo.rs"
+
+[[bin]]
+name = "working_user_zenoh_demo"
+path = "src/working_user_zenoh_demo.rs"

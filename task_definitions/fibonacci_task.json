@@ -1,0 +1,52 @@
+{
+  "task_definition": {
+    "name": "fibonacci_sequence",
+    "version": "1.0",
+    "description": "Generate Fibonacci sequence up to n terms",
+    
+    "inputs": [
+      {
+        "name": "terms",
+        "type": "integer",
+        "required": true,
+        "default": 10,
+        "description": "Number of terms to generate"
+      }
+    ],
+    
+    "outputs": [
+      {
+        "name": "sequence",
+        "type": "array",
+        "description": "The Fibonacci sequence"
+      },
+      {
+        "name": "terms",
+        "type": "integer",
+        "description": "Number of terms generated"
+      }
+    ],
+    
+    "compute_logic": {
+      "type": "expression",
+      "language": "rust",
+      "code": "fn fibonacci(n: u64) -> Vec<u64> {\n    if n == 0 {\n        return vec![];\n    } else if n == 1 {\n        return vec![0];\n    } else if n == 2 {\n        return vec![0, 1];\n    }\n    \n    let mut sequence = vec![0, 1];\n    for i in 2..n {\n        sequence.push(sequence[i as usize - 1] + sequence[i as usize - 2]);\n    }\n    sequence\n}\n\nlet terms = inputs[\"terms\"].as_u64().unwrap_or(10);\nlet sequence = fibonacci(terms);\n\nlet result = serde_json::json!({\n    \"sequence\": sequence,\n    \"terms\": sequence.len(),\n    \"last_term\": sequence.last().copied()\n});",
+      "timeout_seconds": 30
+    },
+    
+    "validation": [
+      {
+        "field": "terms",
+        "min": 1,
+        "max": 50,
+        "message": "Terms must be between 1 and 50"
+      }
+    ],
+    
+    "metadata": {
+      "estimated_duration_ms": 50,
+      "memory_requirement_mb": 5,
+      "cpu_intensive": false
+    }
+  }
+}

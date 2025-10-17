@@ -1,0 +1,17 @@
+task_definition:
+  name: "very_simple_test"
+  version: "1.0"
+  description: "Very simple test task"
+  inputs: []
+  outputs: []
+  validation: []
+  metadata: {}
+
+  compute_logic:
+    type: "expression"
+    language: "python"
+    timeout_seconds: 10
+    code: |
+      print("Hello from very simple test!")
+      result = {"message": "Success"}
+      print(f"Result: {result}")

@@ -1,0 +1,43 @@
+# Rust build artifacts
+/target/
+**/target/
+
+# Cargo lock files (for libraries - uncomment if this is a library)
+# Cargo.lock
+
+# Build artifacts
+*.lock
+**/*.lock
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# WASM build artifacts
+*.wasm
+pkg/
+
+# Node modules (if any)
+node_modules/
+
+# Python cache (for the Python files in task_gists)
+__pycache__/
+*.py[cod]
+*$py.class

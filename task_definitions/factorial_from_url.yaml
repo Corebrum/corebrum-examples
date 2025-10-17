@@ -1,0 +1,39 @@
+task_definition:
+  name: "factorial_from_url"
+  version: "1.0"
+  description: "Compute factorial using code fetched from a URL"
+  
+  inputs:
+    - name: "number"
+      type: "integer"
+      required: true
+      default: 10
+      description: "Number to compute factorial for"
+  
+  outputs:
+    - name: "result"
+      type: "integer"
+      description: "The computed factorial"
+    - name: "computation_time_ms"
+      type: "integer"
+      description: "Time taken to compute in milliseconds"
+  
+  compute_logic:
+    type: "expression"
+    language: "python"
+    code_source:
+      type: "githubgist"
+      url: "https://gist.github.com/chrismatthieu/e06cdd5c6c3787d7e68e2c6977d81e9e"
+      auth_token: null
+    timeout_seconds: 30
+  
+  validation:
+    - field: "number"
+      min: 0
+      max: 20
+      message: "Number must be between 0 and 20 for performance"
+  
+  metadata:
+    estimated_duration_ms: 100
+    memory_requirement_mb: 10
+    cpu_intensive: true

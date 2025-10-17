@@ -1,0 +1,51 @@
+task_definition:
+  name: "factorial_computation"
+  version: "1.0"
+  description: "Compute factorial of a given number"
+  
+  inputs:
+    - name: "number"
+      type: "integer"
+      required: true
+      default: 10
+      description: "Number to compute factorial for"
+  
+  outputs:
+    - name: "result"
+      type: "integer"
+      description: "The computed factorial"
+    - name: "computation_time_ms"
+      type: "integer"
+      description: "Time taken to compute in milliseconds"
+  
+  compute_logic:
+    type: "expression"
+    language: "rust"
+    code: |
+      use std::time::Instant;
+      
+      let start_time = Instant::now();
+      let number = inputs["number"].as_u64().unwrap_or(10);
+      
+      let factorial = (1..=number).product::<u64>();
+      
+      let end_time = Instant::now();
+      let computation_time = start_time.duration_since(start_time).as_millis();
+      
+      let result = serde_json::json!({
+          "factorial": factorial,
+          "computation_time_ms": computation_time,
+          "input_number": number
+      });
+    timeout_seconds: 30
+  
+  validation:
+    - field: "number"
+      min: 0
+      max: 20
+      message: "Number must be between 0 and 20 for performance"
+  
+  metadata:
+    estimated_duration_ms: 100
+    memory_requirement_mb: 10
+    cpu_intensive: true

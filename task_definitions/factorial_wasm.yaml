@@ -1,0 +1,71 @@
+task_definition:
+  name: "factorial_wasm"
+  version: "1.0"
+  description: "WebAssembly factorial computation using Rust-compiled WASM module"
+  inputs: []
+  outputs: []
+  validation: []
+  metadata: {}
+  
+  compute_logic:
+    type: "wasm"
+    language: "rust"
+    timeout_seconds: 10
+    wasm_module: "factorial_wasm"
+    entry_point: "compute_factorial_with_metadata"
+    
+    # WASM-specific configuration
+    wasm_config:
+      memory_limit: "64MB"
+      timeout_ms: 5000
+      allow_networking: false
+      allow_file_system: false
+      
+    # Input validation schema
+    input_schema:
+      type: "object"
+      properties:
+        number:
+          type: "integer"
+          minimum: 0
+          maximum: 20
+          description: "Number to compute factorial for"
+      required: ["number"]
+      
+    # Output schema
+    output_schema:
+      type: "object"
+      properties:
+        factorial:
+          type: "integer"
+          description: "The computed factorial value"
+        input_number:
+          type: "integer"
+          description: "The input number"
+        computation_time_ms:
+          type: "integer"
+          description: "Time taken for computation in milliseconds"
+        worker_id:
+          type: "string"
+          description: "ID of the worker that executed the task"
+        method:
+          type: "string"
+          description: "Execution method used"
+        wasm_module:
+          type: "string"
+          description: "Name of the WASM module"
+        timestamp:
+          type: "string"
+          description: "Timestamp of execution"
+      required: ["factorial", "input_number", "computation_time_ms", "worker_id", "method"]
+      
+  # Resource requirements
+  resources:
+    cpu_cores: 1
+    memory_mb: 64
+    timeout_seconds: 10
+    
+  # Metadata
+  tags: ["mathematics", "factorial", "wasm", "rust", "performance"]
+  category: "computation"
+  complexity: "low"

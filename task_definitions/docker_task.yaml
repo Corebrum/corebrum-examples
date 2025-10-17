@@ -1,0 +1,42 @@
+task_definition:
+  name: "docker_computation"
+  version: "1.0"
+  description: "Execute computation using a Docker container"
+  
+  inputs:
+    - name: "data"
+      type: "string"
+      required: true
+      default: "Hello World"
+      description: "Input data to process"
+  
+  outputs:
+    - name: "processed_data"
+      type: "string"
+      description: "The processed data from Docker container"
+    - name: "container_info"
+      type: "object"
+      description: "Information about the Docker container execution"
+  
+  compute_logic:
+    type: "expression"
+    language: "rust"
+    code_source:
+      type: "docker"
+      url: "docker://my-compute-image"
+      docker_image: "my-compute-image"
+      docker_tag: "latest"
+      entrypoint: "/app/compute"
+    timeout_seconds: 60
+  
+  validation:
+    - field: "data"
+      min_length: 1
+      max_length: 1000
+      message: "Data must be between 1 and 1000 characters"
+  
+  metadata:
+    estimated_duration_ms: 500
+    memory_requirement_mb: 100
+    cpu_intensive: false
+    requires_docker: true

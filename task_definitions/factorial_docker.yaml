@@ -1,0 +1,125 @@
+task_definition:
+  name: "factorial_docker"
+  version: "1.0"
+  description: "Docker containerized factorial computation"
+  inputs: []
+  outputs: []
+  validation: []
+  metadata: {}
+  
+  compute_logic:
+    type: "docker"
+    language: "python"
+    timeout_seconds: 30
+    
+    # Docker configuration
+    code_source:
+      type: "docker"
+      url: "docker://python:3.9-slim"  # Required field, using docker:// scheme
+      docker_image: "python"
+      docker_tag: "3.9-slim"
+      # Optional: custom code from external source
+      # url: "https://raw.githubusercontent.com/user/repo/main/factorial.py"
+    
+    # Embedded Python code (will be used if no external source)
+    code: |
+      import json
+      import sys
+      import time
+      
+      def factorial(n):
+          """Compute factorial using iterative approach for better performance"""
+          if n < 0:
+              raise ValueError("Factorial is not defined for negative numbers")
+          if n == 0 or n == 1:
+              return 1
+          
+          result = 1
+          for i in range(2, n + 1):
+              result *= i
+          return result
+      
+      def main():
+          # Read input from command line arguments
+          if len(sys.argv) > 1:
+              try:
+                  input_data = json.loads(sys.argv[1])
+              except json.JSONDecodeError:
+                  input_data = {"number": 10}
+          else:
+              input_data = {"number": 10}
+          
+          number = input_data.get('number', 10)
+          
+          # Measure execution time
+          start_time = time.time()
+          result = factorial(number)
+          end_time = time.time()
+          
+          computation_time_ms = int((end_time - start_time) * 1000)
+          
+          # Create output
+          output = {
+              "factorial": result,
+              "input_number": number,
+              "computation_time_ms": computation_time_ms,
+              "method": "docker",
+              "worker_id": "docker-worker",
+              "container_info": {
+                  "image": "python:3.9-slim",
+                  "execution_type": "containerized"
+              },
+              "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
+          }
+          
+          print(json.dumps(output))
+      
+      if __name__ == "__main__":
+          main()
+    
+    input_schema:
+      type: "object"
+      properties:
+        number:
+          type: "integer"
+          minimum: 0
+          maximum: 20
+          description: "Number to compute factorial for"
+      required: ["number"]
+      
+    output_schema:
+      type: "object"
+      properties:
+        factorial:
+          type: "integer"
+          description: "The computed factorial value"
+        input_number:
+          type: "integer"
+          description: "The input number"
+        computation_time_ms:
+          type: "integer"
+          description: "Time taken for computation in milliseconds"
+        method:
+          type: "string"
+          description: "Execution method used"
+        worker_id:
+          type: "string"
+          description: "ID of the worker that executed the task"
+        container_info:
+          type: "object"
+          description: "Information about the Docker container"
+        timestamp:
+          type: "string"
+          description: "Timestamp of execution"
+      required: ["factorial", "input_number", "computation_time_ms", "method", "worker_id"]
+      
+  # Resource requirements
+  resources:
+    cpu_cores: 1
+    memory_mb: 128
+    timeout_seconds: 30
+    
+  # Metadata
+  tags: ["mathematics", "factorial", "docker", "python", "containerized"]
+  category: "computation"
+  complexity: "low"
