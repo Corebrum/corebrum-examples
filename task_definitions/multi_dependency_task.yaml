@@ -54,6 +54,7 @@ task_definition:
           'computation_time_ms': computation_time_ms,
           'method': 'python_with_qwen',
           'worker_id': 'ml-worker',
+          'worker_uuid': '{{WORKER_UUID}}',  # This will be replaced by the actual worker UUID
           'dependencies_required': ['python', 'qwen'],
           'capabilities_used': ['python', 'qwen'],
           'timestamp': time.strftime('%Y-%m-%d %H:%M:%S')

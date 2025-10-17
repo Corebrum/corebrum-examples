@@ -133,6 +133,28 @@ cargo run submit-and-wait --file ../corebrum-examples/task_definitions/multi_dep
 - **wasm**: Required for WebAssembly module execution
 - **javascript**: Required for JavaScript/Node.js execution
 
+### Worker Identification
+
+Each worker thread is assigned a unique UUID that is included in task results for better traceability and debugging:
+
+```json
+{
+  "factorial": 40320,
+  "input_number": 8,
+  "computation_time_ms": 0,
+  "method": "python",
+  "worker_id": "9dc9270f-f4f1-4ba9-8cb2-9781e9825775",
+  "worker_uuid": "9dc9270f-f4f1-4ba9-8cb2-9781e9825775",
+  "dependencies_required": ["python"],
+  "timestamp": "2025-01-17 12:30:45"
+}
+```
+
+This allows you to:
+- Track which specific worker thread executed each task
+- Debug issues by correlating tasks with specific worker instances
+- Monitor worker performance and load distribution
+
 ## WebAssembly Examples
 
 The `wasm_factorial/` and `wasm_factorial_url/` directories contain WebAssembly examples that demonstrate how to run WASM tasks in the Corebrum environment.

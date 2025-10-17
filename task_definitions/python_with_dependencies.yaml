@@ -47,6 +47,7 @@ task_definition:
           'computation_time_ms': computation_time_ms,
           'method': 'python',
           'worker_id': 'python-worker',
+          'worker_uuid': '{{WORKER_UUID}}',  # This will be replaced by the actual worker UUID
           'dependencies_required': ['python'],
           'timestamp': time.strftime('%Y-%m-%d %H:%M:%S')
       }

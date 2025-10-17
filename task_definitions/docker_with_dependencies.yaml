@@ -47,6 +47,7 @@ task_definition:
           'computation_time_ms': computation_time_ms,
           'method': 'docker',
           'worker_id': 'docker-worker',
+          'worker_uuid': '{{WORKER_UUID}}',  # This will be replaced by the actual worker UUID
           'dependencies_required': ['docker'],
           'container_info': {
               'image': 'python:3.9-slim',
