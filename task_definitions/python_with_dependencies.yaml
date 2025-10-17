@@ -1,0 +1,63 @@
+task_definition:
+  name: "python_factorial_with_deps"
+  version: "1.0"
+  description: "Python factorial computation requiring python capability"
+  inputs: []
+  outputs: []
+  validation: []
+  metadata: {}
+  dependencies: ["python"]
+  
+  compute_logic:
+    type: "expression"
+    language: "python"
+    timeout_seconds: 10
+    
+    code: |
+      import json
+      import sys
+      import time
+      
+      def factorial(n):
+          if n <= 1:
+              return 1
+          return n * factorial(n-1)
+      
+      # Read input from command line arguments
+      if len(sys.argv) > 1:
+          try:
+              input_data = json.loads(sys.argv[1])
+          except json.JSONDecodeError:
+              input_data = {'number': 10}
+      else:
+          input_data = {'number': 10}
+      
+      number = input_data.get('number', 10)
+      
+      # Measure execution time
+      start_time = time.time()
+      result = factorial(number)
+      end_time = time.time()
+      
+      computation_time_ms = int((end_time - start_time) * 1000)
+      
+      output = {
+          'factorial': result,
+          'input_number': number,
+          'computation_time_ms': computation_time_ms,
+          'method': 'python',
+          'worker_id': 'python-worker',
+          'dependencies_required': ['python'],
+          'timestamp': time.strftime('%Y-%m-%d %H:%M:%S')
+      }
+      
+      print(json.dumps(output))
+    
+    input_schema:
+      type: "object"
+      properties:
+        number:
+          type: "integer"
+          minimum: 0
+          maximum: 20
+      required: ["number"]

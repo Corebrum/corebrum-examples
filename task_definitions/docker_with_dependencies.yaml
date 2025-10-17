@@ -1,0 +1,73 @@
+task_definition:
+  name: "docker_factorial_with_deps"
+  version: "1.0"
+  description: "Docker containerized factorial computation requiring docker capability"
+  inputs: []
+  outputs: []
+  validation: []
+  metadata: {}
+  dependencies: ["docker"]
+  
+  compute_logic:
+    type: "docker"
+    language: "python"
+    timeout_seconds: 30
+    
+    code: |
+      import json
+      import sys
+      import time
+      
+      def factorial(n):
+          if n <= 1:
+              return 1
+          return n * factorial(n-1)
+      
+      # Read input from command line arguments
+      if len(sys.argv) > 1:
+          try:
+              input_data = json.loads(sys.argv[1])
+          except json.JSONDecodeError:
+              input_data = {'number': 10}
+      else:
+          input_data = {'number': 10}
+      
+      number = input_data.get('number', 10)
+      
+      # Measure execution time
+      start_time = time.time()
+      result = factorial(number)
+      end_time = time.time()
+      
+      computation_time_ms = int((end_time - start_time) * 1000)
+      
+      output = {
+          'factorial': result,
+          'input_number': number,
+          'computation_time_ms': computation_time_ms,
+          'method': 'docker',
+          'worker_id': 'docker-worker',
+          'dependencies_required': ['docker'],
+          'container_info': {
+              'image': 'python:3.9-slim',
+              'execution_type': 'containerized'
+          },
+          'timestamp': time.strftime('%Y-%m-%d %H:%M:%S')
+      }
+      
+      print(json.dumps(output))
+    
+    code_source:
+      type: "docker"
+      url: "docker://python:3.9-slim"
+      docker_image: "python"
+      docker_tag: "3.9-slim"
+    
+    input_schema:
+      type: "object"
+      properties:
+        number:
+          type: "integer"
+          minimum: 0
+          maximum: 20
+      required: ["number"]
