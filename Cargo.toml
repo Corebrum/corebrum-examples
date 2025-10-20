@@ -5,7 +5,7 @@ edition = "2021"
 authors = ["Corebrum Team"]
 license = "All Rights Reserved"
 description = "Examples and demonstrations for the Corebrum decentralized mesh computing platform"
-repository = "https://github.com/corebrum/corebrum-rust"
+repository = "https://github.com/corebrum/corebrum"
 
 [dependencies]
 zenoh = "1.6.2"
@@ -31,7 +31,7 @@ futures-util = "0.3"
 futures = "0.3"
 
 # Add corebrum as a dependency to use the core functionality
-corebrum = { path = "../corebrum-rust" }
+corebrum = { path = "../corebrum" }
 
 [[bin]]
 name = "simple_user_demo"

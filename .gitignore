@@ -1,15 +1,12 @@
-# Rust build artifacts
+# Rust
 /target/
-**/target/
+**/*.rs.bk
+*.pdb
 
-# Cargo lock files (for libraries - uncomment if this is a library)
-# Cargo.lock
+# Cargo
+Cargo.lock
 
-# Build artifacts
-*.lock
-**/*.lock
-
-# IDE files
+# IDE and Editor files
 .vscode/
 .idea/
 *.swp
@@ -25,19 +22,74 @@
 ehthumbs.db
 Thumbs.db
 
+# Logs
+*.log
+logs/
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+
+# nyc test coverage
+.nyc_output
+
+# Dependency directories
+node_modules/
+
+# Optional npm cache directory
+.npm
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
 # Temporary files
 *.tmp
 *.temp
-*.log
 
-# WASM build artifacts
-*.wasm
-pkg/
+# Build artifacts
+dist/
+build/
+out/
 
-# Node modules (if any)
-node_modules/
+# Database
+*.db
+*.sqlite
+*.sqlite3
 
-# Python cache (for the Python files in task_gists)
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Docker
+.dockerignore
+Dockerfile.dev
+
+# Backup files
+*.bak
+*.backup

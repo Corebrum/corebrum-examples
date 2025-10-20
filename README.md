@@ -17,7 +17,7 @@ The easiest way to run these examples is using the [Corebrum CLI](../corebrum-cl
 
 ```bash
 # Start the Corebrum daemon first
-cd ../corebrum-rust
+cd ../corebrum
 cargo run daemon 3
 
 # In another terminal, use the CLI to submit tasks
@@ -109,7 +109,7 @@ The examples include tasks that demonstrate the dependency system:
 
 ```bash
 # Start daemon with workers having different capabilities
-cd ../corebrum-rust
+cd ../corebrum
 cargo run daemon 3 --capabilities "python,docker" "python,qwen" "docker,wasm"
 
 # In another terminal, submit tasks with dependencies
