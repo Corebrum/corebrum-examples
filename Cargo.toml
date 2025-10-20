@@ -8,7 +8,7 @@ description = "Examples and demonstrations for the Corebrum decentralized mesh c
 repository = "https://github.com/corebrum/corebrum-rust"
 
 [dependencies]
-zenoh = "1.5"
+zenoh = "1.6.2"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 tokio = { version = "1.0", features = ["full"] }

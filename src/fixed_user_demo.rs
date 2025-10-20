@@ -181,7 +181,7 @@ let result = serde_json::json!({{
     pub async fn submit_task(&self, session: &zenoh::Session, task_definition: TaskDefinition, inputs: serde_json::Value) -> Result<String> {
         let job = Job::new_user_task(QUEUE.to_string(), task_definition, inputs);
         
-        // Use the correct Zenoh 1.5.1 API
+        // Use the correct Zenoh 1.6.2 API
         let publisher = session.declare_publisher(&k_announce()).await?;
         let job_json = serde_json::to_string(&job)?;
         publisher.put(job_json).await?;
@@ -399,7 +399,7 @@ let result = serde_json::json!({{
     pub async fn run_fixed_demo(&self) -> Result<()> {
         println!("🚀 Zenoh User-Defined Compute Tasks Demo (Rust - Fixed API)");
         println!("============================================================");
-        println!("Using Zenoh 1.5.1 API with correct error handling and payload access");
+        println!("Using Zenoh 1.6.2 API with correct error handling and payload access");
         println!();
 
         // Start assigner
@@ -477,7 +477,7 @@ let result = serde_json::json!({{
         }
 
         println!("\n✅ Fixed demo completed!");
-        println!("This demo uses the correct Zenoh 1.5.1 API patterns:");
+        println!("This demo uses the correct Zenoh 1.6.2 API patterns:");
         println!("- Proper error handling with .res().await?");
         println!("- Correct sample payload access");
         println!("- Updated API method calls");

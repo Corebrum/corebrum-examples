@@ -223,11 +223,11 @@ let result = serde_json::json!({{
         let job = Job::new_user_task(QUEUE.to_string(), task_definition, inputs);
         
         // Submit via Zenoh
-        let session = zenoh::open(zenoh::Config::default()).await.into_anyhow()?;
+        let session = zenoh::open(zenoh::Config::default()).await.await.map_err(|e| anyhow::anyhow!("Zenoh error: {}", e))?;
         let key = k_announce();
-        let publisher = session.declare_publisher(&key).await.into_anyhow()?;
+        let publisher = session.declare_publisher(&key).await.await.map_err(|e| anyhow::anyhow!("Zenoh error: {}", e))?;
         let job_json = serde_json::to_string(&job)?;
-        publisher.put(job_json).await.into_anyhow()?;
+        publisher.put(job_json).await.await.map_err(|e| anyhow::anyhow!("Zenoh error: {}", e))?;
         
         println!("📤 Submitted user task: {} ({})", job.task_id, job.task_definition.as_ref().map(|td| td.name.as_str()).unwrap_or("unknown"));
         Ok(job.task_id)
@@ -237,9 +237,9 @@ let result = serde_json::json!({{
         println!("👷 Worker {} started (latency: {}ms)", worker_id, latency_ms);
         
         // Use Zenoh for real messaging
-        let session = zenoh::open(zenoh::Config::default()).await.into_anyhow()?;
+        let session = zenoh::open(zenoh::Config::default()).await.await.map_err(|e| anyhow::anyhow!("Zenoh error: {}", e))?;
         let key = k_announce();
-        let subscriber = session.declare_subscriber(&key).await.into_anyhow()?;
+        let subscriber = session.declare_subscriber(&key).await.await.map_err(|e| anyhow::anyhow!("Zenoh error: {}", e))?;
         
         while self.running.load(Ordering::Relaxed) {
             match subscriber.recv_async().await {
@@ -264,15 +264,15 @@ let result = serde_json::json!({{
                     };
                     
                     let claim_key = k_claim(&job.task_id);
-                    let claim_publisher = session.declare_publisher(&claim_key).await.into_anyhow()?;
+                    let claim_publisher = session.declare_publisher(&claim_key).await.await.map_err(|e| anyhow::anyhow!("Zenoh error: {}", e))?;
                     let claim_json = serde_json::to_string(&claim)?;
-                    claim_publisher.put(claim_json).await.into_anyhow()?;
+                    claim_publisher.put(claim_json).await.await.map_err(|e| anyhow::anyhow!("Zenoh error: {}", e))?;
                     println!("📝 Worker {} claimed job {}", worker_id, job.task_id);
                     
                     // Wait for assignment
                     let assign_key = k_assign(&job.task_id);
                     println!("🔑 Worker {} subscribing to assignment key: {}", worker_id, assign_key);
-                    let assign_subscriber = session.declare_subscriber(&assign_key).await.into_anyhow()?;
+                    let assign_subscriber = session.declare_subscriber(&assign_key).await.await.map_err(|e| anyhow::anyhow!("Zenoh error: {}", e))?;
                     let mut assigned = false;
                     
                     // Small delay to ensure subscriber is ready
@@ -324,9 +324,9 @@ let result = serde_json::json!({{
                     };
                     
                     let status_key = k_status(&job.task_id);
-                    let status_publisher = session.declare_publisher(&status_key).await.into_anyhow()?;
+                    let status_publisher = session.declare_publisher(&status_key).await.await.map_err(|e| anyhow::anyhow!("Zenoh error: {}", e))?;
                     let status_json = serde_json::to_string(&status)?;
-                    status_publisher.put(status_json).await.into_anyhow()?;
+                    status_publisher.put(status_json).await.await.map_err(|e| anyhow::anyhow!("Zenoh error: {}", e))?;
                     
                     // Execute the actual task using dynamic executor (async version for external code sources)
                     let executor = DynamicTaskExecutor::new()?;
@@ -338,9 +338,9 @@ let result = serde_json::json!({{
                     
                     // Publish result
                     let result_key = k_result(&job.task_id);
-                    let result_publisher = session.declare_publisher(&result_key).await.into_anyhow()?;
+                    let result_publisher = session.declare_publisher(&result_key).await.await.map_err(|e| anyhow::anyhow!("Zenoh error: {}", e))?;
                     let result_json = serde_json::to_string(&result)?;
-                    result_publisher.put(result_json).await.into_anyhow()?;
+                    result_publisher.put(result_json).await.await.map_err(|e| anyhow::anyhow!("Zenoh error: {}", e))?;
                     
                     let final_status = Status {
                         task_id: job.task_id.clone(),
@@ -348,7 +348,7 @@ let result = serde_json::json!({{
                         progress: 1.0,
                     };
                     let final_status_json = serde_json::to_string(&final_status)?;
-                    status_publisher.put(final_status_json).await.into_anyhow()?;
+                    status_publisher.put(final_status_json).await.await.map_err(|e| anyhow::anyhow!("Zenoh error: {}", e))?;
                     println!("🎉 Worker {} completed job {}: {}", worker_id, job.task_id, result.message);
                 }
                 Err(e) => {
@@ -364,11 +364,11 @@ let result = serde_json::json!({{
     pub async fn assigner_simulation(&self) -> Result<()> {
         println!("🎯 Assigner started");
         
-        let session = zenoh::open(zenoh::Config::default()).await.into_anyhow()?;
+        let session = zenoh::open(zenoh::Config::default()).await.await.map_err(|e| anyhow::anyhow!("Zenoh error: {}", e))?;
         let announce_key = k_announce();
-        let job_subscriber = session.declare_subscriber(&announce_key).await.into_anyhow()?;
+        let job_subscriber = session.declare_subscriber(&announce_key).await.await.map_err(|e| anyhow::anyhow!("Zenoh error: {}", e))?;
         let claim_key = format!("{}/tasks/*/claim", NS);
-        let claim_subscriber = session.declare_subscriber(&claim_key).await.into_anyhow()?;
+        let claim_subscriber = session.declare_subscriber(&claim_key).await.await.map_err(|e| anyhow::anyhow!("Zenoh error: {}", e))?;
         
         let mut pending_jobs: HashMap<String, Job> = HashMap::new();
         let mut claims: HashMap<String, Vec<Claim>> = HashMap::new();
@@ -476,9 +476,9 @@ let result = serde_json::json!({{
     pub async fn result_listener_simulation(&self) -> Result<()> {
         println!("👂 Result listener started");
         
-        let session = zenoh::open(zenoh::Config::default()).await.into_anyhow()?;
+        let session = zenoh::open(zenoh::Config::default()).await.await.map_err(|e| anyhow::anyhow!("Zenoh error: {}", e))?;
         let result_key = format!("{}/tasks/*/result", NS);
-        let subscriber = session.declare_subscriber(&result_key).await.into_anyhow()?;
+        let subscriber = session.declare_subscriber(&result_key).await.await.map_err(|e| anyhow::anyhow!("Zenoh error: {}", e))?;
         
         while self.running.load(Ordering::Relaxed) {
             match subscriber.recv_async().await {
@@ -506,7 +506,7 @@ let result = serde_json::json!({{
     pub async fn run_working_user_zenoh_demo(&self) -> Result<()> {
         println!("🚀 Zenoh User-Defined Compute Tasks Demo (Rust - Working User with Zenoh)");
         println!("==========================================================================");
-        println!("Using Zenoh 1.5.1 API with real messaging for external code source tasks");
+        println!("Using Zenoh 1.6.2 API with real messaging for external code source tasks");
         println!("Loading task definitions from YAML/JSON files with GitHub Gist code sources");
         println!("Including WASM (WebAssembly) and Docker task execution from local and URL sources");
         println!();

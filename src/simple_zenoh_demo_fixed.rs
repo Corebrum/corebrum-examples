@@ -71,11 +71,11 @@ impl SimpleZenohDemoFixed {
         let task_id = job.task_id.clone();
         
         // Submit via Zenoh
-        let session = zenoh::open(zenoh::Config::default()).await.into_anyhow()?;
+        let session = zenoh::open(zenoh::Config::default()).await.await.map_err(|e| anyhow::anyhow!("Zenoh error: {}", e))?;
         let key = k_announce();
-        let publisher = session.declare_publisher(&key).await.into_anyhow()?;
+        let publisher = session.declare_publisher(&key).await.await.map_err(|e| anyhow::anyhow!("Zenoh error: {}", e))?;
         let job_json = serde_json::to_string(&job)?;
-        publisher.put(job_json).await.into_anyhow()?;
+        publisher.put(job_json).await.await.map_err(|e| anyhow::anyhow!("Zenoh error: {}", e))?;
         
         println!("📤 Submitted job: {}", task_id);
         Ok(task_id)
@@ -85,9 +85,9 @@ impl SimpleZenohDemoFixed {
         println!("👷 Worker {} started (latency: {}ms)", worker_id, latency_ms);
         
         // Use Zenoh for real messaging
-        let session = zenoh::open(zenoh::Config::default()).await.into_anyhow()?;
+        let session = zenoh::open(zenoh::Config::default()).await.await.map_err(|e| anyhow::anyhow!("Zenoh error: {}", e))?;
         let key = k_announce();
-        let subscriber = session.declare_subscriber(&key).await.into_anyhow()?;
+        let subscriber = session.declare_subscriber(&key).await.await.map_err(|e| anyhow::anyhow!("Zenoh error: {}", e))?;
         
         while self.running.load(Ordering::Relaxed) {
             match subscriber.recv_async().await {
@@ -112,14 +112,14 @@ impl SimpleZenohDemoFixed {
                     };
                     
                     let claim_key = k_claim(&job.task_id);
-                    let claim_publisher = session.declare_publisher(&claim_key).await.into_anyhow()?;
+                    let claim_publisher = session.declare_publisher(&claim_key).await.await.map_err(|e| anyhow::anyhow!("Zenoh error: {}", e))?;
                     let claim_json = serde_json::to_string(&claim)?;
-                    claim_publisher.put(claim_json).await.into_anyhow()?;
+                    claim_publisher.put(claim_json).await.await.map_err(|e| anyhow::anyhow!("Zenoh error: {}", e))?;
                     println!("📝 Worker {} claimed job {}", worker_id, job.task_id);
                     
                     // Wait for assignment
                     let assign_key = k_assign(&job.task_id);
-                    let assign_subscriber = session.declare_subscriber(&assign_key).await.into_anyhow()?;
+                    let assign_subscriber = session.declare_subscriber(&assign_key).await.await.map_err(|e| anyhow::anyhow!("Zenoh error: {}", e))?;
                     let mut assigned = false;
                     
                     // Wait for assignment with timeout
@@ -195,9 +195,9 @@ impl SimpleZenohDemoFixed {
                     
                     // Publish result via Zenoh
                     let result_key = k_result(&job.task_id);
-                    let result_publisher = session.declare_publisher(&result_key).await.into_anyhow()?;
+                    let result_publisher = session.declare_publisher(&result_key).await.await.map_err(|e| anyhow::anyhow!("Zenoh error: {}", e))?;
                     let result_json = serde_json::to_string(&result)?;
-                    result_publisher.put(result_json).await.into_anyhow()?;
+                    result_publisher.put(result_json).await.await.map_err(|e| anyhow::anyhow!("Zenoh error: {}", e))?;
                     
                     println!("🎉 Worker {} completed job {}: {}", worker_id, job.task_id, result.message);
                 }
@@ -214,11 +214,11 @@ impl SimpleZenohDemoFixed {
     pub async fn assigner_simulation(&self) -> Result<()> {
         println!("🎯 Assigner started");
         
-        let session = zenoh::open(zenoh::Config::default()).await.into_anyhow()?;
+        let session = zenoh::open(zenoh::Config::default()).await.await.map_err(|e| anyhow::anyhow!("Zenoh error: {}", e))?;
         let announce_key = k_announce();
-        let job_subscriber = session.declare_subscriber(&announce_key).await.into_anyhow()?;
+        let job_subscriber = session.declare_subscriber(&announce_key).await.await.map_err(|e| anyhow::anyhow!("Zenoh error: {}", e))?;
         let claim_key = format!("{}/tasks/*/claim", NS);
-        let claim_subscriber = session.declare_subscriber(&claim_key).await.into_anyhow()?;
+        let claim_subscriber = session.declare_subscriber(&claim_key).await.await.map_err(|e| anyhow::anyhow!("Zenoh error: {}", e))?;
         
         let mut pending_jobs: HashMap<String, Job> = HashMap::new();
         let mut claims: HashMap<String, Vec<Claim>> = HashMap::new();
@@ -313,9 +313,9 @@ impl SimpleZenohDemoFixed {
     pub async fn result_listener_simulation(&self) -> Result<()> {
         println!("👂 Result listener started");
         
-        let session = zenoh::open(zenoh::Config::default()).await.into_anyhow()?;
+        let session = zenoh::open(zenoh::Config::default()).await.await.map_err(|e| anyhow::anyhow!("Zenoh error: {}", e))?;
         let result_key = format!("{}/tasks/*/result", NS);
-        let subscriber = session.declare_subscriber(&result_key).await.into_anyhow()?;
+        let subscriber = session.declare_subscriber(&result_key).await.await.map_err(|e| anyhow::anyhow!("Zenoh error: {}", e))?;
         
         while self.running.load(Ordering::Relaxed) {
             match subscriber.recv_async().await {
@@ -343,7 +343,7 @@ impl SimpleZenohDemoFixed {
     pub async fn run_simple_zenoh_demo_fixed(&self) -> Result<()> {
         println!("🚀 Zenoh P2P Computing Demo (Rust - Simple with Zenoh - FIXED)");
         println!("==============================================================");
-        println!("Using Zenoh 1.5.1 API with real messaging - Fixed assigner");
+        println!("Using Zenoh 1.6.2 API with real messaging - Fixed assigner");
         println!();
 
         // Start assigner

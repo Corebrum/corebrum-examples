@@ -5,8 +5,8 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::time::sleep;
 use serde_json;
-use crate::schema::*;
-use crate::dynamic_executor::DynamicTaskExecutor;
+use corebrum_examples::schema::*;
+use corebrum_examples::dynamic_executor::DynamicTaskExecutor;
 
 const NS: &str = "comp";
 const QUEUE: &str = "user_tasks";
@@ -181,9 +181,9 @@ let result = serde_json::json!({{
     pub async fn submit_task(&self, session: &zenoh::Session, task_definition: TaskDefinition, inputs: serde_json::Value) -> Result<String> {
         let job = Job::new_user_task(QUEUE.to_string(), task_definition, inputs);
         
-        let publisher = session.declare_publisher(&k_announce()).await?;
+        let publisher = session.declare_publisher(&k_announce()).await.map_err(|e| anyhow::anyhow!("Failed to declare publisher: {}", e))?;
         let job_json = serde_json::to_string(&job)?;
-        publisher.put(job_json).await?;
+        publisher.put(job_json).await.map_err(|e| anyhow::anyhow!("Failed to put data: {}", e))?;
         
         println!("📤 Submitted user task: {} ({})", job.task_id, job.task_definition.as_ref().map(|td| td.name.as_str()).unwrap_or("unknown"));
         Ok(job.task_id)
@@ -192,8 +192,8 @@ let result = serde_json::json!({{
     pub async fn worker_simulation(&self, worker_id: &str, latency_ms: u32) -> Result<()> {
         println!("👷 Worker {} started (latency: {}ms)", worker_id, latency_ms);
         
-        let session = zenoh::open(zenoh::Config::default()).await?;
-        let subscriber = session.declare_subscriber(&k_announce()).await?;
+        let session = zenoh::open(zenoh::Config::default()).await.map_err(|e| anyhow::anyhow!("Failed to open Zenoh session: {}", e))?;
+        let subscriber = session.declare_subscriber(&k_announce()).await.map_err(|e| anyhow::anyhow!("Failed to declare subscriber: {}", e))?;
         
         while self.running.load(Ordering::Relaxed) {
             match subscriber.recv_async().await {
@@ -202,7 +202,8 @@ let result = serde_json::json!({{
                         break;
                     }
                     
-                    let job: Job = serde_json::from_slice(&sample.payload)?;
+                    let payload = sample.payload().deserialize::<String>()?;
+                    let job: Job = serde_json::from_str(&payload)?;
                     println!("🔍 Worker {} sees job: {} ({})", worker_id, job.task_id, job.task_definition.as_ref().map(|td| td.name.as_str()).unwrap_or("unknown"));
                     
                     // Submit claim
@@ -212,18 +213,18 @@ let result = serde_json::json!({{
                     
                     let claim = Claim {
                         task_id: job.task_id.clone(),
-                        peer: worker_id.to_string(),
-                        eta_ms: latency_ms,
-                        lease_until_ms: now_ms + 200,
+                        worker_id: worker_id.to_string(),
+                        claimed_at: chrono::Utc::now(),
+                        estimated_duration_seconds: Some(5),
                     };
                     
-                    let claim_publisher = session.declare_publisher(&k_claim(&job.task_id)).await?;
+                    let claim_publisher = session.declare_publisher(&k_claim(&job.task_id)).await.map_err(|e| anyhow::anyhow!("Failed to declare publisher: {}", e))?;
                     let claim_json = serde_json::to_string(&claim)?;
-                    claim_publisher.put(claim_json).await?;
+                    claim_publisher.put(claim_json).await.map_err(|e| anyhow::anyhow!("Failed to put data: {}", e))?;
                     println!("📝 Worker {} claimed job {}", worker_id, job.task_id);
                     
                     // Wait for assignment
-                    let assign_subscriber = session.declare_subscriber(&k_assign(&job.task_id)).await?;
+                    let assign_subscriber = session.declare_subscriber(&k_assign(&job.task_id)).await.map_err(|e| anyhow::anyhow!("Failed to declare subscriber: {}", e))?;
                     let mut assigned = false;
                     let start_time = std::time::SystemTime::now();
                     
@@ -233,8 +234,9 @@ let result = serde_json::json!({{
                                 if !self.running.load(Ordering::Relaxed) {
                                     break;
                                 }
-                                let assign: Assign = serde_json::from_slice(&assign_sample.payload)?;
-                                if assign.assignee == worker_id {
+                                let payload = assign_sample.payload().deserialize::<String>()?;
+                    let assign: Assign = serde_json::from_str(&payload)?;
+                                if assign.worker_id == worker_id {
                                     assigned = true;
                                     break;
                                 }
@@ -256,30 +258,45 @@ let result = serde_json::json!({{
                     
                     // Execute task using dynamic executor
                     println!("⚙️  Worker {} executing job {} ({})", worker_id, job.task_id, job.task_definition.as_ref().map(|td| td.name.as_str()).unwrap_or("unknown"));
-                    let status_publisher = session.declare_publisher(&k_status(&job.task_id)).await?;
+                    let status_publisher = session.declare_publisher(&k_status(&job.task_id)).await.map_err(|e| anyhow::anyhow!("Failed to declare publisher: {}", e))?;
                     
-                    let status = Status::new(job.task_id.clone(), "running".to_string(), 0.3);
+                    let status = Status {
+                        task_id: job.task_id.clone(),
+                        worker_id: worker_id.to_string(),
+                        status: crate::schema::TaskStatus::Running,
+                        message: Some("Task is running".to_string()),
+                        progress: Some(0.3),
+                        timestamp: chrono::Utc::now(),
+                    };
                     let status_json = serde_json::to_string(&status)?;
-                    status_publisher.put(status_json).await?;
+                    status_publisher.put(status_json).await.map_err(|e| anyhow::anyhow!("Failed to put data: {}", e))?;
                     
                     // Execute the actual task using dynamic executor
-                    let executor = DynamicTaskExecutor::new()?;
-                    let result = executor.execute_task(&job, worker_id)?;
+                    let mut executor = DynamicTaskExecutor::new();
+                    let task_def = job.task_definition.as_ref().ok_or_else(|| anyhow::anyhow!("No task definition found"))?;
+                    let result = executor.execute_task(task_def, job.inputs.clone()).await?;
                     
                     if !self.running.load(Ordering::Relaxed) {
                         break;
                     }
                     
                     // Publish result
-                    let result_publisher = session.declare_publisher(&k_result(&job.task_id)).await?;
+                    let result_publisher = session.declare_publisher(&k_result(&job.task_id)).await.map_err(|e| anyhow::anyhow!("Failed to declare publisher: {}", e))?;
                     let result_json = serde_json::to_string(&result)?;
-                    result_publisher.put(result_json).await?;
+                    result_publisher.put(result_json).await.map_err(|e| anyhow::anyhow!("Failed to put data: {}", e))?;
                     
-                    let status = Status::new(job.task_id.clone(), "succeeded".to_string(), 1.0);
+                    let status = Status {
+                        task_id: job.task_id.clone(),
+                        worker_id: worker_id.to_string(),
+                        status: crate::schema::TaskStatus::Completed,
+                        message: Some("Task completed successfully".to_string()),
+                        progress: Some(1.0),
+                        timestamp: chrono::Utc::now(),
+                    };
                     let status_json = serde_json::to_string(&status)?;
-                    status_publisher.put(status_json).await?;
+                    status_publisher.put(status_json).await.map_err(|e| anyhow::anyhow!("Failed to put data: {}", e))?;
                     
-                    println!("🎉 Worker {} completed job {}: {}", worker_id, job.task_id, result.message);
+                    println!("🎉 Worker {} completed job {}: {:?}", worker_id, job.task_id, result.status);
                 }
                 Err(_) => {
                     if self.running.load(Ordering::Relaxed) {
@@ -296,9 +313,9 @@ let result = serde_json::json!({{
     pub async fn assigner_simulation(&self) -> Result<()> {
         println!("🤖 Assigner started");
         
-        let session = zenoh::open(zenoh::Config::default()).await?;
-        let job_subscriber = session.declare_subscriber(&k_announce()).await?;
-        let claim_subscriber = session.declare_subscriber(&format!("{}/tasks/*/claim", NS)).await?;
+        let session = zenoh::open(zenoh::Config::default()).await.map_err(|e| anyhow::anyhow!("Failed to open Zenoh session: {}", e))?;
+        let job_subscriber = session.declare_subscriber(&k_announce()).await.map_err(|e| anyhow::anyhow!("Failed to declare subscriber: {}", e))?;
+        let claim_subscriber = session.declare_subscriber(&format!("{}/tasks/*/claim", NS)).await.map_err(|e| anyhow::anyhow!("Failed to declare subscriber: {}", e))?;
         
         let mut pending_jobs: HashMap<String, (Job, Vec<Claim>, std::time::SystemTime)> = HashMap::new();
         
@@ -310,7 +327,8 @@ let result = serde_json::json!({{
             // Check for new jobs
             match job_subscriber.try_recv() {
                 Ok(sample) => {
-                    let job: Job = serde_json::from_slice(&sample.payload)?;
+                    let payload = sample.payload().deserialize::<String>()?;
+                    let job: Job = serde_json::from_str(&payload)?;
                     println!("📋 Assigner received job: {} ({})", job.task_id, job.task_definition.as_ref().map(|td| td.name.as_str()).unwrap_or("unknown"));
                     pending_jobs.insert(job.task_id.clone(), (job, Vec::new(), std::time::SystemTime::now()));
                 }
@@ -320,10 +338,11 @@ let result = serde_json::json!({{
             // Check for claims
             match claim_subscriber.try_recv() {
                 Ok(claim_sample) => {
-                    let claim: Claim = serde_json::from_slice(&claim_sample.payload)?;
+                    let payload = claim_sample.payload().deserialize::<String>()?;
+                    let claim: Claim = serde_json::from_str(&payload)?;
                     if let Some((_, claims, _)) = pending_jobs.get_mut(&claim.task_id) {
                         claims.push(claim.clone());
-                        println!("📝 Assigner received claim for {} from {}", claim.task_id, claim.peer);
+                        println!("📝 Assigner received claim for {} from {}", claim.task_id, claim.worker_id);
                     }
                 }
                 Err(_) => {}
@@ -344,23 +363,32 @@ let result = serde_json::json!({{
                 
                 if !claims.is_empty() {
                     // Pick best worker (lowest ETA)
-                    let best = claims.iter().min_by_key(|c| c.eta_ms).unwrap();
+                    let best = claims.iter().min_by_key(|c| c.estimated_duration_seconds).unwrap();
                     let assign = Assign {
                         task_id: task_id.clone(),
-                        assignee: best.peer.clone(),
-                        deadline_s: 60,
+                        worker_id: best.worker_id.clone(),
+                        assigned_at: chrono::Utc::now(),
+                        task_definition: job.0.clone(),
+                        inputs: job.1.clone(),
                     };
                     
-                    let assign_publisher = session.declare_publisher(&k_assign(&task_id)).await?;
+                    let assign_publisher = session.declare_publisher(&k_assign(&task_id)).await.map_err(|e| anyhow::anyhow!("Failed to declare publisher: {}", e))?;
                     let assign_json = serde_json::to_string(&assign)?;
-                    assign_publisher.put(assign_json).await?;
+                    assign_publisher.put(assign_json).await.map_err(|e| anyhow::anyhow!("Failed to put data: {}", e))?;
                     
-                    let status = Status::new(task_id.clone(), "assigned".to_string(), 0.0);
-                    let status_publisher = session.declare_publisher(&k_status(&task_id)).await?;
+                    let status = Status {
+                        task_id: task_id.clone(),
+                        worker_id: best.worker_id.clone(),
+                        status: crate::schema::TaskStatus::Assigned,
+                        message: Some("Task assigned to worker".to_string()),
+                        progress: Some(0.0),
+                        timestamp: chrono::Utc::now(),
+                    };
+                    let status_publisher = session.declare_publisher(&k_status(&task_id)).await.map_err(|e| anyhow::anyhow!("Failed to declare publisher: {}", e))?;
                     let status_json = serde_json::to_string(&status)?;
-                    status_publisher.put(status_json).await?;
+                    status_publisher.put(status_json).await.map_err(|e| anyhow::anyhow!("Failed to put data: {}", e))?;
                     
-                    println!("✅ Assigned job {} to {} (ETA: {}ms)", task_id, best.peer, best.eta_ms);
+                    println!("✅ Assigned job {} to {} (ETA: {}s)", task_id, best.worker_id, best.estimated_duration_seconds.unwrap_or(0));
                 } else {
                     println!("❌ No claims for job {}", task_id);
                 }
@@ -375,8 +403,8 @@ let result = serde_json::json!({{
 
     pub async fn result_listener(&self) -> Result<()> {
         println!("👂 Result listener started...");
-        let session = zenoh::open(zenoh::Config::default()).await?;
-        let subscriber = session.declare_subscriber(&format!("{}/tasks/*/result", NS)).await?;
+        let session = zenoh::open(zenoh::Config::default()).await.map_err(|e| anyhow::anyhow!("Failed to open Zenoh session: {}", e))?;
+        let subscriber = session.declare_subscriber(&format!("{}/tasks/*/result", NS)).await.map_err(|e| anyhow::anyhow!("Failed to declare subscriber: {}", e))?;
         
         while self.running.load(Ordering::Relaxed) {
             match subscriber.recv_async().await {
@@ -384,17 +412,14 @@ let result = serde_json::json!({{
                     if !self.running.load(Ordering::Relaxed) {
                         break;
                     }
-                    let result: crate::schema::Result = serde_json::from_slice(&sample.payload)?;
-                    println!("📊 RESULT: {} - {}", result.task_id, if result.ok { "✅ SUCCESS" } else { "❌ FAILED" });
-                    if !result.artifacts.is_empty() {
-                        println!("   Artifacts: {:?}", result.artifacts.keys().collect::<Vec<_>>());
+                    let payload = sample.payload().deserialize::<String>()?;
+                    let result: crate::schema::Result = serde_json::from_str(&payload)?;
+                    println!("📊 RESULT: {} - {:?}", result.task_id, result.status);
+                    if !result.outputs.is_empty() {
+                        println!("   Outputs: {:?}", result.outputs.keys().collect::<Vec<_>>());
                         // Print the actual result content
-                        for (artifact_name, artifact_content) in &result.artifacts {
-                            if let Ok(result_data) = serde_json::from_str::<serde_json::Value>(artifact_content) {
-                                println!("   {}: {}", artifact_name, result_data);
-                            } else {
-                                println!("   {}: {}", artifact_name, artifact_content);
-                            }
+                        for (output_name, output_value) in &result.outputs {
+                            println!("   {}: {}", output_name, output_value);
                         }
                     }
                 }
@@ -414,7 +439,7 @@ let result = serde_json::json!({{
         println!("🚀 Zenoh User-Defined Compute Tasks Demo (Rust)");
         println!("================================================");
         
-        let session = zenoh::open(zenoh::Config::default()).await?;
+        let session = zenoh::open(zenoh::Config::default()).await.map_err(|e| anyhow::anyhow!("Failed to open Zenoh session: {}", e))?;
         
         // Start components
         let assigner_handle = {
@@ -484,4 +509,10 @@ let result = serde_json::json!({{
         println!("✅ Demo completed!");
         Ok(())
     }
+}
+
+#[tokio::main]
+async fn main() -> Result<()> {
+    let demo = UserDefinedDemo::new();
+    demo.run_demo().await
 }

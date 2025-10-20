@@ -114,9 +114,9 @@ let result = serde_json::json!({{
         
         // Use the fixed error handling
         let key = k_announce();
-        let publisher = session.declare_publisher(&key).await.into_anyhow()?;
+        let publisher = session.declare_publisher(&key).await.await.map_err(|e| anyhow::anyhow!("Zenoh error: {}", e))?;
         let job_json = serde_json::to_string(&job)?;
-        publisher.put(job_json).await.into_anyhow()?;
+        publisher.put(job_json).await.await.map_err(|e| anyhow::anyhow!("Zenoh error: {}", e))?;
         
         println!("📤 Submitted user task: {} ({})", job.task_id, job.task_definition.as_ref().map(|td| td.name.as_str()).unwrap_or("unknown"));
         Ok(job.task_id)
@@ -126,9 +126,9 @@ let result = serde_json::json!({{
         println!("👷 Worker {} started (latency: {}ms)", worker_id, latency_ms);
         
         // Use the fixed error handling
-        let session = zenoh::open(zenoh::Config::default()).await.into_anyhow()?;
+        let session = zenoh::open(zenoh::Config::default()).await.await.map_err(|e| anyhow::anyhow!("Zenoh error: {}", e))?;
         let key = k_announce();
-        let subscriber = session.declare_subscriber(&key).await.into_anyhow()?;
+        let subscriber = session.declare_subscriber(&key).await.await.map_err(|e| anyhow::anyhow!("Zenoh error: {}", e))?;
         
         while self.running.load(Ordering::Relaxed) {
             match subscriber.recv_async().await {
@@ -154,15 +154,15 @@ let result = serde_json::json!({{
                     };
                     
                     let claim_key = k_claim(&job.task_id);
-                    let claim_publisher = session.declare_publisher(&claim_key).await.into_anyhow()?;
+                    let claim_publisher = session.declare_publisher(&claim_key).await.await.map_err(|e| anyhow::anyhow!("Zenoh error: {}", e))?;
                     let claim_json = serde_json::to_string(&claim)?;
-                    claim_publisher.put(claim_json).await.into_anyhow()?;
+                    claim_publisher.put(claim_json).await.await.map_err(|e| anyhow::anyhow!("Zenoh error: {}", e))?;
                     println!("📝 Worker {} claimed job {}", worker_id, job.task_id);
                     
                     // Wait for assignment
                     let assign_key = k_assign(&job.task_id);
                     println!("🔑 Worker {} subscribing to assignment key: {}", worker_id, assign_key);
-                    let assign_subscriber = session.declare_subscriber(&assign_key).await.into_anyhow()?;
+                    let assign_subscriber = session.declare_subscriber(&assign_key).await.await.map_err(|e| anyhow::anyhow!("Zenoh error: {}", e))?;
                     let mut assigned = false;
                     
                     // Small delay to ensure subscriber is ready
@@ -214,9 +214,9 @@ let result = serde_json::json!({{
                     };
                     
                     let status_key = k_status(&job.task_id);
-                    let status_publisher = session.declare_publisher(&status_key).await.into_anyhow()?;
+                    let status_publisher = session.declare_publisher(&status_key).await.await.map_err(|e| anyhow::anyhow!("Zenoh error: {}", e))?;
                     let status_json = serde_json::to_string(&status)?;
-                    status_publisher.put(status_json).await.into_anyhow()?;
+                    status_publisher.put(status_json).await.await.map_err(|e| anyhow::anyhow!("Zenoh error: {}", e))?;
                     
                     // Execute the actual task using dynamic executor
                     let executor = DynamicTaskExecutor::new()?;
@@ -228,9 +228,9 @@ let result = serde_json::json!({{
                     
                     // Publish result
                     let result_key = k_result(&job.task_id);
-                    let result_publisher = session.declare_publisher(&result_key).await.into_anyhow()?;
+                    let result_publisher = session.declare_publisher(&result_key).await.await.map_err(|e| anyhow::anyhow!("Zenoh error: {}", e))?;
                     let result_json = serde_json::to_string(&result)?;
-                    result_publisher.put(result_json).await.into_anyhow()?;
+                    result_publisher.put(result_json).await.await.map_err(|e| anyhow::anyhow!("Zenoh error: {}", e))?;
                     
                     let final_status = Status {
                         task_id: job.task_id.clone(),
@@ -238,7 +238,7 @@ let result = serde_json::json!({{
                         progress: 1.0,
                     };
                     let final_status_json = serde_json::to_string(&final_status)?;
-                    status_publisher.put(final_status_json).await.into_anyhow()?;
+                    status_publisher.put(final_status_json).await.await.map_err(|e| anyhow::anyhow!("Zenoh error: {}", e))?;
                     println!("🎉 Worker {} completed job {}: {}", worker_id, job.task_id, result.message);
                 }
                 Err(e) => {
@@ -254,11 +254,11 @@ let result = serde_json::json!({{
     pub async fn assigner_simulation(&self) -> Result<()> {
         println!("🎯 Assigner started");
         
-        let session = zenoh::open(zenoh::Config::default()).await.into_anyhow()?;
+        let session = zenoh::open(zenoh::Config::default()).await.await.map_err(|e| anyhow::anyhow!("Zenoh error: {}", e))?;
         let announce_key = k_announce();
-        let job_subscriber = session.declare_subscriber(&announce_key).await.into_anyhow()?;
+        let job_subscriber = session.declare_subscriber(&announce_key).await.await.map_err(|e| anyhow::anyhow!("Zenoh error: {}", e))?;
         let claim_key = format!("{}/tasks/*/claim", NS);
-        let claim_subscriber = session.declare_subscriber(&claim_key).await.into_anyhow()?;
+        let claim_subscriber = session.declare_subscriber(&claim_key).await.await.map_err(|e| anyhow::anyhow!("Zenoh error: {}", e))?;
         
         let mut pending_jobs: HashMap<String, Job> = HashMap::new();
         let mut claims: HashMap<String, Vec<Claim>> = HashMap::new();
@@ -360,9 +360,9 @@ let result = serde_json::json!({{
     pub async fn result_listener_simulation(&self) -> Result<()> {
         println!("👂 Result listener started");
         
-        let session = zenoh::open(zenoh::Config::default()).await.into_anyhow()?;
+        let session = zenoh::open(zenoh::Config::default()).await.await.map_err(|e| anyhow::anyhow!("Zenoh error: {}", e))?;
         let result_key = format!("{}/tasks/*/result", NS);
-        let subscriber = session.declare_subscriber(&result_key).await.into_anyhow()?;
+        let subscriber = session.declare_subscriber(&result_key).await.await.map_err(|e| anyhow::anyhow!("Zenoh error: {}", e))?;
         
         while self.running.load(Ordering::Relaxed) {
             match subscriber.recv_async().await {
@@ -390,7 +390,7 @@ let result = serde_json::json!({{
     pub async fn run_fixed_zenoh_demo(&self) -> Result<()> {
         println!("🚀 Zenoh User-Defined Compute Tasks Demo (Rust - Fixed API)");
         println!("============================================================");
-        println!("Using Zenoh 1.5.1 API with proper error handling and payload access");
+        println!("Using Zenoh 1.6.2 API with proper error handling and payload access");
         println!();
 
         // Start assigner
@@ -434,7 +434,7 @@ let result = serde_json::json!({{
         sleep(Duration::from_millis(1000)).await;
 
         // Submit tasks
-        let session = zenoh::open(zenoh::Config::default()).await.into_anyhow()?;
+        let session = zenoh::open(zenoh::Config::default()).await.await.map_err(|e| anyhow::anyhow!("Zenoh error: {}", e))?;
         
         // Submit factorial task
         let factorial_def = Self::create_factorial_task_definition(10).await;
@@ -474,7 +474,7 @@ let result = serde_json::json!({{
         }
 
         println!("\n✅ Fixed Zenoh demo completed!");
-        println!("This demo uses the correct Zenoh 1.5.1 API patterns:");
+        println!("This demo uses the correct Zenoh 1.6.2 API patterns:");
         println!("- Proper error handling with .into_anyhow()");
         println!("- Correct sample payload access with deserialize_from_sample()");
         println!("- Updated API method calls");
