@@ -1,0 +1,149 @@
+task_definition:
+  name: "sequential_ai_pipeline"
+  version: "1.0"
+  description: "Sequential AI inference pipeline for image processing"
+  tasks:
+  - name: "preprocess_image"
+    version: "1.0"
+    description: "Preprocess image data for AI inference"
+    inputs: [{"name": "image_url", "type": "string"}]
+    outputs: [{"name": "preprocessed_data", "type": "json"}]
+    compute_logic:
+      type: "expression"
+      language: "python"
+      timeout_seconds: 60
+      code: |
+        import base64
+        import json
+        
+        # Simulate image preprocessing
+        # In a real scenario, this would load and preprocess an actual image
+        image_data = {
+            "width": 224,
+            "height": 224,
+            "channels": 3,
+            "format": "RGB",
+            "preprocessed": True,
+            "normalized": True,
+            "mean": [0.485, 0.456, 0.406],
+            "std": [0.229, 0.224, 0.225]
+        }
+        
+        # Simulate base64 encoded image data
+        dummy_pixels = [0.1] * (224 * 224 * 3)  # Dummy pixel data
+        image_data["pixel_data"] = base64.b64encode(json.dumps(dummy_pixels).encode()).decode()
+        
+        result = {
+            "preprocessed_image": image_data,
+            "preprocessing_steps": [
+                "resize_to_224x224",
+                "normalize_pixels",
+                "convert_to_tensor"
+            ],
+            "metadata": {
+                "original_url": "https://example.com/image.jpg",
+                "processing_time": "0.5s"
+            }
+        }
+        
+        print(f"Preprocessed image: {image_data['width']}x{image_data['height']} {image_data['format']}")
+    validation: []
+    metadata: {}
+  
+  - name: "run_inference"
+    version: "1.0"
+    description: "Run AI model inference on preprocessed image"
+    inputs: [{"name": "preprocessed_data", "type": "json"}]
+    outputs: [{"name": "inference_results", "type": "json"}]
+    compute_logic:
+      type: "expression"
+      language: "python"
+      timeout_seconds: 120
+      code: |
+        # 'result' variable contains output from previous task
+        print(f"Running AI inference on preprocessed image")
+        
+        # Simulate AI model inference
+        # In a real scenario, this would run an actual ML model
+        predictions = [
+            {"class": "cat", "confidence": 0.95, "bbox": [10, 20, 100, 150]},
+            {"class": "dog", "confidence": 0.87, "bbox": [50, 30, 120, 180]},
+            {"class": "bird", "confidence": 0.23, "bbox": [200, 10, 220, 50]}
+        ]
+        
+        # Filter high-confidence predictions
+        high_confidence = [p for p in predictions if p["confidence"] > 0.5]
+        
+        inference_result = {
+            "predictions": high_confidence,
+            "total_detections": len(predictions),
+            "high_confidence_detections": len(high_confidence),
+            "model_info": {
+                "name": "YOLOv8",
+                "version": "8.0",
+                "input_size": "224x224",
+                "confidence_threshold": 0.5
+            },
+            "processing_time": "1.2s"
+        }
+        
+        result = {
+            "inference_results": inference_result,
+            "preprocessed_data": result["preprocessed_image"],
+            "metadata": result["metadata"]
+        }
+        
+        print(f"AI inference completed: {len(high_confidence)} high-confidence detections")
+        for pred in high_confidence:
+            print(f"  - {pred['class']}: {pred['confidence']:.2f}")
+    validation: []
+    metadata: {}
+  
+  - name: "postprocess_results"
+    version: "1.0"
+    description: "Postprocess and analyze inference results"
+    inputs: [{"name": "inference_results", "type": "json"}]
+    outputs: [{"name": "final_analysis", "type": "json"}]
+    compute_logic:
+      type: "expression"
+      language: "python"
+      timeout_seconds: 30
+      code: |
+        # 'result' variable contains output from previous task
+        print(f"Postprocessing {result['inference_results']['high_confidence_detections']} detections")
+        
+        inference = result['inference_results']
+        preprocessed = result['preprocessed_data']
+        
+        # Generate final analysis
+        analysis = {
+            "summary": {
+                "image_size": f"{preprocessed['width']}x{preprocessed['height']}",
+                "detected_objects": len(inference['predictions']),
+                "most_confident": max(inference['predictions'], key=lambda x: x['confidence']) if inference['predictions'] else None,
+                "total_processing_time": f"{float(inference['processing_time'].rstrip('s')) + 0.5:.1f}s"
+            },
+            "detections": inference['predictions'],
+            "model_performance": {
+                "model": inference['model_info']['name'],
+                "confidence_threshold": inference['model_info']['confidence_threshold'],
+                "inference_time": inference['processing_time']
+            },
+            "recommendations": [
+                "High confidence detections found",
+                "Consider running additional models for verification" if len(inference['predictions']) > 1 else "Single object detected with high confidence"
+            ]
+        }
+        
+        result = {
+            "analysis": analysis,
+            "pipeline_status": "completed",
+            "timestamp": "2024-01-01T00:02:00Z"
+        }
+        
+        print(f"Postprocessing completed: {analysis['summary']['detected_objects']} objects detected")
+        if analysis['summary']['most_confident']:
+            best = analysis['summary']['most_confident']
+            print(f"Most confident detection: {best['class']} ({best['confidence']:.2f})")
+    validation: []
+    metadata: {}

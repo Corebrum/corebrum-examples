@@ -1,160 +1,122 @@
 # Corebrum Examples
 
-This directory contains examples and demonstrations for the Corebrum decentralized mesh computing platform.
+This directory contains example task definitions and workflows for Corebrum mesh computing.
 
-## Structure
+## Sequential Task Examples
 
-- `src/` - Example Rust applications demonstrating various Corebrum features
-- `task_definitions/` - Sample task definition files in various formats (JSON, YAML)
-- `wasm_factorial/` - WebAssembly example project
-- `wasm_factorial_url/` - WebAssembly example with URL-based loading
+### 1. Sequential Pipeline (`sequential_pipeline.yaml`)
+
+A basic 3-task sequential workflow demonstrating data processing:
+- **Task 1**: Fetch data from API
+- **Task 2**: Process and filter data
+- **Task 3**: Store results and generate summary
+
+**Usage:**
+```bash
+corebrum submit --file task_definitions/sequential_pipeline.yaml
+```
+
+### 2. Data Transform Chain (`sequential_data_transform.yaml`)
+
+A CSV data processing pipeline:
+- **Task 1**: Load and parse CSV data
+- **Task 2**: Filter for engineering department
+- **Task 3**: Calculate statistics
+
+**Usage:**
+```bash
+corebrum submit --file task_definitions/sequential_data_transform.yaml
+```
+
+### 3. AI Inference Pipeline (`sequential_ai_pipeline.yaml`)
+
+An AI/ML inference workflow:
+- **Task 1**: Preprocess image data
+- **Task 2**: Run AI model inference
+- **Task 3**: Postprocess and analyze results
+
+**Usage:**
+```bash
+corebrum submit --file task_definitions/sequential_ai_pipeline.yaml
+```
+
+## Sequential Execution Features
+
+### Key Concepts
+
+1. **Task Arrays**: Define multiple tasks in a single YAML file using the `tasks` array
+2. **Automatic Chaining**: Tasks execute in order, with each task's output becoming the next task's input
+3. **Previous Result Access**: In Python tasks, access the previous task's output via the `result` variable
+4. **Decentralized Execution**: Any worker can claim any task in the sequence
+5. **Error Handling**: If any task fails, the entire sequence fails
+
+### Monitoring Sequential Tasks
+
+```bash
+# View results for entire chain
+corebrum cmos
+CMOS[user@local] > mesh-results <parent-task-id> --chain
+
+# View logs for entire chain  
+CMOS[user@local] > mesh-logs <parent-task-id> --chain
+
+# Check status of individual tasks
+CMOS[user@local] > mesh-status <parent-task-id>-0  # First task
+CMOS[user@local] > mesh-status <parent-task-id>-1  # Second task
+CMOS[user@local] > mesh-status <parent-task-id>-2  # Third task
+```
+
+### Task ID Structure
+
+Sequential tasks use a hierarchical ID structure:
+- **Parent ID**: The original task submission ID (e.g., `abc123-def456`)
+- **Child IDs**: Individual tasks in the sequence (e.g., `abc123-def456-0`, `abc123-def456-1`, `abc123-def456-2`)
+
+### Use Cases
+
+- **Data Processing Pipelines**: ETL workflows with multiple transformation stages
+- **AI/ML Workflows**: Preprocessing → Inference → Postprocessing chains
+- **Multi-stage Analysis**: Extract → Transform → Load (ETL) processes
+- **Robotics Computing**: Sensor → Process → Actuate control loops
+- **Scientific Computing**: Simulation → Analysis → Visualization pipelines
 
 ## Running Examples
 
-### Using the Corebrum CLI (Recommended)
+1. **Start the daemon:**
+   ```bash
+   corebrum daemon --worker-count 4
+   ```
 
-The easiest way to run these examples is using the [Corebrum CLI](../corebrum-cli):
+2. **Submit a sequential task:**
+   ```bash
+   corebrum submit --file task_definitions/sequential_pipeline.yaml
+   ```
 
-```bash
-# Start the Corebrum daemon first
-cd ../corebrum
-cargo run daemon 3
+3. **Monitor progress:**
+   ```bash
+   corebrum cmos
+   CMOS[user@local] > mesh-status <task-id>
+   ```
 
-# In another terminal, use the CLI to submit tasks
-cd ../corebrum-cli
-cargo run submit-and-wait --file ../corebrum-examples/task_definitions/factorial_task.yaml --input '{"number": 10}'
-cargo run submit-and-wait --file ../corebrum-examples/task_definitions/fibonacci_task.json --input '{"terms": 15}'
-cargo run submit-and-wait --file ../corebrum-examples/task_definitions/factorial_wasm.yaml --input '{"number": 12}'
-```
+4. **View results:**
+   ```bash
+   CMOS[user@local] > mesh-results <task-id> --chain
+   ```
 
-### Running Example Binaries Directly
+## Customizing Examples
 
-To run any of the example binaries directly:
+You can modify these examples to suit your needs:
 
-```bash
-cargo run --bin <example_name>
-```
+1. **Change the number of tasks**: Add or remove tasks from the `tasks` array
+2. **Modify task logic**: Update the `code` section in each task's `compute_logic`
+3. **Adjust timeouts**: Change `timeout_seconds` for each task
+4. **Add inputs/outputs**: Define custom `inputs` and `outputs` for each task
+5. **Use different languages**: Change `language` to `javascript`, `rust`, etc.
 
-Available examples:
-- `simple_user_demo` - Basic user demonstration
-- `simple_user_zenoh_demo` - User demo with Zenoh integration
-- `simple_zenoh_demo` - Basic Zenoh demonstration
-- `simple_zenoh_demo_fixed` - Fixed version of Zenoh demo
-- `fixed_user_demo` - Fixed user demonstration
-- `fixed_zenoh_demo` - Fixed Zenoh demonstration
-- `user_demo` - Advanced user demonstration
-- `working_user_demo` - Working user demonstration
-- `working_user_zenoh_demo` - Working user demo with Zenoh
+## Best Practices
 
-## Task Definitions
-
-The `task_definitions/` directory contains various sample task configurations that can be used to test the Corebrum platform.
-
-### Using Task Definitions with the CLI
-
-All task definitions in this repository can be used with the [Corebrum CLI](../corebrum-cli):
-
-```bash
-# Python factorial task
-cargo run submit-and-wait --file task_definitions/factorial_task.yaml --input '{"number": 10}'
-
-# Python fibonacci task
-cargo run submit-and-wait --file task_definitions/fibonacci_task.json --input '{"terms": 15}'
-
-# WebAssembly factorial task
-cargo run submit-and-wait --file task_definitions/factorial_wasm.yaml --input '{"number": 12}'
-
-# Docker task
-cargo run submit-and-wait --file task_definitions/docker_task.yaml --input '{"number": 8}'
-
-# Task with external code source (GitHub Gist)
-cargo run submit-and-wait --file task_definitions/factorial_from_url.yaml --input '{"number": 5}'
-
-# Task with dependencies (requires specific worker capabilities)
-cargo run submit-and-wait --file task_definitions/python_with_dependencies.yaml --input '{"number": 8}'
-cargo run submit-and-wait --file task_definitions/docker_with_dependencies.yaml --input '{"number": 6}'
-cargo run submit-and-wait --file task_definitions/multi_dependency_task.yaml --input '{"text": "Hello Qwen!"}'
-```
-
-### Available Task Definition Files
-
-| File | Type | Language | Code Source | Dependencies | Description |
-|------|------|----------|-------------|--------------|-------------|
-| `factorial_task.yaml` | expression | Python | Embedded | None | Basic factorial computation |
-| `factorial_from_url.yaml` | expression | Python | GitHub Gist URL | None | Factorial from external URL |
-| `factorial_wasm.yaml` | wasm | Rust | Local | None | Local WASM factorial module |
-| `factorial_wasm_url.yaml` | wasm | Rust | URL | None | WASM factorial from external URL |
-| `factorial_docker.yaml` | docker | Python | Docker | None | Docker containerized factorial |
-| `fibonacci_task.json` | expression | Python | Embedded | None | Basic Fibonacci sequence |
-| `fibonacci_from_gist.json` | expression | Python | GitHub Gist | None | Fibonacci from GitHub Gist |
-| `docker_task.yaml` | docker | Python | Docker | None | Generic Docker task example |
-| `git_repo_task.json` | expression | Python | Git Repository | None | Task from Git repository |
-| `mixed_sources_demo.yaml` | expression | Python | Multiple | None | Demo with various code sources |
-| `python_with_dependencies.yaml` | expression | Python | Embedded | python | Python task with dependency requirement |
-| `docker_with_dependencies.yaml` | docker | Python | Docker | docker | Docker task with dependency requirement |
-| `multi_dependency_task.yaml` | expression | Python | Embedded | python,qwen | Multi-capability task example |
-
-## Task Dependencies
-
-The examples include tasks that demonstrate the dependency system:
-
-### How Dependencies Work
-
-1. **Worker Capabilities**: Workers are configured with specific capabilities (e.g., `python`, `docker`, `qwen`)
-2. **Task Requirements**: Tasks can specify dependencies they need
-3. **Automatic Matching**: Only workers with matching capabilities will claim tasks
-4. **Flexible Configuration**: Workers can have multiple capabilities
-
-### Example Usage
-
-```bash
-# Start daemon with workers having different capabilities
-cd ../corebrum
-cargo run daemon 3 --capabilities "python,docker" "python,qwen" "docker,wasm"
-
-# In another terminal, submit tasks with dependencies
-cd ../corebrum-cli
-
-# This task will only be claimed by workers with 'python' capability
-cargo run submit-and-wait --file ../corebrum-examples/task_definitions/python_with_dependencies.yaml --input '{"number": 8}'
-
-# This task will only be claimed by workers with 'docker' capability
-cargo run submit-and-wait --file ../corebrum-examples/task_definitions/docker_with_dependencies.yaml --input '{"number": 6}'
-
-# This task will only be claimed by workers with BOTH 'python' AND 'qwen' capabilities
-cargo run submit-and-wait --file ../corebrum-examples/task_definitions/multi_dependency_task.yaml --input '{"text": "Hello Qwen!"}'
-```
-
-### Available Dependencies
-
-- **python**: Required for Python script execution
-- **docker**: Required for Docker containerized tasks
-- **qwen**: Required for Qwen model inference
-- **wasm**: Required for WebAssembly module execution
-- **javascript**: Required for JavaScript/Node.js execution
-
-### Worker Identification
-
-Each worker thread is assigned a unique UUID that is included in task results for better traceability and debugging:
-
-```json
-{
-  "factorial": 40320,
-  "input_number": 8,
-  "computation_time_ms": 0,
-  "method": "python",
-  "worker_id": "9dc9270f-f4f1-4ba9-8cb2-9781e9825775",
-  "worker_uuid": "9dc9270f-f4f1-4ba9-8cb2-9781e9825775",
-  "dependencies_required": ["python"],
-  "timestamp": "2025-01-17 12:30:45"
-}
-```
-
-This allows you to:
-- Track which specific worker thread executed each task
-- Debug issues by correlating tasks with specific worker instances
-- Monitor worker performance and load distribution
-
-## WebAssembly Examples
-
-The `wasm_factorial/` and `wasm_factorial_url/` directories contain WebAssembly examples that demonstrate how to run WASM tasks in the Corebrum environment.
+1. **Error Handling**: Always check for errors in your task code
+2. **Data Validation**: Validate input data from previous tasks
+3. **Resource Management**: Set appropriate timeouts for each task
+4. **Logging**: Use print statements for debugging and monitoring
+5. **Idempotency**: Design tasks to be safely re-runnable

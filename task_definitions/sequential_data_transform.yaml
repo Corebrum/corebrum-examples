@@ -1,0 +1,109 @@
+task_definition:
+  name: "sequential_data_transform"
+  version: "1.0"
+  description: "Sequential data transformation chain for CSV processing"
+  tasks:
+  - name: "load_csv"
+    version: "1.0"
+    description: "Load and parse CSV data"
+    inputs: [{"name": "csv_data", "type": "string"}]
+    outputs: [{"name": "raw_data", "type": "json"}]
+    compute_logic:
+      type: "expression"
+      language: "python"
+      timeout_seconds: 30
+      code: |
+        import csv
+        import io
+        
+        # Simulate CSV data loading
+        csv_data = """name,age,salary,department
+        Alice,25,50000,Engineering
+        Bob,30,60000,Marketing
+        Charlie,35,70000,Engineering
+        Diana,28,55000,Sales
+        Eve,32,65000,Engineering"""
+        
+        # Parse CSV data
+        reader = csv.DictReader(io.StringIO(csv_data))
+        employees = list(reader)
+        
+        result = {
+            "employees": employees,
+            "total_count": len(employees),
+            "departments": list(set(emp['department'] for emp in employees))
+        }
+        
+        print(f"Loaded {len(employees)} employees from CSV")
+    validation: []
+    metadata: {}
+  
+  - name: "filter_engineering"
+    version: "1.0"
+    description: "Filter for engineering department employees"
+    inputs: [{"name": "raw_data", "type": "json"}]
+    outputs: [{"name": "filtered_data", "type": "json"}]
+    compute_logic:
+      type: "expression"
+      language: "python"
+      timeout_seconds: 30
+      code: |
+        # 'result' variable contains output from previous task
+        print(f"Filtering engineering employees from {result['total_count']} total employees")
+        
+        # Filter for engineering department
+        engineering_employees = [
+            emp for emp in result['employees'] 
+            if emp['department'] == 'Engineering'
+        ]
+        
+        result = {
+            "engineering_employees": engineering_employees,
+            "filtered_count": len(engineering_employees),
+            "original_count": result['total_count'],
+            "filter_criteria": "department == 'Engineering'"
+        }
+        
+        print(f"Found {len(engineering_employees)} engineering employees")
+    validation: []
+    metadata: {}
+  
+  - name: "calculate_statistics"
+    version: "1.0"
+    description: "Calculate statistics for filtered employees"
+    inputs: [{"name": "filtered_data", "type": "json"}]
+    outputs: [{"name": "statistics", "type": "json"}]
+    compute_logic:
+      type: "expression"
+      language: "python"
+      timeout_seconds: 30
+      code: |
+        # 'result' variable contains output from previous task
+        print(f"Calculating statistics for {result['filtered_count']} engineering employees")
+        
+        employees = result['engineering_employees']
+        
+        # Calculate statistics
+        ages = [int(emp['age']) for emp in employees]
+        salaries = [int(emp['salary']) for emp in employees]
+        
+        stats = {
+            "count": len(employees),
+            "average_age": sum(ages) / len(ages) if ages else 0,
+            "average_salary": sum(salaries) / len(salaries) if salaries else 0,
+            "min_salary": min(salaries) if salaries else 0,
+            "max_salary": max(salaries) if salaries else 0,
+            "age_range": f"{min(ages)}-{max(ages)}" if ages else "N/A"
+        }
+        
+        result = {
+            "statistics": stats,
+            "employees": employees,
+            "department": "Engineering"
+        }
+        
+        print(f"Statistics calculated for {stats['count']} employees")
+        print(f"Average age: {stats['average_age']:.1f}")
+        print(f"Average salary: ${stats['average_salary']:,.0f}")
+    validation: []
+    metadata: {}

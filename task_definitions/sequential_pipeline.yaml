@@ -1,0 +1,111 @@
+task_definition:
+  name: "sequential_pipeline"
+  version: "1.0"
+  description: "Sequential data processing pipeline demonstrating task chaining"
+  tasks:
+  - name: "fetch_data"
+    version: "1.0"
+    description: "Fetch data from external source"
+    inputs: [{"name": "url", "type": "string"}]
+    outputs: [{"name": "raw_data", "type": "json"}]
+    compute_logic:
+      type: "expression"
+      language: "python"
+      timeout_seconds: 30
+      code: |
+        import requests
+        import json
+        
+        # Simulate fetching data from URL
+        # In a real scenario, this would be: result = requests.get(url).json()
+        result = {
+            "data": [
+                {"id": 1, "value": 10, "category": "A"},
+                {"id": 2, "value": 20, "category": "B"},
+                {"id": 3, "value": 30, "category": "A"},
+                {"id": 4, "value": 40, "category": "C"},
+                {"id": 5, "value": 50, "category": "B"}
+            ],
+            "metadata": {
+                "source": "api",
+                "count": 5,
+                "timestamp": "2024-01-01T00:00:00Z"
+            }
+        }
+        
+        print(f"Fetched {len(result['data'])} records")
+    validation: []
+    metadata: {}
+  
+  - name: "process_data"
+    version: "1.0"
+    description: "Process and filter the fetched data"
+    inputs: [{"name": "raw_data", "type": "json"}]
+    outputs: [{"name": "processed_data", "type": "json"}]
+    compute_logic:
+      type: "expression"
+      language: "python"
+      timeout_seconds: 30
+      code: |
+        # 'result' variable contains output from previous task
+        input_data = result  # Store reference to input data
+        print(f"Processing data from previous task: {len(input_data['data'])} records")
+        
+        # Process the data - filter and transform
+        processed_data = []
+        for item in input_data['data']:
+            if item['value'] > 25:  # Filter items with value > 25
+                processed_item = {
+                    "id": item['id'],
+                    "doubled_value": item['value'] * 2,
+                    "category": item['category'],
+                    "processed": True
+                }
+                processed_data.append(processed_item)
+        
+        result = {
+            "processed_data": processed_data,
+            "filter_criteria": "value > 25",
+            "original_count": len(input_data['data']),
+            "processed_count": len(processed_data),
+            "metadata": input_data['metadata']
+        }
+        
+        print(f"Processed {len(processed_data)} records (filtered from {len(input_data['data'])} original)")
+    validation: []
+    metadata: {}
+  
+  - name: "store_results"
+    version: "1.0"
+    description: "Store the processed results and generate summary"
+    inputs: [{"name": "processed_data", "type": "json"}]
+    outputs: [{"name": "final_result", "type": "json"}]
+    compute_logic:
+      type: "expression"
+      language: "python"
+      timeout_seconds: 30
+      code: |
+        # 'result' variable contains output from previous task
+        print(f"Storing results from previous task: {result['processed_count']} processed records")
+        
+        # Simulate storing results and generate summary
+        summary = {
+            "total_processed": result['processed_count'],
+            "filter_applied": result['filter_criteria'],
+            "categories": list(set(item['category'] for item in result['processed_data'])),
+            "avg_doubled_value": sum(item['doubled_value'] for item in result['processed_data']) / len(result['processed_data']) if result['processed_data'] else 0,
+            "storage_status": "success",
+            "timestamp": "2024-01-01T00:01:00Z"
+        }
+        
+        result = {
+            "summary": summary,
+            "stored_records": result['processed_data'],
+            "pipeline_status": "completed"
+        }
+        
+        print(f"Pipeline completed successfully! Processed {summary['total_processed']} records")
+        print(f"Categories: {summary['categories']}")
+        print(f"Average doubled value: {summary['avg_doubled_value']:.2f}")
+    validation: []
+    metadata: {}
