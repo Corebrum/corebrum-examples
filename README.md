@@ -1,6 +1,316 @@
 # Corebrum Examples
 
-This directory contains example task definitions and workflows for Corebrum mesh computing.
+This directory contains example task definitions and workflows for Corebrum mesh computing, demonstrating both parallel and sequential computing patterns.
+
+## Parallel Computing Examples
+
+Corebrum excels at parallel computing where multiple independent tasks can be executed simultaneously across the mesh network. These examples show how to structure different types of parallel workloads.
+
+### 1. Mathematical Computations
+
+#### Factorial Computation (`factorial_task.yaml`, `factorial_docker.yaml`, `factorial_wasm.yaml`)
+
+Compute factorials using different execution environments:
+
+**Local Python Task:**
+```yaml
+name: "factorial-computation"
+language: "python"
+source:
+  inline:
+    code: |
+      import math
+      def factorial(n):
+          return math.factorial(n)
+      
+      result = factorial(inputs['number'])
+      outputs = {"result": result}
+```
+
+**Docker Container:**
+```yaml
+name: "factorial-docker"
+language: "docker"
+source:
+  docker:
+    image: "python:3.9-slim"
+    command: ["python", "-c", "import math; print(math.factorial({{inputs.number}}))"]
+```
+
+**WebAssembly (WASM):**
+```yaml
+name: "factorial-wasm"
+language: "wasm"
+source:
+  wasm:
+    url: "https://example.com/factorial.wasm"
+    entry_point: "compute_factorial"
+```
+
+**Usage:**
+```bash
+# Submit with different numbers for parallel execution
+corebrum submit --file task_definitions/factorial_task.yaml --inputs '{"number": 10}'
+corebrum submit --file task_definitions/factorial_task.yaml --inputs '{"number": 15}'
+corebrum submit --file task_definitions/factorial_task.yaml --inputs '{"number": 20}'
+```
+
+#### Fibonacci Sequence (`fibonacci_task.json`)
+
+Generate Fibonacci sequences with configurable terms:
+
+```json
+{
+  "name": "fibonacci-sequence",
+  "language": "python",
+  "source": {
+    "inline": {
+      "code": "def fibonacci(n):\n    a, b = 0, 1\n    sequence = []\n    for _ in range(n):\n        sequence.append(a)\n        a, b = b, a + b\n    return sequence\n\noutputs = {\"sequence\": fibonacci(inputs['terms'])}"
+    }
+  },
+  "inputs": [
+    {
+      "name": "terms",
+      "type": "integer",
+      "required": true,
+      "description": "Number of Fibonacci terms to generate"
+    }
+  ]
+}
+```
+
+**Usage:**
+```bash
+# Generate different sequence lengths in parallel
+corebrum submit --file task_definitions/fibonacci_task.json --inputs '{"terms": 20}'
+corebrum submit --file task_definitions/fibonacci_task.json --inputs '{"terms": 50}'
+corebrum submit --file task_definitions/fibonacci_task.json --inputs '{"terms": 100}'
+```
+
+### 2. Container-Based Computing
+
+#### Docker Tasks (`docker_task.yaml`)
+
+Execute tasks in isolated Docker containers:
+
+```yaml
+name: "data-processing-docker"
+language: "docker"
+source:
+  docker:
+    image: "pandas/pandas:latest"
+    command: 
+      - "python"
+      - "-c"
+      - |
+        import pandas as pd
+        import json
+        import sys
+        
+        # Process data from inputs
+        data = json.loads('{{inputs.data}}')
+        df = pd.DataFrame(data)
+        
+        # Perform analysis
+        summary = df.describe().to_dict()
+        print(json.dumps(summary))
+        
+requirements:
+  memory_mb: 512
+  cpu_cores: 2
+  timeout_seconds: 300
+```
+
+**Usage:**
+```bash
+corebrum submit --file task_definitions/docker_task.yaml --inputs '{"data": [{"x": 1, "y": 2}, {"x": 3, "y": 4}]}'
+```
+
+### 3. WebAssembly (WASM) Computing
+
+#### WASM Tasks (`factorial_wasm.yaml`, `factorial_wasm_url.yaml`)
+
+Execute high-performance computations using WebAssembly:
+
+**Local WASM File:**
+```yaml
+name: "wasm-factorial"
+language: "wasm"
+source:
+  wasm:
+    file: "wasm_factorial/target/wasm32-unknown-unknown/release/wasm_factorial.wasm"
+    entry_point: "compute_factorial"
+    memory_pages: 16
+```
+
+**WASM from URL:**
+```yaml
+name: "wasm-factorial-url"
+language: "wasm"
+source:
+  wasm:
+    url: "https://github.com/user/repo/releases/latest/download/factorial.wasm"
+    entry_point: "compute_factorial"
+    memory_pages: 32
+```
+
+**Usage:**
+```bash
+# Build WASM module first
+cd wasm_factorial
+./build.sh
+
+# Submit WASM task
+corebrum submit --file task_definitions/factorial_wasm.yaml --inputs '{"number": 25}'
+```
+
+### 4. External Code Sources
+
+#### GitHub Gist Integration (`fibonacci_from_gist.json`)
+
+Execute code directly from GitHub Gists:
+
+```json
+{
+  "name": "fibonacci-gist",
+  "language": "python",
+  "source": {
+    "gist": {
+      "id": "abc123def456",
+      "filename": "fibonacci.py"
+    }
+  },
+  "inputs": [
+    {
+      "name": "terms",
+      "type": "integer",
+      "required": true
+    }
+  ]
+}
+```
+
+#### Git Repository Tasks (`git_repo_task.json`)
+
+Execute code from Git repositories:
+
+```json
+{
+  "name": "git-repo-task",
+  "language": "python",
+  "source": {
+    "git": {
+      "repository": "https://github.com/user/compute-examples.git",
+      "path": "algorithms/sorting.py",
+      "branch": "main"
+    }
+  }
+}
+```
+
+### 5. Mixed Source Demo (`mixed_sources_demo.yaml`)
+
+Demonstrate multiple source types in a single workflow:
+
+```yaml
+name: "mixed-sources-demo"
+language: "python"
+source:
+  inline:
+    code: |
+      # This task can use multiple source types
+      import requests
+      
+      # Fetch data from URL
+      if 'url' in inputs:
+          response = requests.get(inputs['url'])
+          data = response.json()
+      
+      # Process with inline code
+      result = {"processed": len(data) if 'data' in locals() else 0}
+      outputs = result
+```
+
+## Parallel Computing Best Practices
+
+### 1. Task Design Principles
+
+- **Independence**: Each task should be independent and not rely on other tasks
+- **Stateless**: Tasks should not maintain state between executions
+- **Idempotent**: Tasks should produce the same result when run multiple times
+- **Resource Awareness**: Set appropriate memory and CPU requirements
+
+### 2. Input/Output Patterns
+
+```yaml
+# Well-structured inputs
+inputs:
+  - name: "data"
+    type: "object"
+    required: true
+    description: "Input data for processing"
+  - name: "options"
+    type: "object"
+    required: false
+    default: {}
+    description: "Optional configuration"
+
+# Clear outputs
+outputs:
+  - name: "result"
+    type: "object"
+    description: "Processing result"
+  - name: "metadata"
+    type: "object"
+    description: "Execution metadata"
+```
+
+### 3. Resource Management
+
+```yaml
+requirements:
+  memory_mb: 1024        # Memory limit
+  cpu_cores: 2           # CPU cores needed
+  timeout_seconds: 600   # Execution timeout
+  dependencies:          # External dependencies
+    - "numpy"
+    - "pandas"
+```
+
+### 4. Error Handling
+
+```python
+# In your task code
+try:
+    # Main computation
+    result = compute_something(inputs['data'])
+    outputs = {"result": result, "status": "success"}
+except Exception as e:
+    outputs = {"error": str(e), "status": "failed"}
+```
+
+### 5. Monitoring Parallel Tasks
+
+```bash
+# Submit multiple parallel tasks
+corebrum submit --file task_definitions/factorial_task.yaml --inputs '{"number": 10}' &
+corebrum submit --file task_definitions/factorial_task.yaml --inputs '{"number": 15}' &
+corebrum submit --file task_definitions/factorial_task.yaml --inputs '{"number": 20}' &
+
+# Monitor all tasks
+corebrum cmos
+CMOS[user@local] > mesh-status --all
+CMOS[user@local] > mesh-results <task-id-1>
+CMOS[user@local] > mesh-results <task-id-2>
+CMOS[user@local] > mesh-results <task-id-3>
+```
+
+### 6. Performance Optimization
+
+- **Batch Processing**: Group related computations into single tasks
+- **Memory Efficiency**: Use streaming for large datasets
+- **Caching**: Cache frequently used data and computations
+- **Load Balancing**: Distribute tasks across available workers
 
 ## Sequential Task Examples
 
