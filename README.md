@@ -1,6 +1,36 @@
 # Corebrum Examples
 
-This directory contains example task definitions and workflows for Corebrum mesh computing, demonstrating both parallel and sequential computing patterns.
+This directory contains example task definitions and workflows for Corebrum mesh computing, organized by technology and use case.
+
+## Task Definitions
+
+The `task_definitions/` directory contains examples organized by category:
+
+- **[ros2/](task_definitions/ros2/)** - ROS2 robot integration examples
+- **[docker/](task_definitions/docker/)** - Docker container examples  
+- **[python/](task_definitions/python/)** - Python execution examples
+- **[wasm/](task_definitions/wasm/)** - WebAssembly examples
+- **[sequential/](task_definitions/sequential/)** - Pipeline and workflow examples
+- **[general/](task_definitions/general/)** - General-purpose examples
+
+Each directory contains detailed README files with usage instructions and examples.
+
+## Quick Start
+
+```bash
+# Submit a simple test task
+corebrum submit --file task_definitions/general/simple_test.yaml
+
+# Submit a ROS2 robot control task
+corebrum submit --file task_definitions/ros2/object_detection.yaml
+
+# Submit a Python computation task
+corebrum submit --file task_definitions/python/factorial_task.yaml
+```
+
+## Legacy Documentation
+
+The following sections contain legacy documentation that may be useful for understanding Corebrum concepts:
 
 ## Parallel Computing Examples
 

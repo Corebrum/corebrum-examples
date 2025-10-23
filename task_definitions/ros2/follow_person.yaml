@@ -1,0 +1,86 @@
+task_definition:
+  name: "follow_person_behavior"
+  version: "1.0"
+  description: "Follow detected person using depth and detections"
+  
+  execution_mode: "stream_reactive"
+  stream_config:
+    trigger: "on_message"
+    rate_limit_hz: 20
+    buffer_size: 1
+  
+  inputs:
+    - name: "detections"
+      type: "zenoh_topic"
+      key_expr: "rt/robot1/vision/detections"
+      encoding: "cdr"
+    - name: "depth_image"
+      type: "zenoh_topic"
+      key_expr: "rt/robot1/camera/depth/image_raw"
+      encoding: "cdr"
+  
+  outputs:
+    - name: "velocity_command"
+      type: "zenoh_topic"
+      key_expr: "rt/robot1/cmd_vel"
+      encoding: "cdr"
+  
+  compute_logic:
+    type: "expression"
+    language: "python"
+    timeout_seconds: 1
+    code: |
+      import base64
+      import struct
+      import time
+      
+      # Parse detections and depth
+      person_detected = False
+      person_x_position = 0.0
+      person_distance = 1.0
+      
+      if 'detections' in detections and detections['detections']:
+          for detection in detections['detections']:
+              if detection.get('class_name') == 'person':
+                  person_detected = True
+                  # Get center x position of bounding box
+                  bbox = detection['bbox']
+                  person_x_position = (bbox[0] + bbox[2]) / 2.0
+                  break
+      
+      # Calculate distance from depth (simplified)
+      if 'data' in depth_image:
+          # In practice, you'd decode the depth image and get distance at person position
+          person_distance = 1.5  # Default distance
+      
+      # Generate velocity command
+      linear_x = 0.3 if person_detected and person_distance > 1.0 else 0.0
+      
+      # Calculate turn rate based on person position
+      image_center = 320  # Assuming 640px width
+      angular_z = 0.0
+      if person_detected:
+          error = person_x_position - image_center
+          angular_z = -error / 1000.0  # Proportional control
+          angular_z = max(-0.5, min(0.5, angular_z))  # Limit angular velocity
+      
+      # Create Twist message (linear.x, angular.z)
+      # For CDR encoding, we'll use a simplified format
+      twist_data = {
+          'linear': {'x': linear_x, 'y': 0.0, 'z': 0.0},
+          'angular': {'x': 0.0, 'y': 0.0, 'z': angular_z}
+      }
+      
+      result = {
+          'twist': twist_data,
+          'person_detected': person_detected,
+          'person_distance': person_distance,
+          'timestamp': time.time()
+      }
+  
+  validation: []
+  metadata:
+    robot: "robot1"
+    behavior: "follow_person"
+    control_type: "proportional"
+

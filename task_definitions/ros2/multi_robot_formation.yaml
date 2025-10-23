@@ -1,0 +1,121 @@
+task_definition:
+  name: "three_robot_formation"
+  version: "1.0"
+  description: "Coordinate 3 robots in triangle formation"
+  
+  execution_mode: "stream_reactive"
+  stream_config:
+    trigger: "time_interval"
+    interval_ms: 50  # 20 Hz control loop
+    buffer_size: 1
+  
+  inputs:
+    - name: "robot1_odom"
+      type: "zenoh_topic"
+      key_expr: "rt/robot1/odom"
+      encoding: "cdr"
+    - name: "robot2_odom"
+      type: "zenoh_topic"
+      key_expr: "rt/robot2/odom"
+      encoding: "cdr"
+    - name: "robot3_odom"
+      type: "zenoh_topic"
+      key_expr: "rt/robot3/odom"
+      encoding: "cdr"
+  
+  outputs:
+    - name: "robot1_cmd"
+      type: "zenoh_topic"
+      key_expr: "rt/robot1/cmd_vel"
+      encoding: "cdr"
+    - name: "robot2_cmd"
+      type: "zenoh_topic"
+      key_expr: "rt/robot2/cmd_vel"
+      encoding: "cdr"
+    - name: "robot3_cmd"
+      type: "zenoh_topic"
+      key_expr: "rt/robot3/cmd_vel"
+      encoding: "cdr"
+  
+  compute_logic:
+    type: "expression"
+    language: "python"
+    timeout_seconds: 2
+    code: |
+      import time
+      import math
+      
+      # Formation control algorithm
+      # Calculate desired positions for triangle formation
+      spacing = 2.0  # meters between robots
+      
+      # Get current positions (simplified parsing)
+      positions = []
+      for odom in [robot1_odom, robot2_odom, robot3_odom]:
+          if 'data' in odom:
+              # In practice, you'd decode the odometry message
+              # For now, use default positions
+              positions.append({'x': 0.0, 'y': 0.0, 'theta': 0.0})
+          else:
+              positions.append({'x': 0.0, 'y': 0.0, 'theta': 0.0})
+      
+      # Desired triangle formation positions
+      desired_positions = [
+          {'x': 0.0, 'y': 0.0},           # Robot 1 at origin
+          {'x': spacing, 'y': 0.0},        # Robot 2 to the right
+          {'x': spacing/2, 'y': spacing * math.sqrt(3)/2}  # Robot 3 above
+      ]
+      
+      # Calculate velocity commands for each robot
+      commands = {}
+      for i, (current, desired) in enumerate(zip(positions, desired_positions)):
+          robot_id = f"robot{i+1}"
+          
+          # Calculate position error
+          error_x = desired['x'] - current['x']
+          error_y = desired['y'] - current['y']
+          
+          # Simple proportional control
+          kp = 0.5
+          linear_x = kp * error_x
+          linear_y = kp * error_y
+          
+          # Calculate angular velocity to face the desired direction
+          if error_x != 0 or error_y != 0:
+              desired_theta = math.atan2(error_y, error_x)
+              error_theta = desired_theta - current['theta']
+              # Normalize angle
+              while error_theta > math.pi:
+                  error_theta -= 2 * math.pi
+              while error_theta < -math.pi:
+                  error_theta += 2 * math.pi
+              angular_z = kp * error_theta
+          else:
+              angular_z = 0.0
+          
+          # Limit velocities
+          linear_x = max(-0.5, min(0.5, linear_x))
+          linear_y = max(-0.5, min(0.5, linear_y))
+          angular_z = max(-1.0, min(1.0, angular_z))
+          
+          commands[robot_id] = {
+              'linear': {'x': linear_x, 'y': linear_y, 'z': 0.0},
+              'angular': {'x': 0.0, 'y': 0.0, 'z': angular_z}
+          }
+      
+      result = {
+          'robot1_cmd': commands['robot1'],
+          'robot2_cmd': commands['robot2'],
+          'robot3_cmd': commands['robot3'],
+          'formation_type': 'triangle',
+          'spacing': spacing,
+          'timestamp': time.time()
+      }
+  
+  validation: []
+  metadata:
+    formation: "triangle"
+    spacing_meters: 2.0
+    robots: ["robot1", "robot2", "robot3"]
+    control_frequency_hz: 20
+

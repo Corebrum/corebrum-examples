@@ -1,0 +1,70 @@
+task_definition:
+  name: "yolo_object_detection"
+  version: "1.0"
+  description: "Real-time YOLO object detection from robot camera"
+  
+  execution_mode: "stream_reactive"
+  stream_config:
+    trigger: "rate_limited"
+    rate_limit_hz: 10
+    buffer_size: 1
+  
+  inputs:
+    - name: "camera_image"
+      type: "zenoh_topic"
+      key_expr: "rt/robot1/camera/color/image_raw"
+      encoding: "cdr"
+  
+  outputs:
+    - name: "detections"
+      type: "zenoh_topic"
+      key_expr: "rt/robot1/vision/detections"
+      encoding: "cdr"
+  
+  compute_logic:
+    type: "expression"
+    language: "python"
+    timeout_seconds: 5
+    code: |
+      from ultralytics import YOLO
+      import base64
+      import json
+      
+      # Load model (cached after first run)
+      model = YOLO('yolov8n.pt')
+      
+      # Decode CDR image (simplified - use rclpy in practice)
+      if 'data' in camera_image:
+          image_data = base64.b64decode(camera_image['data'])
+      else:
+          # Fallback for testing
+          image_data = b"fake_image_data"
+      
+      # Run detection
+      results = model(image_data)
+      
+      # Extract detection results
+      detections = []
+      for r in results:
+          for box in r.boxes:
+              detection = {
+                  'class_id': int(box.cls[0]),
+                  'class_name': model.names[int(box.cls[0])],
+                  'confidence': float(box.conf[0]),
+                  'bbox': box.xyxy[0].tolist()
+              }
+              detections.append(detection)
+      
+      # Encode results as CDR (simplified)
+      result = {
+          'detections': detections,
+          'timestamp': time.time(),
+          'image_size': [640, 480]  # Default size
+      }
+  
+  validation: []
+  metadata:
+    robot: "robot1"
+    task_type: "vision"
+    model: "yolov8n"
+
