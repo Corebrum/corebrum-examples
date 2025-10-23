@@ -12,7 +12,7 @@ task_definition:
   inputs:
     - name: "camera_image"
       type: "zenoh_topic"
-      key_expr: "rt/robot1/camera/color/image_raw"
+      key_expr: "rt/camera/camera/color/image_raw"
       encoding: "cdr"
   
   outputs:

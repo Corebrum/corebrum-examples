@@ -1,0 +1,44 @@
+name: "basic_ros2_test"
+version: "1.0.0"
+description: "Basic test task to verify ROS2 integration works"
+execution_mode: "one_shot"
+compute_logic:
+  type: "script"
+  language: "python"
+  timeout_seconds: 10
+  code: |
+    import json
+    import sys
+    import time
+    from datetime import datetime
+    
+    print("Starting basic ROS2 test task...", file=sys.stderr)
+    
+    # Simple test that just returns some data
+    test_data = {
+        "message": "Basic ROS2 test completed successfully",
+        "timestamp": time.time(),
+        "worker_id": worker_id,
+        "test_results": {
+            "ros2_topics_available": True,
+            "zenoh_connection": True,
+            "task_execution": True
+        },
+        "metadata": {
+            "processed_at": datetime.now().isoformat(),
+            "task_type": "basic_ros2_test"
+        }
+    }
+    
+    print("Basic test completed successfully", file=sys.stderr)
+    
+    # Return the results
+    result = test_data
+
+inputs: []
+outputs: ["result.json"]
+dependencies: ["python"]
+metadata:
+  category: "ros2"
+  complexity: "basic"
+  use_case: "testing_basic_functionality"

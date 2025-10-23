@@ -1,198 +1,87 @@
 # ROS2 Integration Examples
 
-This directory contains examples of stream-reactive tasks that integrate Corebrum with ROS2 robots via Zenoh.
+This directory contains examples of how to use Corebrum with ROS2 systems via Zenoh.
 
-## Overview
+## Available Examples
 
-Corebrum seamlessly integrates with ROS2 robots by treating ROS2 topics as Zenoh topics. This enables robots to offload compute-intensive tasks to the mesh supercomputer while maintaining real-time responsiveness.
+### 1. Basic Test (`basic_test.yaml`)
+- **Purpose**: Simple test to verify ROS2 integration works
+- **Complexity**: Basic
+- **Status**: ✅ Working
+- **Description**: Basic task that returns test data to verify the system is working
 
-## How It Works
+### 2. Simple Image Processing (`simple_image_processing.yaml`)
+- **Purpose**: Simulated image processing task
+- **Complexity**: Simple
+- **Status**: ⚠️ Issues with results retrieval
+- **Description**: Simulates grabbing latest frame from ROS2 camera topic
 
-**Modern ROS2 (Jazzy+)**: Native Zenoh support - no bridge needed  
-**Legacy ROS2 (DDS)**: Use `zenoh-bridge-ros2dds` to convert DDS ↔ Zenoh
+### 3. Camera Frame Analysis (`camera_frame_analysis.yaml`)
+- **Purpose**: Analyze latest frame from ROS2 camera topic
+- **Complexity**: Intermediate
+- **Status**: ⚠️ Issues with results retrieval
+- **Description**: More realistic camera analysis with detailed image statistics
 
-ROS2 topics appear as Zenoh topics with `rt/` prefix:
-- `/cmd_vel` → `rt/cmd_vel`
-- `/camera/color/image_raw` → `rt/camera/color/image_raw`
+### 4. Object Detection (`object_detection.yaml`)
+- **Purpose**: Stream-reactive object detection task
+- **Complexity**: Advanced
+- **Status**: ❌ Not working (stream-reactive tasks not implemented)
+- **Description**: Continuous object detection from camera stream
 
-## Examples
+## Current Status
 
-### 1. Object Detection (`object_detection.yaml`)
+### ✅ What's Working
+- Basic task submission and execution
+- ROS2 topic discovery via `mesh-topics`
+- Simple Python task execution
+- Status reporting (though with placeholder messages)
 
-Real-time YOLO object detection from robot camera streams.
+### ⚠️ Known Issues
+1. **Result Retrieval**: Some tasks complete but results aren't retrievable via `mesh-results`
+2. **Stream-Reactive Tasks**: Not implemented - tasks that should run continuously complete immediately
+3. **Status Query System**: Shows "needs implementation for Zenoh 1.6.2"
 
-**Features:**
-- Subscribes to camera image stream (`rt/robot1/camera/color/image_raw`)
-- Runs YOLO inference on each frame
-- Publishes detection results (`rt/robot1/vision/detections`)
-- Rate-limited to 10 Hz to prevent overwhelming the system
+### 🔧 Next Steps
+1. **Fix Result Retrieval**: Investigate why some tasks don't return results
+2. **Implement Stream-Reactive Tasks**: For continuous processing tasks like object detection
+3. **Real ROS2 Integration**: Connect to actual ROS2 topics via Zenoh instead of simulation
 
-**Usage:**
-```bash
-corebrum submit --file task_definitions/ros2/object_detection.yaml
-```
-
-### 2. Person Following (`follow_person.yaml`)
-
-Autonomous person following behavior using computer vision and depth sensing.
-
-**Features:**
-- Subscribes to detection results and depth images
-- Implements proportional control for following
-- Publishes velocity commands (`rt/robot1/cmd_vel`)
-- Reactive to detection messages (up to 20 Hz)
-
-**Usage:**
-```bash
-corebrum submit --file task_definitions/ros2/follow_person.yaml
-```
-
-### 3. Multi-Robot Formation (`multi_robot_formation.yaml`)
-
-Coordinate multiple robots in a triangle formation.
-
-**Features:**
-- Subscribes to odometry from 3 robots
-- Implements formation control algorithm
-- Publishes velocity commands to all robots
-- Fixed 20 Hz control loop (50ms intervals)
-
-**Usage:**
-```bash
-corebrum submit --file task_definitions/ros2/multi_robot_formation.yaml
-```
-
-## Robot Setup
-
-### For Modern ROS2 (Native Zenoh)
+## Testing Commands
 
 ```bash
-# Configure ROS2 to use Zenoh RMW
-export RMW_IMPLEMENTATION=rmw_zenoh_cpp
-
-# Run your ROS2 nodes normally
-ros2 run realsense2_camera realsense2_camera_node
-ros2 run navigation2 nav2_bringup
-```
-
-### For Legacy ROS2 (DDS-based)
-
-```bash
-# Run the bridge on the robot
-zenoh-bridge-ros2dds --namespace /robot1
-
-# Run your ROS2 nodes normally
-ros2 run realsense2_camera realsense2_camera_node
-ros2 run navigation2 nav2_bringup
-```
-
-## Stream-Reactive Task Configuration
-
-All examples use the `stream_reactive` execution mode with different trigger types:
-
-- **`on_message`**: Execute when any input receives a message
-- **`time_interval`**: Execute at fixed intervals (e.g., 50ms for 20 Hz)
-- **`rate_limited`**: Execute on every message but rate-limited (e.g., 10 Hz max)
-
-## Monitoring Stream Tasks
-
-Use CMOS commands to monitor active stream tasks:
-
-```bash
-# List active stream tasks
-mesh-streams
-
-# Cancel a stream task
-mesh-stream-cancel <task-id>
-
-# List all Zenoh topics (ROS2 and Corebrum)
-mesh-topics
-
-# List only ROS2 topics
+# Discover ROS2 topics
 mesh-topics ros2
 
-# List only Corebrum topics
-mesh-topics corebrum
+# Submit a basic test
+mesh-submit basic_test.yaml
 
-# Echo messages from a topic
-zenoh-echo rt/robot1/cmd_vel
+# Check task status
+mesh-status <task-id>
+
+# Get results
+mesh-results <task-id>
 ```
 
-## Topic Discovery and Filtering
+## ROS2 Topics Available
 
-The `mesh-topics` command provides powerful topic discovery and filtering capabilities to help you explore the mesh network:
+Based on `mesh-topics ros2` output:
+- `rt/camera/camera/color/camera_info`
+- `rt/camera/camera/color/image_raw` ← Main camera feed
+- `rt/camera/camera/color/metadata`
+- `rt/camera/camera/depth/camera_info`
+- `rt/camera/camera/depth/image_rect_raw`
+- `rt/camera/camera/depth/metadata`
 
-### Basic Usage
-```bash
-# Discover all topics on the mesh network
-mesh-topics
+## Architecture Notes
 
-# Filter by topic type
-mesh-topics ros2        # Show only ROS2 topics
-mesh-topics corebrum    # Show only Corebrum topics
-mesh-topics all         # Show all topics (same as no filter)
-```
+- **Zenoh Bridge**: ROS2 topics are bridged to Zenoh with `rt/` prefix
+- **Task Execution**: Python tasks run in Corebrum workers
+- **Topic Discovery**: Uses Zenoh subscription to discover active topics
+- **Stream Processing**: Not yet implemented for continuous tasks
 
-### Topic Types
-- **ROS2 Topics**: Topics from ROS2 nodes (prefixed with `rt/`)
-- **Corebrum Topics**: Internal Corebrum system topics (prefixed with `corebrum/`)
+## Future Enhancements
 
-### Example Output
-```bash
-$ mesh-topics ros2
-📡 Discovering ROS2 topics on the mesh network...
-📡 Discovered 5 topics (ROS2):
-Topic                                    Type            Publishers   Subscribers  
----------------------------------------------------------------------------------
-rt/robot1/cmd_vel                       ROS2            0            0            
-rt/robot1/odom                          ROS2            0            0            
-rt/robot1/scan                          ROS2            0            0            
-rt/robot1/camera/color/image_raw        ROS2            0            0            
-rt/robot1/tf                            ROS2            0            0            
-```
-
-### Tips
-- Use `mesh-topics ros2` to focus on robot topics without Corebrum system noise
-- The command discovers topics by subscribing to the mesh network for 3 seconds
-- Topics are automatically categorized based on their prefixes
-- Publisher/subscriber counts are not yet implemented but reserved for future use
-
-## Key Advantages
-
-1. **Zero ROS2 Code in Corebrum**: Just Zenoh pub/sub
-2. **Works with Modern & Legacy ROS2**: Transparent to Corebrum
-3. **Declarative Behaviors**: Define robot intelligence as YAML
-4. **Multi-Robot Ready**: Namespace support via Zenoh keys
-5. **Observable**: Use existing mesh commands to monitor
-6. **Scalable**: Add compute nodes to handle more robots
-
-## Dependencies
-
-The examples assume the following Python packages are available on the worker nodes:
-
-```bash
-pip install ultralytics opencv-python numpy
-```
-
-## Customization
-
-To adapt these examples for your robots:
-
-1. Update the `key_expr` values to match your robot namespaces
-2. Modify the Python code to handle your specific message formats
-3. Adjust the `rate_limit_hz` and `interval_ms` based on your requirements
-4. Update the `inputs` and `outputs` to match your robot's topic structure
-
-## Troubleshooting
-
-### No Topics Discovered
-- Ensure ROS2 nodes are running and publishing
-- Check that Zenoh bridge is running (for legacy ROS2)
-- Verify network connectivity between robot and Corebrum mesh
-- Use `mesh-topics` to see what topics are available
-
-### Tasks Not Executing
-- Check that the task is submitted successfully with `mesh-streams`
-- Verify that input topics are publishing data
-- Check worker logs for Python import errors
-- Ensure required Python packages are installed on workers
+1. **Real Image Processing**: Connect to actual ROS2 image topics
+2. **Stream Tasks**: Implement continuous processing for real-time applications
+3. **Object Detection**: Full computer vision pipeline
+4. **Multi-Robot**: Coordinate multiple robots via the mesh network

@@ -1,0 +1,65 @@
+name: "stream_test"
+version: "1.0.0"
+description: "Test stream-reactive task that runs continuously"
+execution_mode: "stream_reactive"
+compute_logic:
+  type: "script"
+  language: "python"
+  timeout_seconds: 30
+  code: |
+    import json
+    import sys
+    import time
+    from datetime import datetime
+    
+    print("Starting stream-reactive test task...", file=sys.stderr)
+    
+    # This is a simple stream task that processes messages
+    # In a real implementation, this would subscribe to Zenoh topics
+    
+    message_count = 0
+    start_time = time.time()
+    
+    try:
+        while True:
+            # Simulate processing a message
+            message_count += 1
+            current_time = time.time()
+            
+            # Create a result for this message
+            result = {
+                "message_id": message_count,
+                "timestamp": current_time,
+                "processing_time_ms": 50,
+                "worker_id": worker_id,
+                "status": "processing",
+                "uptime_seconds": current_time - start_time
+            }
+            
+            # Print the result (in a real implementation, this would publish to Zenoh)
+            print(f"Processed message {message_count}: {json.dumps(result)}", file=sys.stderr)
+            
+            # Sleep for a bit to simulate processing time
+            time.sleep(0.5)
+            
+            # Stop after 10 messages for testing
+            if message_count >= 10:
+                break
+        
+        # Final result
+        final_result = {
+            "task_id": task_id,
+            "worker_id": worker_id,
+            "total_messages_processed": message_count,
+            "total_uptime_seconds": time.time() - start_time,
+            "status": "completed",
+            "completed_at": datetime.now().isoformat()
+        }
+        
+        print(f"Stream task completed: {json.dumps(final_result)}", file=sys.stderr)
+        
+    except KeyboardInterrupt:
+        print("Stream task interrupted", file=sys.stderr)
+    except Exception as e:
+        print(f"Stream task error: {e}", file=sys.stderr)
+        raise

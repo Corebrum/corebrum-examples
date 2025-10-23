@@ -1,0 +1,74 @@
+name: "simple_image_processing"
+version: "1.0.0"
+description: "Simple ROS2 image processing task that grabs latest frame and returns basic analysis"
+execution_mode: "one_shot"
+compute_logic:
+  type: "script"
+  language: "python"
+  timeout_seconds: 30
+  code: |
+    import json
+    import sys
+    import time
+    from datetime import datetime
+    
+    # This is a simplified image processing task that would normally:
+    # 1. Subscribe to ROS2 image_raw topic via Zenoh
+    # 2. Grab the latest frame
+    # 3. Process it (basic analysis)
+    # 4. Return results
+    
+    # For now, we'll simulate the processing since we need to implement
+    # the Zenoh subscription logic in the executor
+    
+    print("Starting simple image processing task...", file=sys.stderr)
+    
+    # Simulate getting image data from ROS2 topic
+    # In a real implementation, this would come from Zenoh subscription
+    image_data = {
+        "topic": "rt/camera/camera/color/image_raw",
+        "timestamp": time.time(),
+        "width": 640,
+        "height": 480,
+        "channels": 3,
+        "encoding": "rgb8"
+    }
+    
+    print(f"Processing image from topic: {image_data['topic']}", file=sys.stderr)
+    print(f"Image dimensions: {image_data['width']}x{image_data['height']}", file=sys.stderr)
+    
+    # Simulate basic image analysis
+    # In a real implementation, this would do actual image processing
+    analysis_results = {
+        "image_info": {
+            "topic": image_data["topic"],
+            "timestamp": image_data["timestamp"],
+            "dimensions": f"{image_data['width']}x{image_data['height']}",
+            "channels": image_data["channels"],
+            "encoding": image_data["encoding"]
+        },
+        "processing_results": {
+            "brightness_estimate": 0.75,  # Simulated
+            "contrast_estimate": 0.65,   # Simulated
+            "dominant_colors": ["red", "green", "blue"],  # Simulated
+            "processing_time_ms": 15
+        },
+        "metadata": {
+            "worker_id": worker_id,
+            "processed_at": datetime.now().isoformat(),
+            "task_type": "simple_image_processing"
+        }
+    }
+    
+    print("Image processing completed successfully", file=sys.stderr)
+    
+    # Return the results
+    result = analysis_results
+
+inputs: []
+outputs: ["result.json"]
+dependencies: ["python", "ros2"]
+metadata:
+  category: "ros2"
+  complexity: "simple"
+  use_case: "testing_ros2_integration"
