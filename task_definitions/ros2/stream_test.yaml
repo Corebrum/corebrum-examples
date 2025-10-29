@@ -37,7 +37,7 @@ compute_logic:
             }
             
             # Print the result (in a real implementation, this would publish to Zenoh)
-            # print(f"Processed message {message_count}: {json.dumps(result)}", file=sys.stderr)
+            print(f"Processed message {message_count}: {json.dumps(result)}", file=sys.stderr)
             
             # Sleep for a bit to simulate processing time
             time.sleep(0.5)
