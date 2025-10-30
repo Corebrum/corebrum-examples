@@ -1,0 +1,60 @@
+task_definition:
+  name: "sequential_stdin_stdout"
+  version: "1.0"
+  description: "Sequential pipeline demonstrating one-shot JSON-in/JSON-out via STDOUT at each step"
+  tasks:
+  - name: "gen_input"
+    version: "1.0"
+    description: "Generate initial inputs"
+    inputs: [{"name": "seed", "type": "integer"}]
+    outputs: [{"name": "initial", "type": "json"}]
+    compute_logic:
+      type: "expression"
+      language: "python"
+      timeout_seconds: 20
+      code: |
+        # Inputs are injected as a Python dict named `inputs`
+        seed = int(inputs.get("seed", 3))
+        values = list(range(1, seed + 1))
+        result = {
+            "values": values,
+            "seed": seed
+        }
+  
+  - name: "square_values"
+    version: "1.0"
+    description: "Square numbers from previous result"
+    inputs: [{"name": "initial", "type": "json"}]
+    outputs: [{"name": "squared", "type": "json"}]
+    compute_logic:
+      type: "expression"
+      language: "python"
+      timeout_seconds: 20
+      code: |
+        # Previous step's JSON is available as `result`
+        vals = result.get("values", [])
+        squared = [v * v for v in vals]
+        result = {
+            "squared": squared,
+            "count": len(squared)
+        }
+
+  - name: "aggregate"
+    version: "1.0"
+    description: "Aggregate squared values"
+    inputs: [{"name": "squared", "type": "json"}]
+    outputs: [{"name": "final", "type": "json"}]
+    compute_logic:
+      type: "expression"
+      language: "python"
+      timeout_seconds: 20
+      code: |
+        # `result` contains output from previous step
+        arr = result.get("squared", [])
+        total = sum(arr)
+        result = {
+            "total": total,
+            "items": arr,
+            "pipeline_status": "completed"
+        }
+

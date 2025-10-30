@@ -58,6 +58,16 @@ A basic example of chaining simple tasks together.
 corebrum submit --file task_definitions/sequential/sequential_pipeline.yaml
 ```
 
+### 4. Sequential STDIN/STDOUT (`sequential_stdin_stdout.yaml`)
+
+A minimal sequential example that makes the STDIN/STDOUT model explicit for one-shot steps: each step receives inputs injected as a Python `dict` and must print a single JSON object on STDOUT named `result`.
+
+**Usage:**
+```bash
+corebrum submit --file task_definitions/sequential/sequential_stdin_stdout.yaml --input '{"seed": 5}'
+```
+Expected behavior: step 1 generates `[1..seed]`, step 2 squares them, step 3 aggregates to a final JSON result. Each step emits exactly one JSON object to STDOUT.
+
 ## Pipeline Configuration
 
 ### Basic Sequential Pipeline Structure

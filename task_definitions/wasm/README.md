@@ -24,7 +24,7 @@ Computes factorial using a WebAssembly module.
 
 **Usage:**
 ```bash
-corebrum submit --file task_definitions/wasm/factorial_wasm.yaml
+corebrum submit --file task_definitions/wasm/factorial_wasm.yaml --input '{"number": 6}'
 ```
 
 ### 2. Factorial WASM from URL (`factorial_wasm_url.yaml`)
@@ -38,7 +38,7 @@ Loads a WASM module from a remote URL and executes it.
 
 **Usage:**
 ```bash
-corebrum submit --file task_definitions/wasm/factorial_wasm_url.yaml
+corebrum submit --file task_definitions/wasm/factorial_wasm_url.yaml --input '{"number": 6}'
 ```
 
 ## WASM Task Configuration
@@ -52,12 +52,8 @@ task_definition:
     type: "wasm"
     wasm_binary: "base64-encoded-wasm-binary"
     function_name: "main"
-    inputs:
-      - name: "number"
-        type: "integer"
-    outputs:
-      - name: "result"
-        type: "integer"
+    # Inputs are supplied as embedded JSON (no STDIN). Provide at submit time via --input
+    # Outputs are returned as a single JSON object captured from the task result (not STDOUT)
 ```
 
 ### WASM with External Binary
