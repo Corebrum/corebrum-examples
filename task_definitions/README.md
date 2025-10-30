@@ -91,7 +91,7 @@ mesh-streams
 mesh-results <task-id>
 ```
 
-### Task Definition Formats
+### Task Definition Formats (updated I/O model)
 
 Corebrum supports multiple task definition formats:
 
@@ -99,17 +99,23 @@ Corebrum supports multiple task definition formats:
 ```yaml
 task_definition:
   name: "example-task"
+  description: "One-shot using embedded inputs, publishing to Zenoh"
+  inputs:
+    - name: "value"
+      type: "number"
+  outputs:
+    - name: "result"
+      type: "zenoh"
+      key: "corebrum/examples/example/result"
   compute_logic:
-    type: "python"
+    type: "expression"
+    language: "python"
+    timeout_seconds: 30
     code: |
-      def main(inputs):
-          return {'result': inputs['value'] * 2}
-    inputs:
-      - name: "value"
-        type: "integer"
-    outputs:
-      - name: "result"
-        type: "integer"
+      import json
+      # Use the injected 'inputs' object directly
+      result = {"doubled": inputs.get("value", 1) * 2}
+      print(json.dumps(result))
 ```
 
 #### JSON Format
@@ -130,6 +136,18 @@ task_definition:
   }
 }
 ```
+### Inputs/Outputs and Zenoh
+
+- One-shot tasks
+  - Inputs are injected as a Python variable named `inputs` (or language equivalent) containing a single JSON object.
+  - Print a single JSON line to STDOUT. If `outputs` include a Zenoh entry with a `key`, Corebrum publishes this JSON there.
+
+- Stream tasks
+  - Stream-reactive tasks use Zenoh subscriptions/publications as configured in the task; see directory examples. Experimental features may change.
+
+See examples:
+- `python/factorial_stdin_stdout.yaml`
+- `python/factorial_from_url.yaml`
 
 ## Task Types
 

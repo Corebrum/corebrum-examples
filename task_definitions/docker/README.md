@@ -1,6 +1,6 @@
 # Docker Integration Examples
 
-This directory contains examples of tasks that run inside Docker containers on the Corebrum mesh.
+This directory contains examples of tasks that run inside Docker containers on the Corebrum mesh. One-shot tasks receive inputs as an injected `inputs` object inside the containerized program; print a single JSON line to STDOUT for results.
 
 ## Overview
 

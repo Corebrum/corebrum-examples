@@ -1,0 +1,36 @@
+task_definition:
+  name: "ros2_zenoh_message_in_out"
+  version: "1.0"
+  description: "Stream: subscribe to one Zenoh topic and publish processed messages to another"
+  execution_mode: "stream_reactive"
+  inputs:
+    - name: "in"
+      type: "zenoh"
+      key: "corebrum/examples/ros2/stream/in"
+  outputs:
+    - name: "out"
+      type: "zenoh"
+      key: "corebrum/examples/ros2/stream/out"
+  compute_logic:
+    type: "expression"
+    language: "python"
+    timeout_seconds: 0
+    code: |
+      import sys, json
+      # Each line is NDJSON with fields: name, key, timestamp, payload
+      for line in sys.stdin:
+          try:
+              evt = json.loads(line)
+              out = {
+                  "key": evt.get("key"),
+                  "timestamp": evt.get("timestamp"),
+                  "payload": evt.get("payload"),
+                  "processed": True
+              }
+              print(json.dumps(out), flush=True)
+          except Exception as e:
+              print(json.dumps({"error": str(e)}), flush=True)
+  validation: []
+  metadata: {}
+
+

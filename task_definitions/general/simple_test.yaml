@@ -1,9 +1,14 @@
 task_definition:
   name: "simple_test"
   version: "1.0"
-  description: "Simple test task"
-  inputs: []
-  outputs: []
+  description: "Simple test using embedded inputs; publishes to Zenoh"
+  inputs:
+    - name: "input"
+      type: "string"
+  outputs:
+    - name: "result"
+      type: "zenoh"
+      key: "corebrum/examples/simple_test/result"
   validation: []
   metadata: {}
   compute_logic:
@@ -11,6 +16,6 @@ task_definition:
     language: "python"
     timeout_seconds: 10
     code: |
-      print("Hello from simple test task!")
-      result = {"message": "Task completed successfully", "input": "test"}
-      print(f"Result: {result}")
+      import json
+      result = {"message": "Task completed successfully", "input": inputs.get("input", "test")}
+      print(json.dumps(result))

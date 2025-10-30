@@ -1,0 +1,26 @@
+task_definition:
+  name: "ros2_zenoh_message_in"
+  version: "1.0"
+  description: "One-shot: reads latest Zenoh message from a topic via embedded inputs"
+  inputs:
+    - name: "msg"
+      type: "zenoh"
+      key: "corebrum/examples/ros2/in"
+  outputs:
+    - name: "result"
+      type: "zenoh"
+      key: "corebrum/examples/ros2/in_result"
+  compute_logic:
+    type: "expression"
+    language: "python"
+    timeout_seconds: 20
+    code: |
+      import json
+      # The worker resolves the latest Zenoh payload for key above into inputs['msg']
+      payload = inputs.get("msg")
+      result = {"received": payload, "status": "ok"}
+      print(json.dumps(result))
+  validation: []
+  metadata: {}
+
+

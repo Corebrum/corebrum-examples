@@ -1,7 +1,7 @@
 task_definition:
   name: "docker_factorial_with_deps"
   version: "1.0"
-  description: "Docker containerized factorial computation requiring docker capability"
+  description: "Docker containerized factorial using embedded inputs; requires docker capability"
   inputs: []
   outputs: []
   validation: []
@@ -23,16 +23,8 @@ task_definition:
               return 1
           return n * factorial(n-1)
       
-      # Read input from command line arguments
-      if len(sys.argv) > 1:
-          try:
-              input_data = json.loads(sys.argv[1])
-          except json.JSONDecodeError:
-              input_data = {'number': 10}
-      else:
-          input_data = {'number': 10}
-      
-      number = input_data.get('number', 10)
+      # Read input from embedded inputs object
+      number = int(inputs.get('number', 10))
       
       # Measure execution time
       start_time = time.time()

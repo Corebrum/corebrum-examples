@@ -1,0 +1,32 @@
+task_definition:
+  name: "python_stream_stdin_stdout"
+  version: "1.0"
+  description: "Stream processor: Zenoh subscribe -> STDIN; STDOUT -> Zenoh"
+  inputs:
+    - name: "in"
+      type: "zenoh"
+      key: "corebrum/examples/stream/input"
+  outputs:
+    - name: "out"
+      type: "zenoh"
+      key: "corebrum/examples/stream/output"
+  execution_mode: "stream_reactive"
+  compute_logic:
+    type: "expression"
+    language: "python"
+    timeout_seconds: 0
+    code: |
+      import sys, json
+      for line in sys.stdin:
+          try:
+              msg = json.loads(line)
+              payload = msg.get("payload")
+              result = {"key": msg.get("key"), "ts": msg.get("timestamp"), "payload": payload, "processed": True}
+              print(json.dumps(result), flush=True)
+          except Exception as e:
+              # emit error as a structured line
+              print(json.dumps({"error": str(e)}), flush=True)
+  validation: []
+  metadata: {}
+
+

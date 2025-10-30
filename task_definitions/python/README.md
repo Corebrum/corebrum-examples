@@ -1,6 +1,6 @@
 # Python Integration Examples
 
-This directory contains examples of tasks that run Python code directly on Corebrum workers.
+This directory contains examples of tasks that run Python code directly on Corebrum workers. One-shot Python tasks receive inputs via an injected `inputs` dict; print a single JSON line to STDOUT for results.
 
 ## Overview
 

@@ -1,9 +1,9 @@
 task_definition:
-  name: "factorial_from_url"
+  name: "python_factorial_stdin_stdout"
   version: "1.0"
-  description: "Compute factorial using embedded inputs; publishes via Zenoh"
+  description: "Calculate factorial using embedded inputs; publish via Zenoh"
   inputs:
-    - name: "number"
+    - name: "n"
       type: "number"
   outputs:
     - name: "result"
@@ -14,14 +14,13 @@ task_definition:
     language: "python"
     timeout_seconds: 30
     code: |
-      import json, time
-      n = int(inputs.get("number", 10))
+      import json
+      n = int(inputs.get("n", 10))
       def factorial(x):
           return 1 if x <= 1 else x * factorial(x - 1)
-      start = time.time()
-      f = factorial(n)
-      end = time.time()
-      result = {"factorial": f, "input_number": n, "computation_time_ms": int((end - start) * 1000)}
+      result = {"n": n, "factorial": factorial(n)}
       print(json.dumps(result))
   validation: []
   metadata: {}
+
+

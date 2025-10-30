@@ -96,6 +96,22 @@ python3 monitor_twist_commands.py
 ./../../../corebrum/target/debug/corebrum submit --file simple_qwen_test.yaml
 ```
 
+### Zenoh Message In/Out Examples
+
+```bash
+# One-shot: read latest Zenoh message and produce a result
+./../../../corebrum/target/debug/corebrum submit --file zenoh_message_in.yaml
+
+# Stream: subscribe to a Zenoh topic and publish processed messages
+./../../../corebrum/target/debug/corebrum submit --file zenoh_message_in_out.yaml
+
+# Publish a test message to the input topic for the stream example
+./../../../corebrum/target/debug/corebrum publish corebrum/examples/ros2/stream/in '{"hello":"world"}'
+
+# Subscribe to the output topic to see processed results
+./../../../corebrum/target/debug/corebrum subscribe corebrum/examples/ros2/stream/out
+```
+
 ### Test with Camera Publisher
 ```bash
 # If you don't have a real camera publishing to zenoh, use the test publisher

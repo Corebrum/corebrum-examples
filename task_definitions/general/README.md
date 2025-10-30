@@ -1,6 +1,6 @@
 # General Task Examples
 
-This directory contains general-purpose task examples that demonstrate various Corebrum features and don't fit into specific technology categories.
+This directory contains general-purpose task examples that demonstrate various Corebrum features and don't fit into specific technology categories. One-shot tasks receive inputs as an injected `inputs` object; print a single JSON line to STDOUT for results.
 
 ## Examples
 

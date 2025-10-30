@@ -15,16 +15,9 @@
     ],
     
     "outputs": [
-      {
-        "name": "sequence",
-        "type": "array",
-        "description": "The Fibonacci sequence"
-      },
-      {
-        "name": "terms",
-        "type": "integer",
-        "description": "Number of terms generated"
-      }
+      { "name": "sequence", "type": "array", "description": "The Fibonacci sequence" },
+      { "name": "terms", "type": "integer", "description": "Number of terms generated" },
+      { "name": "result", "type": "zenoh", "key": "corebrum/examples/fibonacci/result" }
     ],
     
     "compute_logic": {

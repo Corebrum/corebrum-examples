@@ -1,7 +1,7 @@
 task_definition:
   name: "multi_capability_task"
   version: "1.0"
-  description: "Task requiring multiple capabilities (python and qwen)"
+  description: "Task requiring multiple capabilities (python and qwen); uses embedded inputs"
   inputs: []
   outputs: []
   validation: []
@@ -31,16 +31,8 @@ task_definition:
               'model': 'qwen-7b'
           }
       
-      # Read input from command line arguments
-      if len(sys.argv) > 1:
-          try:
-              input_data = json.loads(sys.argv[1])
-          except json.JSONDecodeError:
-              input_data = {'text': 'Hello, world!'}
-      else:
-          input_data = {'text': 'Hello, world!'}
-      
-      text = input_data.get('text', 'Hello, world!')
+      # Read input from embedded inputs object
+      text = inputs.get('text', 'Hello, world!')
       
       # Measure execution time
       start_time = time.time()

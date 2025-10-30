@@ -1,9 +1,14 @@
 task_definition:
   name: "python_factorial_with_deps"
   version: "1.0"
-  description: "Python factorial computation requiring python capability"
-  inputs: []
-  outputs: []
+  description: "Python factorial using embedded inputs; publishes to Zenoh"
+  inputs:
+    - name: "number"
+      type: "number"
+  outputs:
+    - name: "result"
+      type: "zenoh"
+      key: "corebrum/examples/python_deps/result"
   validation: []
   metadata: {}
   dependencies: ["python"]
@@ -14,44 +19,18 @@ task_definition:
     timeout_seconds: 10
     
     code: |
-      import json
-      import sys
-      import time
-      
+      import json, time
       def factorial(n):
-          if n <= 1:
-              return 1
-          return n * factorial(n-1)
-      
-      # Read input from command line arguments
-      if len(sys.argv) > 1:
-          try:
-              input_data = json.loads(sys.argv[1])
-          except json.JSONDecodeError:
-              input_data = {'number': 10}
-      else:
-          input_data = {'number': 10}
-      
-      number = input_data.get('number', 10)
-      
-      # Measure execution time
-      start_time = time.time()
-      result = factorial(number)
-      end_time = time.time()
-      
-      computation_time_ms = int((end_time - start_time) * 1000)
-      
+          return 1 if n<=1 else n*factorial(n-1)
+      number = int(inputs.get('number', 10))
+      start = time.time(); value = factorial(number); end = time.time()
       output = {
-          'factorial': result,
+          'factorial': value,
           'input_number': number,
-          'computation_time_ms': computation_time_ms,
+          'computation_time_ms': int((end - start) * 1000),
           'method': 'python',
-          'worker_id': 'python-worker',
-          'worker_uuid': '{{WORKER_UUID}}',  # This will be replaced by the actual worker UUID
-          'dependencies_required': ['python'],
-          'timestamp': time.strftime('%Y-%m-%d %H:%M:%S')
+          'dependencies_required': ['python']
       }
-      
       print(json.dumps(output))
     
     input_schema:

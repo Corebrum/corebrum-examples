@@ -1,42 +1,26 @@
 task_definition:
   name: "docker_computation"
   version: "1.0"
-  description: "Execute computation using a Docker container"
-  
+  description: "Docker task using embedded inputs; publishes to Zenoh"
   inputs:
     - name: "data"
-      type: "string"
-      required: true
-      default: "Hello World"
-      description: "Input data to process"
-  
+      type: "json"
   outputs:
-    - name: "processed_data"
-      type: "string"
-      description: "The processed data from Docker container"
-    - name: "container_info"
-      type: "object"
-      description: "Information about the Docker container execution"
-  
+    - name: "result"
+      type: "zenoh"
+      key: "corebrum/examples/docker/result"
   compute_logic:
-    type: "expression"
-    language: "rust"
+    type: "docker"
+    language: "python"
+    timeout_seconds: 60
     code_source:
       type: "docker"
-      url: "docker://my-compute-image"
-      docker_image: "my-compute-image"
-      docker_tag: "latest"
-      entrypoint: "/app/compute"
-    timeout_seconds: 60
-  
-  validation:
-    - field: "data"
-      min_length: 1
-      max_length: 1000
-      message: "Data must be between 1 and 1000 characters"
-  
-  metadata:
-    estimated_duration_ms: 500
-    memory_requirement_mb: 100
-    cpu_intensive: false
-    requires_docker: true
+      url: "docker://python:3.9-slim"
+      docker_image: "python"
+      docker_tag: "3.9-slim"
+    code: |
+      import json
+      result = {"processed": inputs, "status": "success", "method": "docker"}
+      print(json.dumps(result))
+  validation: []
+  metadata: {}
