@@ -71,6 +71,26 @@ This directory contains example task definitions organized by type and use case.
 - `mixed_sources_demo.yaml` - Multiple code sources
 - `multi_dependency_task.yaml` - Complex dependencies
 
+### 📁 [storage/](storage/)
+**Storage Examples**
+- Persistent storage using Zenoh storage backends
+- Result caching and data persistence
+- Filesystem, RocksDB, and InfluxDB integration
+
+**Examples:**
+- `store_and_retrieve.yaml` - Basic storage operations
+- `factorial_with_cache.yaml` - Persistent result caching
+
+### 📁 [memory/](memory/)
+**Memory Examples**
+- In-memory storage for fast, ephemeral data access
+- Real-time state sharing between tasks
+- High-speed caching without persistence
+
+**Examples:**
+- `memory_cache_example.yaml` - Fast in-memory caching
+- `state_sharing.yaml` - Real-time state coordination
+
 ## Getting Started
 
 ### Quick Start

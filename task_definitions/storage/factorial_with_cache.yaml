@@ -1,0 +1,57 @@
+name: "factorial_with_cache"
+version: "1.0"
+description: "Factorial computation with persistent result caching"
+inputs: [{"name": "n", "type": "number"}]
+outputs: [{"name": "factorial", "type": "number"}, {"name": "from_cache", "type": "boolean"}]
+compute_logic:
+  type: "expression"
+  language: "python"
+  timeout_seconds: 30
+  code: |
+    import zenoh
+    import json
+    
+    session = zenoh.open()
+    cache_key = f"corebrum/storage/cache/factorial/{n}"
+    
+    # Check cache first
+    cached = session.get(cache_key)
+    from_cache = False
+    if cached:
+        try:
+            cached_data = json.loads(cached.payload.decode())
+            result = {
+                "factorial": cached_data.get("factorial"),
+                "from_cache": True,
+                "message": "Retrieved from persistent cache"
+            }
+            print(json.dumps(result))
+            exit(0)
+        except:
+            pass
+    
+    # Compute factorial
+    def factorial(x):
+        if x <= 1:
+            return 1
+        return x * factorial(x - 1)
+    
+    fact = factorial(n)
+    
+    # Store in persistent cache
+    cache_data = {
+        "n": n,
+        "factorial": fact,
+        "timestamp": __import__("time").time()
+    }
+    session.put(cache_key, json.dumps(cache_data).encode())
+    
+    result = {
+        "factorial": fact,
+        "from_cache": False,
+        "message": "Computed and cached"
+    }
+    print(json.dumps(result))
+validation: []
+metadata: {}
+

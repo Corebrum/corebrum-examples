@@ -1,0 +1,43 @@
+name: "store_and_retrieve"
+version: "1.0"
+description: "Store computation result in persistent storage and retrieve it"
+inputs: [{"name": "data", "type": "json"}, {"name": "key", "type": "string"}]
+outputs: [{"name": "stored_key", "type": "string"}, {"name": "retrieved_data", "type": "json"}]
+compute_logic:
+  type: "expression"
+  language: "python"
+  timeout_seconds: 30
+  code: |
+    import zenoh
+    import json
+    import uuid
+    
+    # Open Zenoh session
+    session = zenoh.open()
+    
+    # Generate storage key if not provided
+    storage_key = key if key else f"corebrum/storage/results/{uuid.uuid4()}"
+    if not storage_key.startswith("corebrum/storage/"):
+        storage_key = f"corebrum/storage/results/{storage_key}"
+    
+    # Store data in persistent storage
+    data_json = json.dumps(data)
+    session.put(storage_key, data_json.encode())
+    
+    # Retrieve data from storage
+    reply = session.get(storage_key)
+    if reply:
+        retrieved = json.loads(reply.payload.decode())
+    else:
+        retrieved = {"error": "Failed to retrieve data"}
+    
+    # Output results
+    result = {
+        "stored_key": storage_key,
+        "retrieved_data": retrieved,
+        "message": "Data stored and retrieved successfully"
+    }
+    print(json.dumps(result))
+validation: []
+metadata: {}
+

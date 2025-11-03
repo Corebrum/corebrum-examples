@@ -1,0 +1,47 @@
+name: "worker_state_publisher"
+version: "1.0"
+description: "Publish worker state to shared memory for real-time coordination"
+inputs: [{"name": "worker_id", "type": "string"}, {"name": "active_tasks", "type": "number"}]
+outputs: [{"name": "state_key", "type": "string"}, {"name": "status", "type": "string"}]
+compute_logic:
+  type: "expression"
+  language: "python"
+  timeout_seconds: 30
+  code: |
+    import zenoh
+    import json
+    import time
+    
+    session = zenoh.open()
+    state_key = f"corebrum/memory/state/workers/{worker_id}"
+    
+    # Publish worker state to shared memory
+    state = {
+        "worker_id": worker_id,
+        "active_tasks": active_tasks,
+        "load": active_tasks / 10.0,  # Simulated load
+        "timestamp": time.time(),
+        "status": "active"
+    }
+    
+    session.put(state_key, json.dumps(state).encode())
+    
+    # Verify by retrieving
+    retrieved = session.get(state_key)
+    if retrieved:
+        result = {
+            "state_key": state_key,
+            "status": "published_and_verified",
+            "state": json.loads(retrieved.payload.decode())
+        }
+    else:
+        result = {
+            "state_key": state_key,
+            "status": "published_failed",
+            "state": None
+        }
+    
+    print(json.dumps(result))
+validation: []
+metadata: {}
+

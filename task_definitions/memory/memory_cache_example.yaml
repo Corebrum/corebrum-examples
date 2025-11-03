@@ -1,0 +1,58 @@
+name: "memory_cache_example"
+version: "1.0"
+description: "Demonstrate in-memory caching for fast repeated computations"
+inputs: [{"name": "n", "type": "number"}]
+outputs: [{"name": "result", "type": "number"}, {"name": "from_memory", "type": "boolean"}]
+compute_logic:
+  type: "expression"
+  language: "python"
+  timeout_seconds: 30
+  code: |
+    import zenoh
+    import json
+    
+    session = zenoh.open()
+    memory_key = f"corebrum/memory/cache/computation/{n}"
+    
+    # Check memory cache first (ephemeral, very fast)
+    cached = session.get(memory_key)
+    if cached:
+        try:
+            cached_data = json.loads(cached.payload.decode())
+            result = {
+                "result": cached_data.get("result"),
+                "from_memory": True,
+                "message": "Retrieved from in-memory cache"
+            }
+            print(json.dumps(result))
+            exit(0)
+        except:
+            pass
+    
+    # Expensive computation
+    def expensive_computation(x):
+        # Simulate expensive operation
+        total = 0
+        for i in range(x * 1000):
+            total += i
+        return total % 1000000
+    
+    computed_result = expensive_computation(n)
+    
+    # Store in memory cache (ephemeral, lost on router restart)
+    cache_data = {
+        "n": n,
+        "result": computed_result,
+        "timestamp": __import__("time").time()
+    }
+    session.put(memory_key, json.dumps(cache_data).encode())
+    
+    result = {
+        "result": computed_result,
+        "from_memory": False,
+        "message": "Computed and cached in memory"
+    }
+    print(json.dumps(result))
+validation: []
+metadata: {}
+
