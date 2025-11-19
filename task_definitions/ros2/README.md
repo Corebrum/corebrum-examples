@@ -96,6 +96,36 @@ python3 monitor_twist_commands.py
 ./../../../corebrum/target/debug/corebrum submit --file simple_qwen_test.yaml
 ```
 
+### Periodic Task Monitoring (Time Interval Trigger)
+
+Corebrum supports time-based periodic tasks using the `time_interval` trigger. This is perfect for monitoring tasks that need to run at regular intervals without requiring system CRON.
+
+**Example: Battery Level Monitor**
+```bash
+# Submit a task that checks battery level every 15 minutes
+./../../../corebrum/target/debug/corebrum submit --file battery_monitor.yaml
+
+# Monitor the battery status topic
+./../../../corebrum/target/debug/corebrum subscribe rt/robot1/battery/status
+
+# Check active stream tasks
+./../../../corebrum/target/debug/corebrum streams
+
+# Cancel the monitoring task when done
+./../../../corebrum/target/debug/corebrum cancel <task-id>
+```
+
+**How it works:**
+- Uses `execution_mode: "stream_reactive"` with `trigger: "time_interval"`
+- Executes the task code at the specified `interval_ms` (e.g., 900000ms = 15 minutes)
+- Runs continuously until cancelled
+- Perfect for periodic monitoring, health checks, and scheduled tasks
+
+**Customization:**
+- Adjust `interval_ms` to change the check frequency
+- Modify the battery topic name to match your robot
+- Change the output topic to publish status elsewhere
+
 ### Zenoh Message In/Out Examples
 
 ```bash

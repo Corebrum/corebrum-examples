@@ -14,6 +14,7 @@ This directory contains example task definitions organized by type and use case.
 - `object_detection.yaml` - YOLO-based object detection
 - `follow_person.yaml` - Autonomous person following
 - `multi_robot_formation.yaml` - Multi-robot coordination
+- `battery_monitor.yaml` - Periodic battery level monitoring (time_interval trigger)
 
 ### 📁 [docker/](docker/)
 **Docker Container Examples**

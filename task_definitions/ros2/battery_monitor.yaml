@@ -1,0 +1,119 @@
+name: "battery_monitor"
+version: "1.0"
+description: "Periodically check robot battery level via Zenoh and publish status"
+execution_mode: "stream_reactive"
+stream_config:
+  trigger: "time_interval"
+  interval_ms: 900000  # 15 minutes = 15 * 60 * 1000 ms
+compute_logic:
+  logic_type: "expression"
+  language: "python"
+  timeout_seconds: 30
+  code: |
+    import zenoh
+    import json
+    from datetime import datetime
+    
+    # Open Zenoh session
+    session = zenoh.open()
+    
+    # Query battery level from robot (adjust topic name for your robot)
+    battery_topic = "rt/robot1/battery/level"  # Change to your robot's battery topic
+    
+    try:
+        # Get latest battery level from Zenoh
+        # Note: Zenoh get() returns a list of replies
+        battery_data = None
+        try:
+            replies = session.get(battery_topic)
+            for reply in replies:
+                try:
+                    sample = reply.ok()
+                    if sample:
+                        payload_bytes = sample.payload
+                        # Try to decode as JSON first
+                        try:
+                            payload_str = payload_bytes.decode('utf-8')
+                            battery_data = json.loads(payload_str)
+                        except:
+                            # If not JSON, treat as raw value
+                            try:
+                                payload_str = payload_bytes.decode('utf-8')
+                                battery_data = float(payload_str)
+                            except:
+                                battery_data = payload_bytes.decode('utf-8', errors='ignore')
+                        break
+                except:
+                    continue
+        except Exception as get_error:
+            # If get() fails, battery_data remains None
+            pass
+        
+        # Create status message
+        if battery_data is not None:
+            if isinstance(battery_data, dict):
+                battery_level = battery_data.get('level', battery_data.get('percentage', battery_data.get('voltage', 'unknown')))
+            elif isinstance(battery_data, (int, float)):
+                battery_level = battery_data
+            else:
+                battery_level = str(battery_data)
+            
+            status = {
+                "battery_level": battery_level,
+                "timestamp": datetime.now().isoformat(),
+                "robot_id": "robot1",
+                "status": "ok"
+            }
+        else:
+            # Battery data not available
+            status = {
+                "battery_level": "unknown",
+                "timestamp": datetime.now().isoformat(),
+                "robot_id": "robot1",
+                "status": "no_data",
+                "message": f"Could not retrieve battery data from {battery_topic}"
+            }
+        
+        # Publish status to Zenoh
+        status_topic = "rt/robot1/battery/status"
+        try:
+            session.put(status_topic, json.dumps(status).encode('utf-8'))
+        except Exception as put_error:
+            # If publish fails, continue anyway
+            pass
+        
+        # Also output result for logging
+        result = {
+            "status": "checked",
+            "battery_level": status["battery_level"],
+            "timestamp": status["timestamp"],
+            "message": f"Battery check completed: {status['battery_level']}"
+        }
+    except Exception as e:
+        # Error handling
+        error_status = {
+            "battery_level": "error",
+            "timestamp": datetime.now().isoformat(),
+            "robot_id": "robot1",
+            "status": "error",
+            "error": str(e)
+        }
+        
+        # Publish error status
+        status_topic = "rt/robot1/battery/status"
+        try:
+            session.put(status_topic, json.dumps(error_status).encode('utf-8'))
+        except:
+            pass
+        
+        result = {
+            "status": "error",
+            "error": str(e),
+            "message": f"Failed to check battery: {e}"
+        }
+    
+    # Output result (for logging/debugging)
+    print(json.dumps(result))
+dependencies:
+  - python
+
