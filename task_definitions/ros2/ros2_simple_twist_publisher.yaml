@@ -1,0 +1,53 @@
+task_definition:
+  name: "ros2_simple_twist_publisher"
+  version: "1.0"
+  description: "Simple example publishing ROS2 Twist messages with native CDR encoding"
+  
+  execution_mode: "stream_reactive"
+  stream_config:
+    trigger: "time_interval"
+    interval_ms: 1000  # Publish every second
+  
+  outputs:
+    - name: "cmd_vel"
+      type: "zenoh"
+      key_expr: "rt/cmd_vel"
+      encoding: "cdr"
+      message_type: "geometry_msgs/Twist"  # Explicit type for validation
+  
+  compute_logic:
+    type: "expression"
+    language: "python"
+    timeout_seconds: 1
+    code: |
+      import time
+      import math
+      
+      # Generate a simple velocity command
+      # This will be automatically encoded as CDR geometry_msgs/Twist
+      t = time.time()
+      
+      # Create a simple pattern: move forward and turn
+      linear_x = 0.5 * (1.0 + 0.3 * math.sin(t * 0.5))  # Oscillating forward speed
+      angular_z = 0.2 * math.cos(t * 0.3)  # Oscillating turn rate
+      
+      # The result will be automatically CDR-encoded as geometry_msgs/Twist
+      result = {
+          'linear': {
+              'x': linear_x,
+              'y': 0.0,
+              'z': 0.0
+          },
+          'angular': {
+              'x': 0.0,
+              'y': 0.0,
+              'z': angular_z
+          }
+      }
+  
+  validation: []
+  metadata:
+    example_type: "simple_publisher"
+    message_type: "geometry_msgs/Twist"
+    encoding: "cdr"
+

@@ -1,0 +1,148 @@
+task_definition:
+  name: "ros2_message_type_demo"
+  version: "1.0"
+  description: "Demonstrates native ROS2 message type support with CDR encoding/decoding and type validation"
+  
+  execution_mode: "stream_reactive"
+  stream_config:
+    trigger: "on_message"
+    rate_limit_hz: 10
+    buffer_size: 1
+  
+  inputs:
+    # Example 1: Explicit message type specification
+    - name: "cmd_vel_input"
+      type: "zenoh"
+      key_expr: "rt/robot1/cmd_vel"
+      encoding: "cdr"
+      message_type: "geometry_msgs/Twist"  # Explicitly specify message type
+    
+    # Example 2: Auto-detection from topic name (message_type can be omitted)
+    - name: "odom_input"
+      type: "zenoh"
+      key_expr: "rt/robot1/odom"
+      encoding: "cdr"
+      # message_type will be auto-detected from topic name "odom" -> "nav_msgs/Odometry"
+    
+    # Example 3: Image message with explicit type
+    - name: "camera_image"
+      type: "zenoh"
+      key_expr: "rt/robot1/camera/color/image_raw"
+      encoding: "cdr"
+      message_type: "sensor_msgs/Image"  # Explicitly specify for images
+  
+  outputs:
+    # Example 4: Output with explicit message type
+    - name: "velocity_command"
+      type: "zenoh"
+      key_expr: "rt/robot1/cmd_vel_out"
+      encoding: "cdr"
+      message_type: "geometry_msgs/Twist"  # Type-safe output
+    
+    # Example 5: JSON output (non-ROS2, for debugging)
+    - name: "debug_info"
+      type: "zenoh"
+      key_expr: "corebrum/robot1/debug"
+      encoding: "json"  # Standard JSON encoding
+  
+  compute_logic:
+    type: "expression"
+    language: "python"
+    timeout_seconds: 5
+    code: |
+      import json
+      import time
+      
+      # The system automatically decodes CDR-encoded ROS2 messages to JSON
+      # For cmd_vel (geometry_msgs/Twist), you'll receive:
+      # {
+      #   "linear": {"x": 0.0, "y": 0.0, "z": 0.0},
+      #   "angular": {"x": 0.0, "y": 0.0, "z": 0.0}
+      # }
+      
+      # Process incoming velocity command
+      linear_x = 0.0
+      angular_z = 0.0
+      
+      if 'cmd_vel_input' in locals() and cmd_vel_input:
+          # Handle CDR-decoded message
+          if isinstance(cmd_vel_input, dict):
+              if 'linear' in cmd_vel_input:
+                  linear_x = cmd_vel_input['linear'].get('x', 0.0)
+              if 'angular' in cmd_vel_input:
+                  angular_z = cmd_vel_input['angular'].get('z', 0.0)
+          elif 'raw_bytes' in cmd_vel_input:
+              # Fallback: if CDR decoding failed, raw_bytes will be available
+              # You can decode manually using ros2msg or rclpy if needed
+              print(f"Received raw CDR bytes: {len(cmd_vel_input['raw_bytes'])} bytes", file=sys.stderr)
+      
+      # Process odometry (if available)
+      odom_info = {}
+      if 'odom_input' in locals() and odom_input:
+          if isinstance(odom_input, dict):
+              odom_info = odom_input
+          elif 'raw_bytes' in odom_input:
+              print(f"Received raw odom bytes: {len(odom_input['raw_bytes'])} bytes", file=sys.stderr)
+      
+      # Process camera image (if available)
+      image_info = {}
+      if 'camera_image' in locals() and camera_image:
+          if isinstance(camera_image, dict):
+              # Decoded sensor_msgs/Image will have: height, width, encoding, data, etc.
+              image_info = {
+                  'height': camera_image.get('height', 0),
+                  'width': camera_image.get('width', 0),
+                  'encoding': camera_image.get('encoding', 'unknown'),
+                  'data_size': len(camera_image.get('data', []))
+              }
+          elif 'raw_bytes' in camera_image:
+              print(f"Received raw image bytes: {len(camera_image['raw_bytes'])} bytes", file=sys.stderr)
+      
+      # Generate output velocity command (will be automatically CDR-encoded)
+      # The system expects JSON format, which it will encode to CDR
+      velocity_command = {
+          'linear': {
+              'x': linear_x * 0.5,  # Scale down input velocity
+              'y': 0.0,
+              'z': 0.0
+          },
+          'angular': {
+              'x': 0.0,
+              'y': 0.0,
+              'z': angular_z * 0.5  # Scale down angular velocity
+          }
+      }
+      
+      # Debug output (JSON, not CDR)
+      debug_output = {
+          'timestamp': time.time(),
+          'input_linear_x': linear_x,
+          'input_angular_z': angular_z,
+          'output_linear_x': velocity_command['linear']['x'],
+          'output_angular_z': velocity_command['angular']['z'],
+          'odom_received': bool(odom_info),
+          'image_received': bool(image_info),
+          'image_info': image_info
+      }
+      
+      # Set results (will be automatically encoded based on output encoding)
+      result = {
+          'velocity_command': velocity_command,  # Will be CDR-encoded
+          'debug_info': debug_output  # Will be JSON-encoded
+      }
+  
+  validation: []
+  metadata:
+    demo_type: "ros2_message_types"
+    features:
+      - "CDR encoding/decoding"
+      - "Message type validation"
+      - "Auto-detection from topic names"
+      - "Type-safe task definitions"
+    supported_message_types:
+      - "geometry_msgs/Twist"
+      - "geometry_msgs/Vector3"
+      - "geometry_msgs/Point"
+      - "sensor_msgs/Image"
+      - "std_msgs/Header"
+

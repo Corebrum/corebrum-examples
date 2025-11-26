@@ -1,0 +1,83 @@
+task_definition:
+  name: "ros2_twist_subscriber"
+  version: "1.0"
+  description: "Simple example subscribing to ROS2 Twist messages with automatic CDR decoding"
+  
+  execution_mode: "stream_reactive"
+  stream_config:
+    trigger: "on_message"
+    rate_limit_hz: 20
+  
+  inputs:
+    - name: "cmd_vel"
+      type: "zenoh"
+      key_expr: "rt/cmd_vel"
+      encoding: "cdr"
+      # message_type will be auto-detected from "cmd_vel" topic -> "geometry_msgs/Twist"
+  
+  compute_logic:
+    type: "expression"
+    language: "python"
+    timeout_seconds: 1
+    code: |
+      import json
+      import time
+      
+      # The system automatically decodes CDR-encoded ROS2 messages to JSON
+      # For geometry_msgs/Twist, you receive:
+      # {
+      #   "linear": {"x": 0.0, "y": 0.0, "z": 0.0},
+      #   "angular": {"x": 0.0, "y": 0.0, "z": 0.0}
+      # }
+      
+      linear_x = 0.0
+      linear_y = 0.0
+      linear_z = 0.0
+      angular_x = 0.0
+      angular_y = 0.0
+      angular_z = 0.0
+      
+      if 'cmd_vel' in locals() and cmd_vel:
+          if isinstance(cmd_vel, dict):
+              # Successfully decoded CDR message
+              if 'linear' in cmd_vel:
+                  linear_x = cmd_vel['linear'].get('x', 0.0)
+                  linear_y = cmd_vel['linear'].get('y', 0.0)
+                  linear_z = cmd_vel['linear'].get('z', 0.0)
+              
+              if 'angular' in cmd_vel:
+                  angular_x = cmd_vel['angular'].get('x', 0.0)
+                  angular_y = cmd_vel['angular'].get('y', 0.0)
+                  angular_z = cmd_vel['angular'].get('z', 0.0)
+          elif 'raw_bytes' in cmd_vel:
+              # CDR decoding failed, raw bytes available
+              print(f"⚠️  CDR decoding failed, received {len(cmd_vel['raw_bytes'])} raw bytes", file=sys.stderr)
+      
+      # Process the velocity command
+      speed = (linear_x**2 + linear_y**2 + linear_z**2)**0.5
+      turn_rate = (angular_x**2 + angular_y**2 + angular_z**2)**0.5
+      
+      # Output processed information
+      result = {
+          'timestamp': time.time(),
+          'speed_mps': speed,
+          'turn_rate_radps': turn_rate,
+          'linear': {
+              'x': linear_x,
+              'y': linear_y,
+              'z': linear_z
+          },
+          'angular': {
+              'x': angular_x,
+              'y': angular_y,
+              'z': angular_z
+          },
+          'status': 'moving' if speed > 0.01 or turn_rate > 0.01 else 'stopped'
+      }
+  
+  validation: []
+  metadata:
+    example_type: "simple_subscriber"
+    message_type: "geometry_msgs/Twist"
+    encoding: "cdr"
+
