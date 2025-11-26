@@ -1,6 +1,71 @@
-# ROS2 Person Following Robot Demo
+# ROS2 Examples
 
-This directory contains a complete person-following robot system using Corebrum, Zenoh, and Qwen2.5VL vision model.
+This directory contains ROS2 integration examples demonstrating Corebrum's native ROS2 message type support.
+
+## 🆕 Native ROS2 Message Type Support
+
+Corebrum now provides native support for ROS2 message types with:
+- **CDR Encoding/Decoding**: Automatic conversion between ROS2 binary format and JSON
+- **Message Type Registry**: Support for common ROS2 message types (Twist, Image, Vector3, etc.)
+- **Type-Safe Task Definitions**: Message types validated at submission time
+- **Auto-Detection**: Message types automatically detected from topic names
+- **Conversion Utilities**: Easy conversion between ROS2 and JSON formats
+
+### Quick Start Examples
+
+#### 1. Simple Twist Publisher (`ros2_simple_twist_publisher.yaml`)
+Publishes ROS2 `geometry_msgs/Twist` messages with automatic CDR encoding:
+```bash
+corebrum submit --file ros2_simple_twist_publisher.yaml
+```
+
+#### 2. Simple Twist Subscriber (`ros2_twist_subscriber.yaml`)
+Subscribes to ROS2 `geometry_msgs/Twist` messages with automatic CDR decoding:
+```bash
+corebrum submit --file ros2_twist_subscriber.yaml
+```
+
+#### 3. Complete Demo (`ros2_message_type_demo.yaml`)
+Demonstrates all features: explicit message types, auto-detection, CDR encoding/decoding:
+```bash
+corebrum submit --file ros2_message_type_demo.yaml
+```
+
+### Message Type Specification
+
+You can specify message types explicitly or let the system auto-detect:
+
+```yaml
+inputs:
+  - name: "cmd_vel"
+    type: "zenoh"
+    key_expr: "rt/cmd_vel"
+    encoding: "cdr"
+    message_type: "geometry_msgs/Twist"  # Explicit (recommended)
+    # message_type can be omitted - will auto-detect from topic name
+```
+
+### Supported Message Types
+
+Currently supported ROS2 message types:
+- `geometry_msgs/Twist` - Velocity commands
+- `geometry_msgs/Vector3` - 3D vectors
+- `geometry_msgs/Point` - 3D points
+- `sensor_msgs/Image` - Camera images
+- `std_msgs/Header` - Message headers
+
+### Topic Name Auto-Detection
+
+The system automatically detects message types from common topic patterns:
+- `cmd_vel` → `geometry_msgs/Twist`
+- `odom` → `nav_msgs/Odometry`
+- `image_raw` → `sensor_msgs/Image`
+- `scan` → `sensor_msgs/LaserScan`
+- And more...
+
+## Person Following Robot Demo
+
+This directory also contains a complete person-following robot system using Corebrum, Zenoh, and Qwen2.5VL vision model.
 
 ## 🎯 Main Demo: Person Following Robot
 
