@@ -63,6 +63,115 @@ corebrum submit --file task_definitions/mcp/mcp_one_shot_job.yaml \
 
 A stream-reactive task that continuously processes triggers and calls MCP servers in real-time.
 
+### 3. MCP ROS2 Image Analysis (`mcp_ros2_image_analysis.yaml`)
+
+A streaming MCP job that processes ROS2 camera images through MCP AI tools and publishes analysis results back to ROS2 topics.
+
+**Features:**
+- Subscribes to ROS2 `sensor_msgs/Image` topics (CDR-encoded)
+- Processes images through MCP AI vision tools
+- Publishes analysis results to ROS2 topics
+- Supports object detection, scene understanding, OCR, etc.
+
+**Usage:**
+```bash
+# Submit ROS2 image analysis job
+corebrum submit --file task_definitions/mcp/mcp_ros2_image_analysis.yaml \
+  --inputs '{"mcp_server_url": "http://localhost:3000"}'
+
+# Monitor analysis results
+zenoh sub -k rt/robot1/camera/analysis
+
+# Monitor detections
+zenoh sub -k rt/robot1/camera/detections
+```
+
+**Input Topics:**
+- `rt/robot1/camera/color/image_raw` - ROS2 camera image (CDR-encoded `sensor_msgs/Image`)
+
+**Output Topics:**
+- `rt/robot1/camera/analysis` - Image analysis results (JSON)
+- `rt/robot1/camera/detections` - Detected object positions (CDR-encoded ROS2 message)
+
+**Example MCP Tool Call:**
+```json
+{
+  "method": "tools/call",
+  "params": {
+    "name": "analyze_image",
+    "arguments": {
+      "image": {
+        "data": "<base64_encoded_image>",
+        "width": 1280,
+        "height": 720,
+        "encoding": "rgb8"
+      },
+      "analysis_type": "object_detection",
+      "options": {
+        "confidence_threshold": 0.5,
+        "max_detections": 10
+      }
+    }
+  }
+}
+```
+
+### 4. MCP ROS2 Sensor Control (`mcp_ros2_sensor_control.yaml`)
+
+A streaming MCP job that processes ROS2 sensor data (odometry, battery, etc.) through MCP AI tools and publishes control commands back to ROS2 topics.
+
+**Features:**
+- Subscribes to ROS2 `nav_msgs/Odometry` and battery level topics
+- Processes sensor data through MCP AI decision-making tools
+- Publishes velocity commands (`geometry_msgs/Twist`) to ROS2 topics
+- Supports navigation control, exploration, patrol, etc.
+
+**Usage:**
+```bash
+# Submit ROS2 sensor control job
+corebrum submit --file task_definitions/mcp/mcp_ros2_sensor_control.yaml \
+  --inputs '{"mcp_server_url": "http://localhost:3000"}'
+
+# Monitor velocity commands
+zenoh sub -k rt/robot1/cmd_vel
+
+# Monitor control status
+zenoh sub -k rt/robot1/control/status
+```
+
+**Input Topics:**
+- `rt/robot1/odom` - ROS2 odometry (CDR-encoded `nav_msgs/Odometry`)
+- `rt/robot1/battery/level` - Battery level (JSON)
+
+**Output Topics:**
+- `rt/robot1/cmd_vel` - Velocity command (CDR-encoded `geometry_msgs/Twist`)
+- `rt/robot1/control/status` - Control status and reasoning (JSON)
+
+**Example MCP Tool Call:**
+```json
+{
+  "method": "tools/call",
+  "params": {
+    "name": "compute_control_command",
+    "arguments": {
+      "sensor_data": {
+        "odometry": {
+          "position": {"x": 1.0, "y": 2.0, "z": 0.0},
+          "linear_velocity": {"x": 0.5, "y": 0.0, "z": 0.0}
+        },
+        "battery": {"level": 0.85}
+      },
+      "task": "navigation_control",
+      "constraints": {
+        "max_linear_velocity": 0.5,
+        "max_angular_velocity": 1.0,
+        "min_battery_level": 0.2
+      }
+    }
+  }
+}
+```
+
 **Features:**
 - Subscribes to Zenoh topics for trigger data
 - Calls MCP server on each trigger
@@ -163,6 +272,56 @@ Many MCP servers are available:
 - **Database Tools**: Query databases
 - **File System**: Read/write files
 - **Custom Tools**: Build your own MCP servers
+
+## ROS2 Integration Examples
+
+### ROS2 Image Processing Pipeline
+
+The `mcp_ros2_image_analysis.yaml` example demonstrates a complete ROS2 image processing pipeline:
+
+1. **Subscribe to ROS2 Camera Topic**: Receives CDR-encoded `sensor_msgs/Image` messages
+2. **Decode Image**: System automatically decodes CDR to JSON format
+3. **Process via MCP**: Sends image to MCP AI vision tool for analysis
+4. **Publish Results**: Publishes analysis and detections back to ROS2 topics
+
+**Example Workflow:**
+```bash
+# 1. Start ROS2 camera node (on robot)
+ros2 run realsense_camera realsense_camera_node
+
+# 2. Start zenoh-bridge-ros2dds (bridges ROS2 to Zenoh)
+zenoh-bridge-ros2dds
+
+# 3. Submit MCP image analysis job
+corebrum submit --file task_definitions/mcp/mcp_ros2_image_analysis.yaml
+
+# 4. Monitor results
+zenoh sub -k rt/robot1/camera/analysis
+```
+
+### ROS2 Sensor-Based Control Pipeline
+
+The `mcp_ros2_sensor_control.yaml` example demonstrates AI-powered robot control:
+
+1. **Subscribe to Sensor Topics**: Receives odometry and battery data
+2. **Process via MCP**: Sends sensor data to MCP AI decision-making tool
+3. **Generate Commands**: MCP returns velocity commands based on sensor state
+4. **Publish Commands**: Publishes `geometry_msgs/Twist` commands to ROS2
+
+**Example Workflow:**
+```bash
+# 1. Start ROS2 robot nodes (on robot)
+ros2 launch robot_bringup robot.launch.py
+
+# 2. Start zenoh-bridge-ros2dds
+zenoh-bridge-ros2dds
+
+# 3. Submit MCP sensor control job
+corebrum submit --file task_definitions/mcp/mcp_ros2_sensor_control.yaml
+
+# 4. Monitor velocity commands
+zenoh sub -k rt/robot1/cmd_vel
+```
 
 ## Integration Patterns
 
@@ -293,9 +452,44 @@ Consider caching MCP results for frequently called tools:
 - Verify trigger data format is correct
 - Check rate limiting settings
 
+## ROS2 Message Type Support
+
+The ROS2 MCP examples leverage Corebrum's native ROS2 message type support:
+
+- **CDR Encoding/Decoding**: Automatic conversion between ROS2 binary format and JSON
+- **Message Type Detection**: Auto-detection from topic names or explicit specification
+- **Type-Safe Outputs**: Outputs are automatically CDR-encoded based on message type
+
+**Supported ROS2 Message Types:**
+- `sensor_msgs/Image` - Camera images
+- `nav_msgs/Odometry` - Robot odometry
+- `geometry_msgs/Twist` - Velocity commands
+- `geometry_msgs/Point` - 3D points
+- `geometry_msgs/Vector3` - 3D vectors
+
+**Example Input Configuration:**
+```yaml
+inputs:
+  - name: "camera_image"
+    type: "zenoh"
+    key_expr: "rt/robot1/camera/color/image_raw"
+    encoding: "cdr"
+    message_type: "sensor_msgs/Image"  # Explicit type specification
+```
+
+**Example Output Configuration:**
+```yaml
+outputs:
+  - name: "velocity_command"
+    type: "zenoh"
+    key_expr: "rt/robot1/cmd_vel"
+    encoding: "cdr"
+    message_type: "geometry_msgs/Twist"  # Automatically CDR-encoded
+```
+
 ## Related Examples
 
-- **ROS2 Integration**: See `../ros2/` for sensor data processing
+- **ROS2 Integration**: See `../ros2/` for more ROS2 sensor data processing examples
 - **Memory Storage**: See `../memory/` for caching MCP results
 - **Sequential Pipelines**: See `../sequential/` for multi-step MCP workflows
 
