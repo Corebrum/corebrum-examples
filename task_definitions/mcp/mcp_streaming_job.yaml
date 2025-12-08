@@ -1,0 +1,179 @@
+name: "mcp_streaming_job"
+version: "1.0"
+description: "Streaming MCP job that continuously calls an MCP server or processes MCP tool results in real-time"
+execution_mode: "stream_reactive"
+stream_config:
+  trigger: "on_message"  # Execute when input messages arrive
+  rate_limit_hz: 5  # Limit to 5 calls per second
+inputs:
+  - name: "mcp_server_url"
+    type: "string"
+    required: false
+    default: "http://localhost:3000"
+    description: "URL of the MCP server endpoint"
+compute_logic:
+  type: "script"
+  language: "python"
+  timeout_seconds: 0  # No timeout for streaming tasks
+  code: |
+    import json
+    import sys
+    import time
+    import requests
+    import zenoh
+    from datetime import datetime
+    
+    # Open Zenoh session for streaming
+    session = zenoh.open()
+    
+    # MCP server configuration
+    mcp_server_url = inputs.get('mcp_server_url', 'http://localhost:3000')
+    default_tool_name = "process_data"  # Default MCP tool to call
+    
+    # Configure topics (can be customized)
+    trigger_topic = "mcp/trigger/data"  # Topic to listen for trigger data
+    results_topic = "mcp/results/processed"  # Topic to publish results
+    
+    print(f"Starting MCP streaming job...", file=sys.stderr)
+    print(f"MCP Server: {mcp_server_url}", file=sys.stderr)
+    print(f"Listening on trigger topic: {trigger_topic}", file=sys.stderr)
+    print(f"Publishing results to: {results_topic}", file=sys.stderr)
+    
+    # Create subscriber for trigger data
+    def process_mcp_call(sample):
+        """Process incoming trigger and call MCP server"""
+        try:
+            # Decode trigger data
+            payload_bytes = sample.payload
+            try:
+                trigger_data = json.loads(payload_bytes.decode('utf-8'))
+            except:
+                trigger_data = {"raw": payload_bytes.decode('utf-8', errors='ignore')}
+            
+            # Extract tool name and arguments from trigger data
+            tool_name = trigger_data.get('tool_name', default_tool_name)
+            tool_args = trigger_data.get('arguments', trigger_data)
+            
+            # If trigger_data itself is the argument, use it
+            if 'arguments' not in trigger_data and 'tool_name' not in trigger_data:
+                tool_args = trigger_data
+            
+            print(f"Received trigger: {json.dumps(trigger_data, indent=2)}", file=sys.stderr)
+            
+            # Construct JSON-RPC 2.0 request
+            jsonrpc_request = {
+                "jsonrpc": "2.0",
+                "id": int(time.time() * 1000),  # Use timestamp as ID
+                "method": "tools/call",
+                "params": {
+                    "name": tool_name,
+                    "arguments": tool_args
+                }
+            }
+            
+            # Make HTTP POST request to MCP server
+            headers = {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+            
+            try:
+                response = requests.post(
+                    mcp_server_url,
+                    json=jsonrpc_request,
+                    headers=headers,
+                    timeout=10
+                )
+                
+                response.raise_for_status()
+                jsonrpc_response = response.json()
+                
+                # Handle JSON-RPC 2.0 response
+                if "error" in jsonrpc_response:
+                    error_info = jsonrpc_response["error"]
+                    mcp_result = {
+                        "status": "error",
+                        "error_code": error_info.get("code", "unknown"),
+                        "error_message": error_info.get("message", "Unknown error"),
+                        "timestamp": datetime.now().isoformat(),
+                        "trigger_data": trigger_data
+                    }
+                elif "result" in jsonrpc_response:
+                    mcp_result = {
+                        "status": "success",
+                        "tool_name": tool_name,
+                        "result": jsonrpc_response["result"],
+                        "timestamp": datetime.now().isoformat(),
+                        "trigger_data": trigger_data
+                    }
+                else:
+                    mcp_result = {
+                        "status": "success",
+                        "tool_name": tool_name,
+                        "result": jsonrpc_response,
+                        "timestamp": datetime.now().isoformat(),
+                        "trigger_data": trigger_data
+                    }
+                
+                # Publish result to Zenoh
+                result_json = json.dumps(mcp_result)
+                session.put(results_topic, result_json.encode('utf-8'))
+                
+                print(f"MCP call successful: {json.dumps(mcp_result, indent=2)}", file=sys.stderr)
+                
+            except requests.exceptions.RequestException as e:
+                error_result = {
+                    "status": "error",
+                    "error_type": "network_error",
+                    "error_message": str(e),
+                    "timestamp": datetime.now().isoformat(),
+                    "trigger_data": trigger_data
+                }
+                session.put(results_topic, json.dumps(error_result).encode('utf-8'))
+                print(f"MCP call failed (network error): {e}", file=sys.stderr)
+                
+        except Exception as e:
+            error_result = {
+                "status": "error",
+                "error_type": "processing_error",
+                "error_message": str(e),
+                "timestamp": datetime.now().isoformat()
+            }
+            try:
+                session.put(results_topic, json.dumps(error_result).encode('utf-8'))
+            except:
+                pass
+            print(f"Error processing MCP call: {e}", file=sys.stderr)
+    
+    # Subscribe to trigger topic
+    print(f"Subscribing to {trigger_topic}...", file=sys.stderr)
+    subscriber = session.declare_subscriber(trigger_topic, process_mcp_call)
+    
+    # Keep running until cancelled
+    try:
+        print("MCP streaming job running. Waiting for triggers...", file=sys.stderr)
+        print("Press Ctrl+C to stop.", file=sys.stderr)
+        
+        # Keep the task alive
+        while True:
+            time.sleep(1)
+            
+    except KeyboardInterrupt:
+        print("MCP streaming job interrupted", file=sys.stderr)
+    except Exception as e:
+        print(f"MCP streaming job error: {e}", file=sys.stderr)
+        raise
+    finally:
+        # Cleanup
+        try:
+            subscriber.undeclare()
+        except:
+            pass
+        try:
+            session.close()
+        except:
+            pass
+dependencies:
+  - requests
+  - zenoh
+

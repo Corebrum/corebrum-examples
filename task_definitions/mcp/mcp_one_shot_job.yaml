@@ -1,0 +1,146 @@
+name: "mcp_one_shot_job"
+version: "1.0"
+description: "One-shot MCP job that calls an MCP server to perform a single operation (e.g., web search, weather lookup, etc.)"
+execution_mode: "one_shot"
+inputs:
+  - name: "mcp_server_url"
+    type: "string"
+    required: true
+    default: "http://localhost:3000"
+    description: "URL of the MCP server endpoint"
+  - name: "tool_name"
+    type: "string"
+    required: true
+    default: "web_search"
+    description: "Name of the MCP tool to call"
+  - name: "tool_args"
+    type: "object"
+    required: false
+    default: {}
+    description: "Arguments to pass to the MCP tool"
+outputs:
+  - name: "result"
+    type: "object"
+    description: "Result from the MCP tool call"
+  - name: "status"
+    type: "string"
+    description: "Status of the MCP call (success/error)"
+compute_logic:
+  type: "script"
+  language: "python"
+  timeout_seconds: 60
+  code: |
+    import json
+    import sys
+    import requests
+    from datetime import datetime
+    
+    # MCP servers typically use JSON-RPC 2.0 protocol
+    # This example demonstrates calling an MCP server via HTTP
+    
+    mcp_server_url = inputs.get('mcp_server_url', 'http://localhost:3000')
+    tool_name = inputs.get('tool_name', 'web_search')
+    tool_args = inputs.get('tool_args', {})
+    
+    try:
+        # Construct JSON-RPC 2.0 request
+        # MCP protocol typically uses "tools/call" method
+        jsonrpc_request = {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "tools/call",
+            "params": {
+                "name": tool_name,
+                "arguments": tool_args
+            }
+        }
+        
+        # Make HTTP POST request to MCP server
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+        }
+        
+        print(f"Calling MCP server at {mcp_server_url} with tool '{tool_name}'", file=sys.stderr)
+        print(f"Tool arguments: {json.dumps(tool_args, indent=2)}", file=sys.stderr)
+        
+        response = requests.post(
+            mcp_server_url,
+            json=jsonrpc_request,
+            headers=headers,
+            timeout=30
+        )
+        
+        # Check response status
+        response.raise_for_status()
+        
+        # Parse JSON-RPC response
+        jsonrpc_response = response.json()
+        
+        # Handle JSON-RPC 2.0 response format
+        if "error" in jsonrpc_response:
+            error_info = jsonrpc_response["error"]
+            result = {
+                "status": "error",
+                "error_code": error_info.get("code", "unknown"),
+                "error_message": error_info.get("message", "Unknown error"),
+                "error_data": error_info.get("data", {}),
+                "timestamp": datetime.now().isoformat()
+            }
+        elif "result" in jsonrpc_response:
+            mcp_result = jsonrpc_response["result"]
+            result = {
+                "status": "success",
+                "tool_name": tool_name,
+                "result": mcp_result,
+                "timestamp": datetime.now().isoformat()
+            }
+        else:
+            # Fallback: treat entire response as result
+            result = {
+                "status": "success",
+                "tool_name": tool_name,
+                "result": jsonrpc_response,
+                "timestamp": datetime.now().isoformat()
+            }
+        
+        print(f"MCP call successful: {json.dumps(result, indent=2)}", file=sys.stderr)
+        
+    except requests.exceptions.RequestException as e:
+        # HTTP/network error
+        result = {
+            "status": "error",
+            "error_type": "network_error",
+            "error_message": str(e),
+            "mcp_server_url": mcp_server_url,
+            "timestamp": datetime.now().isoformat()
+        }
+        print(f"MCP call failed (network error): {e}", file=sys.stderr)
+        
+    except json.JSONDecodeError as e:
+        # JSON parsing error
+        result = {
+            "status": "error",
+            "error_type": "json_error",
+            "error_message": f"Failed to parse JSON response: {e}",
+            "mcp_server_url": mcp_server_url,
+            "timestamp": datetime.now().isoformat()
+        }
+        print(f"MCP call failed (JSON error): {e}", file=sys.stderr)
+        
+    except Exception as e:
+        # Unexpected error
+        result = {
+            "status": "error",
+            "error_type": "unknown_error",
+            "error_message": str(e),
+            "mcp_server_url": mcp_server_url,
+            "timestamp": datetime.now().isoformat()
+        }
+        print(f"MCP call failed (unexpected error): {e}", file=sys.stderr)
+    
+    # Output result as JSON
+    print(json.dumps(result))
+dependencies:
+  - requests
+

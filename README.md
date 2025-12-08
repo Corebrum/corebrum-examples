@@ -11,6 +11,7 @@ The `task_definitions/` directory contains examples organized by category:
 - **[python/](task_definitions/python/)** - Python execution examples
 - **[wasm/](task_definitions/wasm/)** - WebAssembly examples
 - **[sequential/](task_definitions/sequential/)** - Pipeline and workflow examples
+- **[mcp/](task_definitions/mcp/)** - MCP (Model Context Protocol) integration examples
 - **[general/](task_definitions/general/)** - General-purpose examples
 
 Each directory contains detailed README files with usage instructions and examples.
