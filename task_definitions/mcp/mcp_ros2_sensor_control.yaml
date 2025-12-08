@@ -1,0 +1,350 @@
+name: "mcp_ros2_sensor_control"
+version: "1.0"
+description: "Streaming MCP job that processes ROS2 sensor data (odometry, battery, etc.) through MCP AI tools and publishes control commands back to ROS2 topics"
+execution_mode: "stream_reactive"
+stream_config:
+  trigger: "on_message"
+  rate_limit_hz: 5  # Limit to 5 control updates per second
+inputs:
+  - name: "odometry"
+    type: "zenoh"
+    key_expr: "rt/robot1/odom"
+    encoding: "cdr"
+    message_type: "nav_msgs/Odometry"
+    description: "ROS2 odometry data (CDR-encoded nav_msgs/Odometry)"
+  - name: "battery_level"
+    type: "zenoh"
+    key_expr: "rt/robot1/battery/level"
+    encoding: "json"
+    description: "Battery level (JSON format)"
+  - name: "mcp_server_url"
+    type: "string"
+    required: false
+    default: "http://localhost:3000"
+    description: "URL of the MCP server endpoint"
+outputs:
+  - name: "velocity_command"
+    type: "zenoh"
+    key_expr: "rt/robot1/cmd_vel"
+    encoding: "cdr"
+    message_type: "geometry_msgs/Twist"
+    description: "Velocity command output (CDR-encoded geometry_msgs/Twist)"
+  - name: "control_status"
+    type: "zenoh"
+    key_expr: "rt/robot1/control/status"
+    encoding: "json"
+    description: "Control status and decision reasoning (JSON format)"
+compute_logic:
+  type: "script"
+  language: "python"
+  timeout_seconds: 0  # No timeout for streaming tasks
+  code: |
+    import json
+    import sys
+    import time
+    import requests
+    import zenoh
+    from datetime import datetime
+    
+    # Open Zenoh session for streaming
+    session = zenoh.open()
+    
+    # MCP server configuration
+    mcp_server_url = inputs.get('mcp_server_url', 'http://localhost:3000')
+    
+    # ROS2 topic configuration
+    odom_topic = "rt/robot1/odom"
+    battery_topic = "rt/robot1/battery/level"
+    cmd_vel_topic = "rt/robot1/cmd_vel"
+    status_topic = "rt/robot1/control/status"
+    
+    # State tracking
+    last_odom = None
+    last_battery = None
+    
+    print(f"Starting MCP ROS2 sensor control streaming job...", file=sys.stderr)
+    print(f"MCP Server: {mcp_server_url}", file=sys.stderr)
+    print(f"Subscribing to ROS2 odometry: {odom_topic}", file=sys.stderr)
+    print(f"Subscribing to battery level: {battery_topic}", file=sys.stderr)
+    print(f"Publishing velocity commands to: {cmd_vel_topic}", file=sys.stderr)
+    print(f"Publishing control status to: {status_topic}", file=sys.stderr)
+    
+    def process_sensor_data_with_mcp(odom_data, battery_data):
+        """Process ROS2 sensor data through MCP AI decision-making tool"""
+        try:
+            # Extract sensor data from decoded ROS2 messages
+            sensor_info = {}
+            
+            # Process odometry (nav_msgs/Odometry)
+            if odom_data and isinstance(odom_data, dict):
+                # Extract position and velocity from odometry
+                pose = odom_data.get('pose', {}).get('pose', {})
+                twist = odom_data.get('twist', {}).get('twist', {})
+                
+                position = pose.get('position', {})
+                orientation = pose.get('orientation', {})
+                linear_vel = twist.get('linear', {})
+                angular_vel = twist.get('angular', {})
+                
+                sensor_info['odometry'] = {
+                    'position': {
+                        'x': position.get('x', 0.0),
+                        'y': position.get('y', 0.0),
+                        'z': position.get('z', 0.0)
+                    },
+                    'orientation': {
+                        'x': orientation.get('x', 0.0),
+                        'y': orientation.get('y', 0.0),
+                        'z': orientation.get('z', 0.0),
+                        'w': orientation.get('w', 1.0)
+                    },
+                    'linear_velocity': {
+                        'x': linear_vel.get('x', 0.0),
+                        'y': linear_vel.get('y', 0.0),
+                        'z': linear_vel.get('z', 0.0)
+                    },
+                    'angular_velocity': {
+                        'x': angular_vel.get('x', 0.0),
+                        'y': angular_vel.get('y', 0.0),
+                        'z': angular_vel.get('z', 0.0)
+                    }
+                }
+            
+            # Process battery level
+            if battery_data:
+                if isinstance(battery_data, dict):
+                    sensor_info['battery'] = battery_data
+                elif isinstance(battery_data, (int, float)):
+                    sensor_info['battery'] = {'level': float(battery_data), 'percentage': float(battery_data)}
+                else:
+                    sensor_info['battery'] = {'level': float(battery_data) if isinstance(battery_data, str) else 0.0}
+            
+            print(f"Processing sensor data through MCP: {json.dumps(sensor_info, indent=2)}", file=sys.stderr)
+            
+            # Prepare MCP tool call arguments
+            mcp_tool_args = {
+                "sensor_data": sensor_info,
+                "task": "navigation_control",  # or "exploration", "patrol", etc.
+                "constraints": {
+                    "max_linear_velocity": 0.5,
+                    "max_angular_velocity": 1.0,
+                    "min_battery_level": 0.2  # Stop if battery below 20%
+                },
+                "options": {
+                    "safety_margin": 0.1,
+                    "smooth_motion": True
+                }
+            }
+            
+            # Construct JSON-RPC 2.0 request
+            jsonrpc_request = {
+                "jsonrpc": "2.0",
+                "id": int(time.time() * 1000),
+                "method": "tools/call",
+                "params": {
+                    "name": "compute_control_command",  # MCP tool name for control computation
+                    "arguments": mcp_tool_args
+                }
+            }
+            
+            # Call MCP server
+            headers = {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+            
+            response = requests.post(
+                mcp_server_url,
+                json=jsonrpc_request,
+                headers=headers,
+                timeout=10
+            )
+            
+            response.raise_for_status()
+            jsonrpc_response = response.json()
+            
+            # Extract MCP result
+            if "error" in jsonrpc_response:
+                error_info = jsonrpc_response["error"]
+                return {
+                    "status": "error",
+                    "error_code": error_info.get("code", "unknown"),
+                    "error_message": error_info.get("message", "Unknown error"),
+                    "timestamp": datetime.now().isoformat()
+                }
+            elif "result" in jsonrpc_response:
+                mcp_result = jsonrpc_response["result"]
+                
+                # Extract velocity command from MCP result
+                # Expected format: {"linear": {"x": 0.0, "y": 0.0, "z": 0.0}, "angular": {"x": 0.0, "y": 0.0, "z": 0.0}}
+                velocity_command = None
+                if isinstance(mcp_result, dict):
+                    if "velocity" in mcp_result:
+                        velocity_command = mcp_result["velocity"]
+                    elif "cmd_vel" in mcp_result:
+                        velocity_command = mcp_result["cmd_vel"]
+                    elif "linear" in mcp_result and "angular" in mcp_result:
+                        velocity_command = mcp_result
+                    else:
+                        # Try to construct from individual fields
+                        velocity_command = {
+                            "linear": {
+                                "x": mcp_result.get("linear_x", mcp_result.get("vx", 0.0)),
+                                "y": mcp_result.get("linear_y", mcp_result.get("vy", 0.0)),
+                                "z": mcp_result.get("linear_z", mcp_result.get("vz", 0.0))
+                            },
+                            "angular": {
+                                "x": mcp_result.get("angular_x", mcp_result.get("wx", 0.0)),
+                                "y": mcp_result.get("angular_y", mcp_result.get("wy", 0.0)),
+                                "z": mcp_result.get("angular_z", mcp_result.get("wz", 0.0))
+                            }
+                        }
+                
+                # Default to stop command if no valid command found
+                if not velocity_command:
+                    velocity_command = {
+                        "linear": {"x": 0.0, "y": 0.0, "z": 0.0},
+                        "angular": {"x": 0.0, "y": 0.0, "z": 0.0}
+                    }
+                
+                # Extract reasoning/status from MCP result
+                control_status = {
+                    "status": "success",
+                    "velocity_command": velocity_command,
+                    "reasoning": mcp_result.get("reasoning", mcp_result.get("explanation", "")),
+                    "confidence": mcp_result.get("confidence", 1.0),
+                    "timestamp": datetime.now().isoformat()
+                }
+                
+                return {
+                    "velocity_command": velocity_command,
+                    "control_status": control_status
+                }
+            else:
+                return {
+                    "status": "error",
+                    "error_message": "Unexpected MCP response format",
+                    "timestamp": datetime.now().isoformat()
+                }
+                
+        except requests.exceptions.RequestException as e:
+            return {
+                "status": "error",
+                "error_type": "network_error",
+                "error_message": str(e),
+                "timestamp": datetime.now().isoformat()
+            }
+        except Exception as e:
+            return {
+                "status": "error",
+                "error_type": "processing_error",
+                "error_message": str(e),
+                "timestamp": datetime.now().isoformat()
+            }
+    
+    # Process messages from multiple topics
+    def process_odom_message(sample):
+        """Process incoming ROS2 odometry message"""
+        global last_odom
+        try:
+            # Decode ROS2 odometry message (system automatically decodes CDR to JSON)
+            payload_bytes = sample.payload
+            try:
+                odom_data = json.loads(payload_bytes.decode('utf-8'))
+                last_odom = odom_data
+            except:
+                odom_data = None
+            
+            # Process if we have both odom and battery data
+            if last_odom and last_battery is not None:
+                result = process_sensor_data_with_mcp(last_odom, last_battery)
+                
+                # Publish velocity command (ROS2 geometry_msgs/Twist)
+                if "velocity_command" in result:
+                    cmd_json = json.dumps(result["velocity_command"])
+                    # The system will automatically CDR-encode this based on output encoding
+                    session.put(cmd_vel_topic, cmd_json.encode('utf-8'))
+                    print(f"Published velocity command to {cmd_vel_topic}", file=sys.stderr)
+                
+                # Publish control status (JSON)
+                if "control_status" in result:
+                    status_json = json.dumps(result["control_status"])
+                    session.put(status_topic, status_json.encode('utf-8'))
+                    print(f"Published control status to {status_topic}", file=sys.stderr)
+                
+        except Exception as e:
+            print(f"Error processing odometry message: {e}", file=sys.stderr)
+    
+    def process_battery_message(sample):
+        """Process incoming battery level message"""
+        global last_battery
+        try:
+            # Decode battery message (JSON format)
+            payload_bytes = sample.payload
+            try:
+                battery_data = json.loads(payload_bytes.decode('utf-8'))
+                last_battery = battery_data
+            except:
+                try:
+                    battery_data = float(payload_bytes.decode('utf-8'))
+                    last_battery = battery_data
+                except:
+                    last_battery = None
+            
+            # Process if we have both odom and battery data
+            if last_odom and last_battery is not None:
+                result = process_sensor_data_with_mcp(last_odom, last_battery)
+                
+                # Publish velocity command (ROS2 geometry_msgs/Twist)
+                if "velocity_command" in result:
+                    cmd_json = json.dumps(result["velocity_command"])
+                    session.put(cmd_vel_topic, cmd_json.encode('utf-8'))
+                    print(f"Published velocity command to {cmd_vel_topic}", file=sys.stderr)
+                
+                # Publish control status (JSON)
+                if "control_status" in result:
+                    status_json = json.dumps(result["control_status"])
+                    session.put(status_topic, status_json.encode('utf-8'))
+                    print(f"Published control status to {status_topic}", file=sys.stderr)
+                
+        except Exception as e:
+            print(f"Error processing battery message: {e}", file=sys.stderr)
+    
+    # Subscribe to both topics
+    print(f"Subscribing to {odom_topic}...", file=sys.stderr)
+    print(f"Subscribing to {battery_topic}...", file=sys.stderr)
+    
+    odom_subscriber = session.declare_subscriber(odom_topic, process_odom_message)
+    battery_subscriber = session.declare_subscriber(battery_topic, process_battery_message)
+    
+    # Keep running until cancelled
+    try:
+        print("MCP ROS2 sensor control streaming job running. Waiting for sensor data...", file=sys.stderr)
+        print("Press Ctrl+C to stop.", file=sys.stderr)
+        
+        while True:
+            time.sleep(1)
+            
+    except KeyboardInterrupt:
+        print("MCP ROS2 sensor control job interrupted", file=sys.stderr)
+    except Exception as e:
+        print(f"MCP ROS2 sensor control job error: {e}", file=sys.stderr)
+        raise
+    finally:
+        # Cleanup
+        try:
+            odom_subscriber.undeclare()
+        except:
+            pass
+        try:
+            battery_subscriber.undeclare()
+        except:
+            pass
+        try:
+            session.close()
+        except:
+            pass
+dependencies:
+  - requests
+  - zenoh
+

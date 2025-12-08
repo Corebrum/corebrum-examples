@@ -1,0 +1,277 @@
+name: "mcp_ros2_image_analysis"
+version: "1.0"
+description: "Streaming MCP job that processes ROS2 camera images through MCP AI tools and publishes analysis results back to ROS2 topics"
+execution_mode: "stream_reactive"
+stream_config:
+  trigger: "on_message"
+  rate_limit_hz: 2  # Limit to 2 image analyses per second (MCP calls can be expensive)
+inputs:
+  - name: "camera_image"
+    type: "zenoh"
+    key_expr: "rt/robot1/camera/color/image_raw"
+    encoding: "cdr"
+    message_type: "sensor_msgs/Image"
+    description: "ROS2 camera image input (CDR-encoded sensor_msgs/Image)"
+  - name: "mcp_server_url"
+    type: "string"
+    required: false
+    default: "http://localhost:3000"
+    description: "URL of the MCP server endpoint"
+outputs:
+  - name: "analysis_result"
+    type: "zenoh"
+    key_expr: "rt/robot1/camera/analysis"
+    encoding: "json"
+    description: "Image analysis results from MCP (JSON format)"
+  - name: "detection_visualization"
+    type: "zenoh"
+    key_expr: "rt/robot1/camera/detections"
+    encoding: "cdr"
+    message_type: "geometry_msgs/PointArray"
+    description: "Detected object positions (ROS2 message format)"
+compute_logic:
+  type: "script"
+  language: "python"
+  timeout_seconds: 0  # No timeout for streaming tasks
+  code: |
+    import json
+    import sys
+    import time
+    import requests
+    import base64
+    import zenoh
+    from datetime import datetime
+    
+    # Open Zenoh session for streaming
+    session = zenoh.open()
+    
+    # MCP server configuration
+    mcp_server_url = inputs.get('mcp_server_url', 'http://localhost:3000')
+    
+    # ROS2 topic configuration
+    image_topic = "rt/robot1/camera/color/image_raw"
+    analysis_topic = "rt/robot1/camera/analysis"
+    detections_topic = "rt/robot1/camera/detections"
+    
+    print(f"Starting MCP ROS2 image analysis streaming job...", file=sys.stderr)
+    print(f"MCP Server: {mcp_server_url}", file=sys.stderr)
+    print(f"Subscribing to ROS2 image topic: {image_topic}", file=sys.stderr)
+    print(f"Publishing analysis to: {analysis_topic}", file=sys.stderr)
+    print(f"Publishing detections to: {detections_topic}", file=sys.stderr)
+    
+    def process_image_with_mcp(image_data):
+        """Process ROS2 image through MCP AI tool"""
+        try:
+            # Extract image metadata from decoded ROS2 sensor_msgs/Image
+            # The system automatically decodes CDR to JSON, so image_data is a dict
+            if isinstance(image_data, dict):
+                width = image_data.get('width', 0)
+                height = image_data.get('height', 0)
+                encoding = image_data.get('encoding', 'unknown')
+                image_bytes = image_data.get('data', [])
+                
+                print(f"Processing ROS2 image: {width}x{height}, encoding={encoding}", file=sys.stderr)
+                
+                # Convert image data bytes to base64 for MCP
+                if isinstance(image_bytes, list):
+                    # List of uint8 values
+                    image_bytes_array = bytes(image_bytes)
+                elif isinstance(image_bytes, str):
+                    # Base64 string
+                    image_bytes_array = base64.b64decode(image_bytes)
+                else:
+                    image_bytes_array = bytes(image_bytes)
+                
+                # Encode image as base64 for MCP transmission
+                image_base64 = base64.b64encode(image_bytes_array).decode('utf-8')
+                
+                # Prepare MCP tool call arguments
+                mcp_tool_args = {
+                    "image": {
+                        "data": image_base64,
+                        "width": width,
+                        "height": height,
+                        "encoding": encoding,
+                        "format": "base64"
+                    },
+                    "analysis_type": "object_detection",  # or "scene_understanding", "ocr", etc.
+                    "options": {
+                        "confidence_threshold": 0.5,
+                        "max_detections": 10
+                    }
+                }
+                
+                # Construct JSON-RPC 2.0 request
+                jsonrpc_request = {
+                    "jsonrpc": "2.0",
+                    "id": int(time.time() * 1000),
+                    "method": "tools/call",
+                    "params": {
+                        "name": "analyze_image",  # MCP tool name for image analysis
+                        "arguments": mcp_tool_args
+                    }
+                }
+                
+                # Call MCP server
+                headers = {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json"
+                }
+                
+                response = requests.post(
+                    mcp_server_url,
+                    json=jsonrpc_request,
+                    headers=headers,
+                    timeout=30
+                )
+                
+                response.raise_for_status()
+                jsonrpc_response = response.json()
+                
+                # Extract MCP result
+                if "error" in jsonrpc_response:
+                    error_info = jsonrpc_response["error"]
+                    return {
+                        "status": "error",
+                        "error_code": error_info.get("code", "unknown"),
+                        "error_message": error_info.get("message", "Unknown error"),
+                        "timestamp": datetime.now().isoformat()
+                    }
+                elif "result" in jsonrpc_response:
+                    mcp_result = jsonrpc_response["result"]
+                    
+                    # Format analysis result
+                    analysis_result = {
+                        "status": "success",
+                        "image_info": {
+                            "width": width,
+                            "height": height,
+                            "encoding": encoding
+                        },
+                        "analysis": mcp_result,
+                        "timestamp": datetime.now().isoformat()
+                    }
+                    
+                    # Extract detections if available
+                    detections = []
+                    if isinstance(mcp_result, dict):
+                        # Look for common detection formats
+                        objects = mcp_result.get("objects", mcp_result.get("detections", []))
+                        if isinstance(objects, list):
+                            for obj in objects:
+                                if isinstance(obj, dict):
+                                    # Extract position if available
+                                    position = obj.get("position", obj.get("bbox", {}))
+                                    if isinstance(position, dict):
+                                        detections.append({
+                                            "x": position.get("x", position.get("center_x", 0.0)),
+                                            "y": position.get("y", position.get("center_y", 0.0)),
+                                            "z": position.get("z", 0.0)
+                                        })
+                    
+                    return {
+                        "analysis_result": analysis_result,
+                        "detections": detections
+                    }
+                else:
+                    return {
+                        "status": "error",
+                        "error_message": "Unexpected MCP response format",
+                        "timestamp": datetime.now().isoformat()
+                    }
+                    
+            else:
+                # Handle raw bytes if CDR decoding failed
+                print("Warning: Received raw image bytes, CDR decoding may have failed", file=sys.stderr)
+                return {
+                    "status": "error",
+                    "error_message": "Image data not in expected format",
+                    "timestamp": datetime.now().isoformat()
+                }
+                
+        except requests.exceptions.RequestException as e:
+            return {
+                "status": "error",
+                "error_type": "network_error",
+                "error_message": str(e),
+                "timestamp": datetime.now().isoformat()
+            }
+        except Exception as e:
+            return {
+                "status": "error",
+                "error_type": "processing_error",
+                "error_message": str(e),
+                "timestamp": datetime.now().isoformat()
+            }
+    
+    # Subscribe to ROS2 image topic
+    print(f"Subscribing to {image_topic}...", file=sys.stderr)
+    
+    def process_image_message(sample):
+        """Process incoming ROS2 image message"""
+        try:
+            # Decode ROS2 image message (system automatically decodes CDR to JSON)
+            payload_bytes = sample.payload
+            try:
+                # Try to parse as JSON (CDR-decoded ROS2 message)
+                image_data = json.loads(payload_bytes.decode('utf-8'))
+            except:
+                # Fallback: treat as raw bytes
+                image_data = {"raw_bytes": list(payload_bytes), "encoding": "cdr"}
+            
+            print(f"Received ROS2 image message", file=sys.stderr)
+            
+            # Process image through MCP
+            result = process_image_with_mcp(image_data)
+            
+            # Publish analysis result (JSON)
+            if "analysis_result" in result:
+                analysis_json = json.dumps(result["analysis_result"])
+                session.put(analysis_topic, analysis_json.encode('utf-8'))
+                print(f"Published analysis to {analysis_topic}", file=sys.stderr)
+            
+            # Publish detections (ROS2 geometry_msgs/PointArray format)
+            if "detections" in result and result["detections"]:
+                # Format as ROS2 geometry_msgs/PointArray
+                # Note: This is a simplified format - adjust based on your ROS2 message type
+                detections_msg = {
+                    "points": result["detections"]
+                }
+                detections_json = json.dumps(detections_msg)
+                # The system will automatically CDR-encode this if output encoding is "cdr"
+                session.put(detections_topic, detections_json.encode('utf-8'))
+                print(f"Published {len(result['detections'])} detections to {detections_topic}", file=sys.stderr)
+                
+        except Exception as e:
+            print(f"Error processing image message: {e}", file=sys.stderr)
+    
+    # Subscribe to image topic
+    subscriber = session.declare_subscriber(image_topic, process_image_message)
+    
+    # Keep running until cancelled
+    try:
+        print("MCP ROS2 image analysis streaming job running. Waiting for images...", file=sys.stderr)
+        print("Press Ctrl+C to stop.", file=sys.stderr)
+        
+        while True:
+            time.sleep(1)
+            
+    except KeyboardInterrupt:
+        print("MCP ROS2 image analysis job interrupted", file=sys.stderr)
+    except Exception as e:
+        print(f"MCP ROS2 image analysis job error: {e}", file=sys.stderr)
+        raise
+    finally:
+        # Cleanup
+        try:
+            subscriber.undeclare()
+        except:
+            pass
+        try:
+            session.close()
+        except:
+            pass
+dependencies:
+  - requests
+  - zenoh
+
