@@ -1,0 +1,337 @@
+name: "omnagi_qwen_streaming"
+version: "1.0"
+description: "Streaming Qwen LLM service for Omnagi chat UI - handles multiple concurrent LLM requests via Zenoh topics"
+execution_mode: "stream_reactive"
+stream_config:
+  trigger: "on_message"  # Execute when input messages arrive
+inputs:
+  - name: "model"
+    type: "string"
+    required: false
+    default: "qwen2.5vl:3b"
+    description: "Default Ollama model to use for LLM inference"
+compute_logic:
+  type: "expression"
+  language: "python"
+  timeout_seconds: 0  # No timeout for streaming tasks
+  code: |
+    import urllib.request
+    import urllib.parse
+    import urllib.error
+    import zenoh
+    import time
+    
+    # Open Zenoh session for streaming
+    config = zenoh.Config()
+    session = zenoh.open(config)
+    
+    # Configuration
+    default_model = inputs.get('model', 'qwen2.5vl:3b')
+    request_topic = "omnagi/llm/requests"  # Topic to listen for requests
+    ollama_url = "http://localhost:11434/api/chat"
+    
+    # Request deduplication: track processed task_ids to avoid duplicate processing
+    processed_tasks = set()
+    
+    print(f"Starting Omnagi Qwen LLM streaming service...", file=sys.stderr)
+    print(f"Default model: {default_model}", file=sys.stderr)
+    print(f"Listening on topic: {request_topic}", file=sys.stderr)
+    print(f"Ollama API: {ollama_url}", file=sys.stderr)
+    
+    def zbytes_to_bytes(zbytes_obj):
+        """Convert ZBytes to regular Python bytes"""
+        # If already bytes, return as-is
+        if isinstance(zbytes_obj, bytes) and type(zbytes_obj).__name__ == 'bytes':
+            return zbytes_obj
+        
+        # Try .data attribute first (most reliable for ZBytes)
+        if hasattr(zbytes_obj, 'data'):
+            result = zbytes_obj.data
+            if isinstance(result, bytes) and type(result).__name__ == 'bytes':
+                return result
+            # Recursively convert if needed
+            if not isinstance(result, bytes):
+                return zbytes_to_bytes(result)
+        
+        # Try list conversion (works for iterables like ZBytes)
+        try:
+            result = bytes(list(zbytes_obj))
+            if isinstance(result, bytes) and type(result).__name__ == 'bytes':
+                return result
+        except:
+            pass
+        
+        # Try .to_bytes() method (Zenoh Python API)
+        if hasattr(zbytes_obj, 'to_bytes'):
+            try:
+                result = zbytes_obj.to_bytes()
+                # Check if result is actually bytes (not ZBytes)
+                if isinstance(result, bytes) and type(result).__name__ == 'bytes':
+                    return result
+                # If to_bytes() returned ZBytes, recurse
+                return zbytes_to_bytes(result)
+            except:
+                pass
+        
+        # Last resort: convert via string
+        return str(zbytes_obj).encode('utf-8')
+    
+    def process_llm_request(sample):
+        """Process incoming LLM request and publish response"""
+        # Extract task_id early for deduplication (before parsing)
+        task_id = None
+        payload_bytes = None
+        
+        try:
+            # Decode request data - handle ZBytes object
+            # Zenoh Python API: sample.payload is ZBytes, convert to bytes
+            payload = sample.payload
+            
+            # Convert ZBytes to bytes using helper function (handles all cases)
+            payload_bytes = zbytes_to_bytes(payload)
+            
+            # Final verification - ensure we have actual Python bytes
+            if not isinstance(payload_bytes, bytes) or type(payload_bytes).__name__ != 'bytes':
+                # Force conversion via list if still not bytes
+                try:
+                    payload_bytes = bytes(list(payload_bytes))
+                except:
+                    # Last resort: convert via string
+                    payload_bytes = str(payload_bytes).encode('utf-8')
+            
+            # Double-check we have bytes before proceeding
+            if not isinstance(payload_bytes, bytes):
+                raise ValueError(f"Failed to convert payload to bytes, got {type(payload_bytes)}")
+            
+            # Try to extract task_id early for deduplication (before full JSON parsing)
+            try:
+                raw_str = payload_bytes.decode('utf-8', errors='ignore')
+                if "task_id" in raw_str:
+                    import re
+                    match = re.search(r'"task_id"\s*:\s*"([^"]+)"', raw_str)
+                    if match:
+                        task_id = match.group(1)
+                        # Early deduplication check
+                        if task_id in processed_tasks:
+                            print(f"Skipping duplicate request for task {task_id} (already processed)", file=sys.stderr)
+                            return
+                        # Mark as processing
+                        processed_tasks.add(task_id)
+            except Exception as e:
+                print(f"Warning: Could not extract task_id early: {e}", file=sys.stderr)
+            
+            # Now parse the full JSON
+            try:
+                request_data = json.loads(payload_bytes.decode('utf-8'))
+            except Exception as e:
+                error_result = {
+                    "task_id": task_id or "unknown",
+                    "error": f"Failed to parse request JSON: {str(e)}",
+                    "status": "failed",
+                    "timestamp": datetime.now().isoformat()
+                }
+                # Publish error response if we have a task_id
+                if task_id:
+                    response_topic = f"omnagi/llm/responses/{task_id}"
+                    session.put(response_topic, json.dumps(error_result).encode('utf-8'))
+                print(f"Error parsing request: {e}", file=sys.stderr)
+                return
+            
+            # Extract request parameters (task_id already extracted and deduplicated above)
+            if not task_id:
+                task_id = request_data.get("task_id")
+                if not task_id:
+                    print("Warning: Request missing task_id, skipping", file=sys.stderr)
+                    return
+                # Deduplication check if we didn't do it earlier
+                if task_id in processed_tasks:
+                    print(f"Skipping duplicate request for task {task_id} (already processed)", file=sys.stderr)
+                    return
+                # Mark task as being processed
+                processed_tasks.add(task_id)
+            
+            prompt = request_data.get("prompt", "")
+            model_name = request_data.get("model", default_model)
+            temperature = request_data.get("temperature", 0.7)
+            max_tokens = request_data.get("max_tokens", 512)
+            
+            # Clean up old task_ids to prevent memory growth (keep last 1000)
+            if len(processed_tasks) > 1000:
+                # Remove oldest entries (simple: remove first 100)
+                old_tasks = list(processed_tasks)[:100]
+                for old_task in old_tasks:
+                    processed_tasks.discard(old_task)
+            
+            if not prompt:
+                error_result = {
+                    "task_id": task_id,
+                    "error": "Prompt is required",
+                    "status": "failed",
+                    "timestamp": datetime.now().isoformat()
+                }
+                response_topic = f"omnagi/llm/responses/{task_id}"
+                session.put(response_topic, json.dumps(error_result).encode('utf-8'))
+                print(f"Error: Empty prompt for task {task_id}", file=sys.stderr)
+                return
+            
+            print(f"Processing LLM request for task {task_id}: {prompt[:50]}...", file=sys.stderr)
+            
+            # Map model names to Ollama model names
+            if "qwen" in model_name.lower() or "Qwen" in model_name:
+                if "vl" in model_name.lower() or "vision" in model_name.lower():
+                    ollama_model = "qwen2.5vl:3b"
+                else:
+                    ollama_model = model_name if ":" in model_name else "qwen2.5vl:3b"
+            else:
+                ollama_model = model_name
+            
+            # Format prompt for instruction-tuned models
+            formatted_prompt = prompt.strip()
+            
+            # Build messages array with optional system prompt for Qwen models
+            messages = []
+            
+            # Add system prompt for Qwen models to improve response quality
+            if "qwen" in ollama_model.lower():
+                messages.append({
+                    "role": "system",
+                    "content": "You are a helpful AI assistant. Provide clear, accurate, and informative responses."
+                })
+            
+            # Add user prompt
+            messages.append({
+                "role": "user",
+                "content": formatted_prompt
+            })
+            
+            # Prepare request payload using chat format
+            payload = {
+                "model": ollama_model,
+                "messages": messages,
+                "stream": False,
+                "options": {
+                    "temperature": temperature,
+                    "num_predict": max_tokens
+                }
+            }
+            
+            # Make request to Ollama
+            data = json.dumps(payload).encode('utf-8')
+            req = urllib.request.Request(
+                ollama_url,
+                data=data,
+                headers={'Content-Type': 'application/json'}
+            )
+            
+            try:
+                with urllib.request.urlopen(req, timeout=300) as response:
+                    response_data = json.loads(response.read().decode('utf-8'))
+                    
+                    # Extract response text from chat API format
+                    message = response_data.get("message", {})
+                    response_text = message.get("content", "") if isinstance(message, dict) else ""
+                    
+                    # Fallback to "response" field if "message" format not found
+                    if not response_text:
+                        response_text = response_data.get("response", "")
+                    
+                    # Build success result
+                    result = {
+                        "task_id": task_id,
+                        "text": response_text.strip(),
+                        "model": ollama_model,
+                        "provider": "ollama",
+                        "status": "success",
+                        "usage": {
+                            "prompt_tokens": response_data.get("prompt_eval_count", 0),
+                            "completion_tokens": response_data.get("eval_count", 0),
+                            "total_tokens": response_data.get("prompt_eval_count", 0) + response_data.get("eval_count", 0)
+                        },
+                        "timestamp": datetime.now().isoformat()
+                    }
+                    
+                    # Publish response to task-specific topic
+                    response_topic = f"omnagi/llm/responses/{task_id}"
+                    session.put(response_topic, json.dumps(result).encode('utf-8'))
+                    print(f"Published response for task {task_id} to {response_topic}", file=sys.stderr)
+                    
+            except urllib.error.URLError as e:
+                error_result = {
+                    "task_id": task_id,
+                    "error": f"Failed to connect to Ollama API: {str(e)}. Make sure Ollama is running on localhost:11434",
+                    "status": "failed",
+                    "provider": "ollama",
+                    "timestamp": datetime.now().isoformat()
+                }
+                response_topic = f"omnagi/llm/responses/{task_id}"
+                session.put(response_topic, json.dumps(error_result).encode('utf-8'))
+                print(f"Ollama connection error for task {task_id}: {e}", file=sys.stderr)
+                
+            except json.JSONDecodeError as e:
+                error_result = {
+                    "task_id": task_id,
+                    "error": f"Failed to parse Ollama response: {str(e)}",
+                    "status": "failed",
+                    "provider": "ollama",
+                    "timestamp": datetime.now().isoformat()
+                }
+                response_topic = f"omnagi/llm/responses/{task_id}"
+                session.put(response_topic, json.dumps(error_result).encode('utf-8'))
+                print(f"JSON decode error for task {task_id}: {e}", file=sys.stderr)
+                
+            except Exception as e:
+                error_result = {
+                    "task_id": task_id,
+                    "error": f"Ollama API error: {str(e)}",
+                    "status": "failed",
+                    "provider": "ollama",
+                    "timestamp": datetime.now().isoformat()
+                }
+                response_topic = f"omnagi/llm/responses/{task_id}"
+                session.put(response_topic, json.dumps(error_result).encode('utf-8'))
+                print(f"Error processing request for task {task_id}: {e}", file=sys.stderr)
+                
+        except Exception as e:
+            error_result = {
+                "task_id": request_data.get("task_id", "unknown") if 'request_data' in locals() else "unknown",
+                "error": f"Processing error: {str(e)}",
+                "status": "failed",
+                "timestamp": datetime.now().isoformat()
+            }
+            task_id = error_result.get("task_id")
+            if task_id != "unknown":
+                try:
+                    response_topic = f"omnagi/llm/responses/{task_id}"
+                    session.put(response_topic, json.dumps(error_result).encode('utf-8'))
+                except:
+                    pass
+            print(f"Error processing LLM request: {e}", file=sys.stderr)
+    
+    # Subscribe to request topic
+    print(f"Subscribing to {request_topic}...", file=sys.stderr)
+    subscriber = session.declare_subscriber(request_topic, process_llm_request)
+    
+    # Keep running until cancelled
+    try:
+        print("Omnagi Qwen LLM streaming service running. Waiting for requests...", file=sys.stderr)
+        print("Press Ctrl+C to stop.", file=sys.stderr)
+        
+        # Keep the task alive
+        while True:
+            time.sleep(1)
+            
+    except KeyboardInterrupt:
+        print("Omnagi Qwen LLM streaming service interrupted", file=sys.stderr)
+    except Exception as e:
+        print(f"Omnagi Qwen LLM streaming service error: {e}", file=sys.stderr)
+        raise
+    finally:
+        # Cleanup
+        try:
+            subscriber.undeclare()
+        except:
+            pass
+        try:
+            session.close()
+        except:
+            pass
