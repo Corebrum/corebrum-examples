@@ -1,0 +1,27 @@
+# Corebrum Task Definition for Qwen2.5 LLM Inference
+# This task runs Qwen2.5 model inference on a Corebrum worker
+
+runtime: python3
+code:
+  type: oci
+  image: python:3.11-slim
+
+inputs:
+  - name: prompt
+    type: http
+    encoding: json
+
+outputs:
+  - name: result
+    type: stdout
+    encoding: json
+
+params:
+  model: "Qwen/Qwen2.5-7B-Instruct"
+  max_tokens: 512
+  temperature: 0.7
+  device: "auto"
+
+# The actual Python code is in qwen2_5_inference.py
+# This would be packaged into the container or mounted as a volume
+

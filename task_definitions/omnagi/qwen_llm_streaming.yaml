@@ -10,158 +10,113 @@ inputs:
     required: false
     default: "qwen2.5vl:3b"
     description: "Default Ollama model to use for LLM inference"
+  - name: "llm_requests"
+    type: "zenoh"
+    key_expr: "omnagi/llm/requests"
+    required: true
+    description: "Zenoh topic to receive LLM requests"
 compute_logic:
   type: "expression"
   language: "python"
   timeout_seconds: 0  # No timeout for streaming tasks
   code: |
-    import urllib.request
-    import urllib.parse
-    import urllib.error
-    import zenoh
+    # Import urllib modules - need to import submodules explicitly
+    from urllib import request as urllib_request
+    from urllib import error as urllib_error
+    
+    # Import time module (already available from wrapper, but ensure it's accessible)
     import time
     
-    # Open Zenoh session for streaming
-    config = zenoh.Config()
-    session = zenoh.open(config)
-    
-    # Configuration
+    # Configuration - use inputs provided by Corebrum wrapper
     default_model = inputs.get('model', 'qwen2.5vl:3b')
-    request_topic = "omnagi/llm/requests"  # Topic to listen for requests
     ollama_url = "http://localhost:11434/api/chat"
     
     # Request deduplication: track processed task_ids to avoid duplicate processing
-    processed_tasks = set()
-    
-    print(f"Starting Omnagi Qwen LLM streaming service...", file=sys.stderr)
-    print(f"Default model: {default_model}", file=sys.stderr)
-    print(f"Listening on topic: {request_topic}", file=sys.stderr)
-    print(f"Ollama API: {ollama_url}", file=sys.stderr)
-    
-    def zbytes_to_bytes(zbytes_obj):
-        """Convert ZBytes to regular Python bytes"""
-        # If already bytes, return as-is
-        if isinstance(zbytes_obj, bytes) and type(zbytes_obj).__name__ == 'bytes':
-            return zbytes_obj
-        
-        # Try .data attribute first (most reliable for ZBytes)
-        if hasattr(zbytes_obj, 'data'):
-            result = zbytes_obj.data
-            if isinstance(result, bytes) and type(result).__name__ == 'bytes':
-                return result
-            # Recursively convert if needed
-            if not isinstance(result, bytes):
-                return zbytes_to_bytes(result)
-        
-        # Try list conversion (works for iterables like ZBytes)
+    # Use a global variable that persists across message processing calls
+    global processed_tasks
+    if 'processed_tasks' not in globals():
+        processed_tasks = set()
+        print(f"[VERSION] Starting Omnagi Qwen LLM streaming service v2.0 (with improved error handling)...", file=sys.stderr)
+        print(f"Default model: {default_model}", file=sys.stderr)
+        print(f"Ollama API: {ollama_url}", file=sys.stderr)
+        print(f"[DEBUG] User code initialized, waiting for messages on topic 'omnagi/llm/requests'...", file=sys.stderr)
+        # Verify session is available
         try:
-            result = bytes(list(zbytes_obj))
-            if isinstance(result, bytes) and type(result).__name__ == 'bytes':
-                return result
-        except:
-            pass
+            if 'session' in globals():
+                print(f"[DEBUG] Zenoh session is available: {type(session)}", file=sys.stderr)
+            else:
+                print(f"[DEBUG] WARNING: Zenoh session not found in globals!", file=sys.stderr)
+        except Exception as e:
+            print(f"[DEBUG] Error checking session: {e}", file=sys.stderr)
+        sys.stderr.flush()  # Force flush to ensure logs appear
+    
+    # Process incoming LLM request from message_data
+    # message_data is already decoded JSON from Corebrum wrapper
+    # It may contain metadata fields like 'topic' and 'message_id', but the actual
+    # request payload fields are at the top level
+    
+    # IMPORTANT: This print runs EVERY time a message is received
+    # If you don't see this, messages aren't being received
+    print(f"[DEBUG] ===== MESSAGE RECEIVED - START process_message ===== ", file=sys.stderr)
+    print(f"[DEBUG] message_data type: {type(message_data)}, keys: {list(message_data.keys()) if isinstance(message_data, dict) else 'N/A'}", file=sys.stderr)
+    sys.stderr.flush()  # Force flush immediately
+    
+    try:
+        # Extract request parameters from message_data
+        # Corebrum wrapper already decodes JSON, so message_data is a dict
+        print(f"[DEBUG] About to extract task_id from message_data...", file=sys.stderr)
+        task_id = message_data.get("task_id")
+        print(f"[DEBUG] Extracted task_id: {task_id}", file=sys.stderr)
+        if not task_id:
+            print("Warning: Request missing task_id, skipping", file=sys.stderr)
+            result = {"status": "skipped", "error": "Missing task_id"}
+            return
         
-        # Try .to_bytes() method (Zenoh Python API)
-        if hasattr(zbytes_obj, 'to_bytes'):
+        # Deduplication check - mark as processing FIRST to prevent race conditions
+        if task_id in processed_tasks:
+            print(f"[DEBUG] Skipping duplicate request for task {task_id} (already in processed_tasks, count={len(processed_tasks)})", file=sys.stderr)
+            # Publish skip response to avoid timeout
+            skip_result = {"status": "skipped", "task_id": task_id, "reason": "duplicate", "timestamp": datetime.now().isoformat()}
+            response_topic = f"omnagi/llm/responses/{task_id}"
             try:
-                result = zbytes_obj.to_bytes()
-                # Check if result is actually bytes (not ZBytes)
-                if isinstance(result, bytes) and type(result).__name__ == 'bytes':
-                    return result
-                # If to_bytes() returned ZBytes, recurse
-                return zbytes_to_bytes(result)
+                session.put(response_topic, json.dumps(skip_result).encode('utf-8'))
             except:
-                pass
+                pass  # If we can't publish skip, that's okay
+            return
         
-        # Last resort: convert via string
-        return str(zbytes_obj).encode('utf-8')
-    
-    def process_llm_request(sample):
-        """Process incoming LLM request and publish response"""
-        # Extract task_id early for deduplication (before parsing)
-        task_id = None
-        payload_bytes = None
+        # Mark task as being processed IMMEDIATELY to prevent concurrent processing
+        print(f"[DEBUG] About to add task {task_id} to processed_tasks...", file=sys.stderr)
+        processed_tasks.add(task_id)
+        print(f"[DEBUG] Marked task {task_id} as processing (processed_tasks now has {len(processed_tasks)} entries)", file=sys.stderr)
         
-        try:
-            # Decode request data - handle ZBytes object
-            # Zenoh Python API: sample.payload is ZBytes, convert to bytes
-            payload = sample.payload
+        # Clean up old task_ids to prevent memory growth (keep last 1000)
+        if len(processed_tasks) > 1000:
+            # Remove oldest entries (simple: remove first 100)
+            old_tasks = list(processed_tasks)[:100]
+            for old_task in old_tasks:
+                processed_tasks.discard(old_task)
+        
+        prompt = message_data.get("prompt", "")
+        model_name = message_data.get("model", default_model)
+        temperature = message_data.get("temperature", 0.7)
+        max_tokens = message_data.get("max_tokens", 512)
+        
+        # Check if messages array is provided (for conversation history)
+        if "messages" in message_data and isinstance(message_data.get("messages"), list):
+            # Use provided messages array (includes conversation history)
+            messages = message_data.get("messages")
+            print(f"Processing LLM request for task {task_id} with {len(messages)} messages (conversation history included)...", file=sys.stderr)
             
-            # Convert ZBytes to bytes using helper function (handles all cases)
-            payload_bytes = zbytes_to_bytes(payload)
-            
-            # Final verification - ensure we have actual Python bytes
-            if not isinstance(payload_bytes, bytes) or type(payload_bytes).__name__ != 'bytes':
-                # Force conversion via list if still not bytes
-                try:
-                    payload_bytes = bytes(list(payload_bytes))
-                except:
-                    # Last resort: convert via string
-                    payload_bytes = str(payload_bytes).encode('utf-8')
-            
-            # Double-check we have bytes before proceeding
-            if not isinstance(payload_bytes, bytes):
-                raise ValueError(f"Failed to convert payload to bytes, got {type(payload_bytes)}")
-            
-            # Try to extract task_id early for deduplication (before full JSON parsing)
-            try:
-                raw_str = payload_bytes.decode('utf-8', errors='ignore')
-                if "task_id" in raw_str:
-                    import re
-                    match = re.search(r'"task_id"\s*:\s*"([^"]+)"', raw_str)
-                    if match:
-                        task_id = match.group(1)
-                        # Early deduplication check
-                        if task_id in processed_tasks:
-                            print(f"Skipping duplicate request for task {task_id} (already processed)", file=sys.stderr)
-                            return
-                        # Mark as processing
-                        processed_tasks.add(task_id)
-            except Exception as e:
-                print(f"Warning: Could not extract task_id early: {e}", file=sys.stderr)
-            
-            # Now parse the full JSON
-            try:
-                request_data = json.loads(payload_bytes.decode('utf-8'))
-            except Exception as e:
-                error_result = {
-                    "task_id": task_id or "unknown",
-                    "error": f"Failed to parse request JSON: {str(e)}",
-                    "status": "failed",
-                    "timestamp": datetime.now().isoformat()
-                }
-                # Publish error response if we have a task_id
-                if task_id:
-                    response_topic = f"omnagi/llm/responses/{task_id}"
-                    session.put(response_topic, json.dumps(error_result).encode('utf-8'))
-                print(f"Error parsing request: {e}", file=sys.stderr)
-                return
-            
-            # Extract request parameters (task_id already extracted and deduplicated above)
-            if not task_id:
-                task_id = request_data.get("task_id")
-                if not task_id:
-                    print("Warning: Request missing task_id, skipping", file=sys.stderr)
-                    return
-                # Deduplication check if we didn't do it earlier
-                if task_id in processed_tasks:
-                    print(f"Skipping duplicate request for task {task_id} (already processed)", file=sys.stderr)
-                    return
-                # Mark task as being processed
-                processed_tasks.add(task_id)
-            
-            prompt = request_data.get("prompt", "")
-            model_name = request_data.get("model", default_model)
-            temperature = request_data.get("temperature", 0.7)
-            max_tokens = request_data.get("max_tokens", 512)
-            
-            # Clean up old task_ids to prevent memory growth (keep last 1000)
-            if len(processed_tasks) > 1000:
-                # Remove oldest entries (simple: remove first 100)
-                old_tasks = list(processed_tasks)[:100]
-                for old_task in old_tasks:
-                    processed_tasks.discard(old_task)
-            
+            # Map model names to Ollama model names
+            if "qwen" in model_name.lower() or "Qwen" in model_name:
+                if "vl" in model_name.lower() or "vision" in model_name.lower():
+                    ollama_model = "qwen2.5vl:3b"
+                else:
+                    ollama_model = model_name if ":" in model_name else "qwen2.5vl:3b"
+            else:
+                ollama_model = model_name
+        else:
+            # Fallback to single prompt (backward compatibility)
             if not prompt:
                 error_result = {
                     "task_id": task_id,
@@ -172,9 +127,13 @@ compute_logic:
                 response_topic = f"omnagi/llm/responses/{task_id}"
                 session.put(response_topic, json.dumps(error_result).encode('utf-8'))
                 print(f"Error: Empty prompt for task {task_id}", file=sys.stderr)
+                result = error_result
                 return
             
             print(f"Processing LLM request for task {task_id}: {prompt[:50]}...", file=sys.stderr)
+            
+            # Build messages array from single prompt
+            messages = []
             
             # Map model names to Ollama model names
             if "qwen" in model_name.lower() or "Qwen" in model_name:
@@ -188,9 +147,6 @@ compute_logic:
             # Format prompt for instruction-tuned models
             formatted_prompt = prompt.strip()
             
-            # Build messages array with optional system prompt for Qwen models
-            messages = []
-            
             # Add system prompt for Qwen models to improve response quality
             if "qwen" in ollama_model.lower():
                 messages.append({
@@ -203,135 +159,271 @@ compute_logic:
                 "role": "user",
                 "content": formatted_prompt
             })
-            
-            # Prepare request payload using chat format
-            payload = {
-                "model": ollama_model,
-                "messages": messages,
-                "stream": False,
-                "options": {
-                    "temperature": temperature,
-                    "num_predict": max_tokens
-                }
+        
+        # Prepare request payload using chat format
+        payload = {
+            "model": ollama_model,
+            "messages": messages,
+            "stream": False,
+            "options": {
+                "temperature": temperature,
+                "num_predict": max_tokens
             }
-            
-            # Make request to Ollama
-            data = json.dumps(payload).encode('utf-8')
-            req = urllib.request.Request(
-                ollama_url,
-                data=data,
-                headers={'Content-Type': 'application/json'}
-            )
-            
+        }
+        
+        # Make request to Ollama
+        data = json.dumps(payload).encode('utf-8')
+        req = urllib_request.Request(
+            ollama_url,
+            data=data,
+            headers={'Content-Type': 'application/json'}
+        )
+        
+        try:
+            # Use a proper context manager for HTTP request to ensure cleanup
+            print(f"[DEBUG] About to call Ollama API for task {task_id}...", file=sys.stderr)
             try:
-                with urllib.request.urlopen(req, timeout=300) as response:
-                    response_data = json.loads(response.read().decode('utf-8'))
-                    
-                    # Extract response text from chat API format
-                    message = response_data.get("message", {})
-                    response_text = message.get("content", "") if isinstance(message, dict) else ""
-                    
-                    # Fallback to "response" field if "message" format not found
-                    if not response_text:
-                        response_text = response_data.get("response", "")
-                    
-                    # Build success result
-                    result = {
-                        "task_id": task_id,
-                        "text": response_text.strip(),
-                        "model": ollama_model,
-                        "provider": "ollama",
-                        "status": "success",
-                        "usage": {
-                            "prompt_tokens": response_data.get("prompt_eval_count", 0),
-                            "completion_tokens": response_data.get("eval_count", 0),
-                            "total_tokens": response_data.get("prompt_eval_count", 0) + response_data.get("eval_count", 0)
-                        },
-                        "timestamp": datetime.now().isoformat()
-                    }
-                    
-                    # Publish response to task-specific topic
-                    response_topic = f"omnagi/llm/responses/{task_id}"
-                    session.put(response_topic, json.dumps(result).encode('utf-8'))
-                    print(f"Published response for task {task_id} to {response_topic}", file=sys.stderr)
-                    
-            except urllib.error.URLError as e:
+                # Use context manager to ensure proper resource cleanup
+                with urllib_request.urlopen(req, timeout=300) as response:
+                    print(f"[DEBUG] Ollama API connection opened for task {task_id}", file=sys.stderr)
+                    response_data_bytes = response.read()
+                    print(f"[DEBUG] Received {len(response_data_bytes)} bytes from Ollama for task {task_id}", file=sys.stderr)
+                
+                # Decode response (outside context manager, after connection is closed)
+                print(f"[DEBUG] About to decode JSON response for task {task_id}...", file=sys.stderr)
+                response_data = json.loads(response_data_bytes.decode('utf-8'))
+                print(f"[DEBUG] Successfully decoded JSON response for task {task_id}", file=sys.stderr)
+                
+                # Extract response text from chat API format
+                message = response_data.get("message", {})
+                response_text = message.get("content", "") if isinstance(message, dict) else ""
+                
+                # Fallback to "response" field if "message" format not found
+                if not response_text:
+                    response_text = response_data.get("response", "")
+                
+                # Build success result
+                result = {
+                    "task_id": task_id,
+                    "text": response_text.strip(),
+                    "model": ollama_model,
+                    "provider": "ollama",
+                    "status": "success",
+                    "usage": {
+                        "prompt_tokens": response_data.get("prompt_eval_count", 0),
+                        "completion_tokens": response_data.get("eval_count", 0),
+                        "total_tokens": response_data.get("prompt_eval_count", 0) + response_data.get("eval_count", 0)
+                    },
+                    "timestamp": datetime.now().isoformat()
+                }
+                
+                # Publish response to task-specific topic (only once)
+                response_topic = f"omnagi/llm/responses/{task_id}"
+                print(f"[DEBUG] About to publish success response for task {task_id}...", file=sys.stderr)
+                response_json = json.dumps(result)
+                response_bytes = response_json.encode('utf-8')
+                
+                # Retry logic for publishing (sometimes Zenoh has transient IO errors)
+                max_retries = 3
+                published = False
+                for attempt in range(max_retries):
+                    try:
+                        print(f"[DEBUG] Attempting to publish response for task {task_id} (attempt {attempt + 1}/{max_retries})...", file=sys.stderr)
+                        session.put(response_topic, response_bytes)
+                        # Small delay to ensure message is sent
+                        time.sleep(0.01)
+                        print(f"[DEBUG] session.put() succeeded for task {task_id}", file=sys.stderr)
+                        print(f"Published response for task {task_id} to {response_topic} (attempt {attempt + 1})", file=sys.stderr)
+                        published = True
+                        break
+                    except (IOError, OSError) as pub_err:
+                        print(f"[DEBUG] IO/OS error during publish attempt {attempt + 1} for task {task_id}: {pub_err}", file=sys.stderr)
+                        if attempt < max_retries - 1:
+                            print(f"Warning: Failed to publish response for task {task_id} (attempt {attempt + 1}): {pub_err}, retrying...", file=sys.stderr)
+                            time.sleep(0.1 * (attempt + 1))  # Exponential backoff
+                        else:
+                            print(f"Error: Failed to publish response for task {task_id} after {max_retries} attempts: {pub_err}", file=sys.stderr)
+                            # Still set result so it can be returned even if publishing fails
+                    except Exception as pub_err:
+                        print(f"[DEBUG] Unexpected error during publish attempt {attempt + 1} for task {task_id}: {type(pub_err).__name__}: {pub_err}", file=sys.stderr)
+                        print(f"Warning: Unexpected error publishing response for task {task_id}: {pub_err}", file=sys.stderr)
+                        break
+                
+                if not published:
+                    print(f"Warning: Could not publish response for task {task_id} after retries, but result is available", file=sys.stderr)
+                else:
+                    print(f"[DEBUG] Successfully published response for task {task_id}", file=sys.stderr)
+                    # Explicit return after successful publish to prevent any further execution
+                    print(f"[DEBUG] Returning successfully for task {task_id}", file=sys.stderr)
+                    # Don't set result here - just return None to indicate success
+                    # The response has already been published
+                    return
+                
+            except IOError as io_err:
+                # Handle IO errors specifically
+                print(f"[DEBUG] IOError caught for task {task_id}: {io_err}", file=sys.stderr)
+                print(f"[DEBUG] IOError type: {type(io_err).__name__}, errno: {getattr(io_err, 'errno', 'N/A')}", file=sys.stderr)
                 error_result = {
                     "task_id": task_id,
-                    "error": f"Failed to connect to Ollama API: {str(e)}. Make sure Ollama is running on localhost:11434",
+                    "error": f"IO error connecting to Ollama: {str(io_err)}. Check that Ollama is running on localhost:11434",
                     "status": "failed",
                     "provider": "ollama",
                     "timestamp": datetime.now().isoformat()
                 }
                 response_topic = f"omnagi/llm/responses/{task_id}"
-                session.put(response_topic, json.dumps(error_result).encode('utf-8'))
-                print(f"Ollama connection error for task {task_id}: {e}", file=sys.stderr)
+                error_json = json.dumps(error_result)
+                error_bytes = error_json.encode('utf-8')
                 
-            except json.JSONDecodeError as e:
-                error_result = {
-                    "task_id": task_id,
-                    "error": f"Failed to parse Ollama response: {str(e)}",
-                    "status": "failed",
-                    "provider": "ollama",
-                    "timestamp": datetime.now().isoformat()
-                }
-                response_topic = f"omnagi/llm/responses/{task_id}"
-                session.put(response_topic, json.dumps(error_result).encode('utf-8'))
-                print(f"JSON decode error for task {task_id}: {e}", file=sys.stderr)
+                # Retry publishing error response
+                print(f"[DEBUG] Attempting to publish IO error response for task {task_id}...", file=sys.stderr)
+                max_retries = 3
+                for attempt in range(max_retries):
+                    try:
+                        session.put(response_topic, error_bytes)
+                        time.sleep(0.01)
+                        print(f"[DEBUG] Successfully published IO error response for task {task_id}", file=sys.stderr)
+                        break
+                    except (IOError, OSError) as pub_err:
+                        print(f"[DEBUG] Failed to publish IO error response (attempt {attempt + 1}): {pub_err}", file=sys.stderr)
+                        if attempt < max_retries - 1:
+                            time.sleep(0.1 * (attempt + 1))
+                        else:
+                            print(f"Could not publish error response for task {task_id}: {pub_err}", file=sys.stderr)
+                    except Exception as pub_err:
+                        print(f"[DEBUG] Unexpected error publishing IO error response: {pub_err}", file=sys.stderr)
+                        break
+                print(f"IO error for task {task_id}: {io_err}", file=sys.stderr)
+                result = error_result
                 
-            except Exception as e:
-                error_result = {
-                    "task_id": task_id,
-                    "error": f"Ollama API error: {str(e)}",
-                    "status": "failed",
-                    "provider": "ollama",
-                    "timestamp": datetime.now().isoformat()
-                }
-                response_topic = f"omnagi/llm/responses/{task_id}"
-                session.put(response_topic, json.dumps(error_result).encode('utf-8'))
-                print(f"Error processing request for task {task_id}: {e}", file=sys.stderr)
-                
+        except urllib_error.URLError as e:
+            error_result = {
+                "task_id": task_id,
+                "error": f"Failed to connect to Ollama API: {str(e)}. Make sure Ollama is running on localhost:11434",
+                "status": "failed",
+                "provider": "ollama",
+                "timestamp": datetime.now().isoformat()
+            }
+            response_topic = f"omnagi/llm/responses/{task_id}"
+            error_json = json.dumps(error_result)
+            error_bytes = error_json.encode('utf-8')
+            try:
+                session.put(response_topic, error_bytes)
+                time.sleep(0.01)
+            except Exception as pub_err:
+                print(f"Could not publish error response for task {task_id}: {pub_err}", file=sys.stderr)
+            print(f"Ollama connection error for task {task_id}: {e}", file=sys.stderr)
+            result = error_result
+            
+        except json.JSONDecodeError as e:
+            error_result = {
+                "task_id": task_id,
+                "error": f"Failed to parse Ollama response: {str(e)}",
+                "status": "failed",
+                "provider": "ollama",
+                "timestamp": datetime.now().isoformat()
+            }
+            response_topic = f"omnagi/llm/responses/{task_id}"
+            error_json = json.dumps(error_result)
+            error_bytes = error_json.encode('utf-8')
+            try:
+                session.put(response_topic, error_bytes)
+                time.sleep(0.01)
+            except Exception as pub_err:
+                print(f"Could not publish error response for task {task_id}: {pub_err}", file=sys.stderr)
+            print(f"JSON decode error for task {task_id}: {e}", file=sys.stderr)
+            result = error_result
+            
         except Exception as e:
             error_result = {
-                "task_id": request_data.get("task_id", "unknown") if 'request_data' in locals() else "unknown",
+                "task_id": task_id,
+                "error": f"Ollama API error: {str(e)}",
+                "status": "failed",
+                "provider": "ollama",
+                "timestamp": datetime.now().isoformat()
+            }
+            response_topic = f"omnagi/llm/responses/{task_id}"
+            error_json = json.dumps(error_result)
+            error_bytes = error_json.encode('utf-8')
+            try:
+                session.put(response_topic, error_bytes)
+                time.sleep(0.01)
+            except Exception as pub_err:
+                print(f"Could not publish error response for task {task_id}: {pub_err}", file=sys.stderr)
+            print(f"Error processing request for task {task_id}: {e}", file=sys.stderr)
+            result = error_result
+            
+    except Exception as e:
+        # Handle any errors in processing - be very defensive here
+        print(f"[DEBUG] ===== OUTER EXCEPTION HANDLER ===== ", file=sys.stderr)
+        print(f"[DEBUG] Caught exception: {e}", file=sys.stderr)
+        print(f"[DEBUG] Exception type: {type(e).__name__}", file=sys.stderr)
+        if hasattr(e, 'errno'):
+            print(f"[DEBUG] Exception errno: {e.errno}", file=sys.stderr)
+        import traceback
+        traceback_str = traceback.format_exc()
+        print(f"[DEBUG] Full traceback:\n{traceback_str}", file=sys.stderr)
+        
+        # Safely get task_id
+        task_id = "unknown"
+        try:
+            if 'message_data' in locals():
+                task_id = message_data.get("task_id", "unknown")
+        except:
+            pass
+        
+        print(f"[DEBUG] Task ID from message_data: {task_id}", file=sys.stderr)
+        
+        # Only try to publish error if we have a valid task_id
+        if task_id != "unknown":
+            error_result = {
+                "task_id": task_id,
                 "error": f"Processing error: {str(e)}",
                 "status": "failed",
                 "timestamp": datetime.now().isoformat()
             }
-            task_id = error_result.get("task_id")
-            if task_id != "unknown":
-                try:
-                    response_topic = f"omnagi/llm/responses/{task_id}"
-                    session.put(response_topic, json.dumps(error_result).encode('utf-8'))
-                except:
-                    pass
-            print(f"Error processing LLM request: {e}", file=sys.stderr)
-    
-    # Subscribe to request topic
-    print(f"Subscribing to {request_topic}...", file=sys.stderr)
-    subscriber = session.declare_subscriber(request_topic, process_llm_request)
-    
-    # Keep running until cancelled
-    try:
-        print("Omnagi Qwen LLM streaming service running. Waiting for requests...", file=sys.stderr)
-        print("Press Ctrl+C to stop.", file=sys.stderr)
-        
-        # Keep the task alive
-        while True:
-            time.sleep(1)
+            response_topic = f"omnagi/llm/responses/{task_id}"
             
-    except KeyboardInterrupt:
-        print("Omnagi Qwen LLM streaming service interrupted", file=sys.stderr)
-    except Exception as e:
-        print(f"Omnagi Qwen LLM streaming service error: {e}", file=sys.stderr)
-        raise
-    finally:
-        # Cleanup
-        try:
-            subscriber.undeclare()
-        except:
-            pass
-        try:
-            session.close()
-        except:
-            pass
+            try:
+                error_json = json.dumps(error_result)
+                error_bytes = error_json.encode('utf-8')
+                print(f"[DEBUG] Serialized error response, length: {len(error_bytes)} bytes", file=sys.stderr)
+                
+                # Retry publishing error response with very defensive error handling
+                print(f"[DEBUG] Attempting to publish error response for task {task_id}...", file=sys.stderr)
+                max_retries = 3
+                published = False
+                for attempt in range(max_retries):
+                    try:
+                        print(f"[DEBUG] Publish attempt {attempt + 1}/{max_retries} for task {task_id}...", file=sys.stderr)
+                        session.put(response_topic, error_bytes)
+                        time.sleep(0.05)  # Longer delay to ensure message is sent
+                        print(f"[DEBUG] Successfully published error response for task {task_id}", file=sys.stderr)
+                        published = True
+                        break
+                    except (IOError, OSError) as pub_err:
+                        errno_val = getattr(pub_err, 'errno', 'N/A')
+                        print(f"[DEBUG] IO/OS error during publish attempt {attempt + 1}: errno={errno_val}, error={pub_err}", file=sys.stderr)
+                        if attempt < max_retries - 1:
+                            backoff = 0.2 * (attempt + 1)
+                            print(f"[DEBUG] Waiting {backoff}s before retry...", file=sys.stderr)
+                            time.sleep(backoff)
+                        else:
+                            print(f"ERROR: Failed to publish error response after {max_retries} attempts: {pub_err}", file=sys.stderr)
+                    except Exception as pub_err:
+                        print(f"[DEBUG] Unexpected error during publish: {type(pub_err).__name__}: {pub_err}", file=sys.stderr)
+                        # Don't retry on unexpected errors
+                        break
+                
+                if not published:
+                    print(f"WARNING: Could not publish error response for task {task_id}. Original error was: {e}", file=sys.stderr)
+            except Exception as json_err:
+                print(f"ERROR: Failed to serialize error response: {json_err}", file=sys.stderr)
+        else:
+            print(f"ERROR: Could not determine task_id, cannot publish error response. Original error: {e}", file=sys.stderr)
+        
+        print(f"[DEBUG] ===== END OUTER EXCEPTION HANDLER ===== ", file=sys.stderr)
+        print(f"Error processing LLM request: {e}", file=sys.stderr)
+        # Set result to None to indicate error was handled (response already published)
+        # This prevents the wrapper from trying to process a result
+        result = None
+
