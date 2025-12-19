@@ -92,6 +92,17 @@ This directory contains example task definitions organized by type and use case.
 - `memory_cache_example.yaml` - Fast in-memory caching
 - `state_sharing.yaml` - Real-time state coordination
 
+### 📁 [hive/](hive/)
+**Hive Memory Sharing Examples**
+- Collaborative knowledge sharing between robots
+- Group-based memory access
+- Multi-robot learning and coordination
+
+**Examples:**
+- `hive_shared_knowledge.yaml` - Basic knowledge sharing in a hive
+- `hive_collaborative_learning.yaml` - Collaborative learning with shared insights
+- `hive_demo.sh` - Complete demo script showing hive creation and usage
+
 ## Getting Started
 
 ### Quick Start

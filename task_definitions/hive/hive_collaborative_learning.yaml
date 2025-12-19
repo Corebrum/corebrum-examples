@@ -1,0 +1,106 @@
+name: hive_collaborative_learning
+description: Example demonstrating collaborative learning where robots share insights in a hive
+runtime:
+  type: python
+code:
+  source_type: inline
+  content: |
+    import zenoh
+    import json
+    import sys
+    import requests
+    import time
+    
+    # Get inputs
+    hive_id = inputs.get('hive_id', '')
+    key_id = inputs.get('key_id', '')
+    robot_name = inputs.get('robot_name', f'robot-{key_id[:8]}')
+    insight = inputs.get('insight', '')
+    
+    if not hive_id or not key_id:
+        print("ERROR: hive_id and key_id are required", file=sys.stderr)
+        sys.exit(1)
+    
+    api_url = "http://localhost:6502"
+    
+    # Step 1: Verify we're a member of the hive
+    try:
+        hive_info_url = f"{api_url}/api/hives/{hive_id}"
+        hive_response = requests.get(hive_info_url)
+        hive_response.raise_for_status()
+        hive_info = hive_response.json()
+        print(f"✅ Connected to hive: {hive_info.get('name', hive_id)}")
+        print(f"   Members: {hive_info.get('member_count', 0)}")
+    except requests.exceptions.RequestException as e:
+        print(f"ERROR: Failed to get hive info: {e}", file=sys.stderr)
+        sys.exit(1)
+    
+    # Step 2: Store our insight in the hive
+    if insight:
+        timestamp = int(time.time())
+        insight_key = f"insights/{robot_name}/{timestamp}"
+        
+        insight_data = {
+            "robot": robot_name,
+            "key_id": key_id,
+            "insight": insight,
+            "timestamp": timestamp,
+            "source": "collaborative_learning"
+        }
+        
+        try:
+            store_url = f"{api_url}/api/hives/{hive_id}/memory/{insight_key}?key_id={key_id}"
+            response = requests.put(store_url, json={"value": insight_data})
+            response.raise_for_status()
+            print(f"\n✅ Stored insight in hive:")
+            print(f"   Key: {insight_key}")
+            print(f"   Insight: {insight}")
+        except requests.exceptions.RequestException as e:
+            print(f"ERROR: Failed to store insight: {e}", file=sys.stderr)
+            if hasattr(e, 'response') and e.response is not None:
+                print(f"   Response: {e.response.text}", file=sys.stderr)
+            sys.exit(1)
+    
+    # Step 3: Retrieve all insights from the hive (shared knowledge)
+    try:
+        insights_url = f"{api_url}/api/hives/{hive_id}/memory?prefix=insights/&key_id={key_id}"
+        insights_response = requests.get(insights_url)
+        insights_response.raise_for_status()
+        insights_data = insights_response.json()
+        
+        insights = insights_data.get('items', [])
+        print(f"\n📚 Shared Knowledge in Hive ({len(insights)} insights):")
+        print("=" * 60)
+        
+        for item in insights:
+            key = item.get('key', '')
+            value = item.get('value', {})
+            if isinstance(value, dict):
+                robot = value.get('robot', 'unknown')
+                insight_text = value.get('insight', '')
+                timestamp = value.get('timestamp', 0)
+                time_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(timestamp))
+                print(f"\n🤖 {robot} ({time_str}):")
+                print(f"   {insight_text}")
+        
+        if not insights:
+            print("   (No insights shared yet)")
+        
+    except requests.exceptions.RequestException as e:
+        print(f"WARNING: Failed to retrieve insights: {e}", file=sys.stderr)
+        insights = []
+    
+    result = {
+        "status": "success",
+        "hive_id": hive_id,
+        "robot": robot_name,
+        "insights_shared": len(insights),
+        "message": f"Collaborative learning session completed for {robot_name}"
+    }
+    
+    print("\n" + "=" * 60)
+    print(json.dumps(result, indent=2))
+
+dependencies:
+  - requests
+

@@ -1,0 +1,65 @@
+name: hive_shared_knowledge
+description: Example task demonstrating shared knowledge storage in a hive
+runtime:
+  type: python
+code:
+  source_type: inline
+  content: |
+    import zenoh
+    import json
+    import sys
+    import requests
+    
+    # Get inputs
+    hive_id = inputs.get('hive_id', '')
+    key_id = inputs.get('key_id', '')
+    knowledge_key = inputs.get('knowledge_key', 'fact')
+    knowledge_value = inputs.get('knowledge_value', 'The sky is blue')
+    
+    if not hive_id or not key_id:
+        print("ERROR: hive_id and key_id are required", file=sys.stderr)
+        sys.exit(1)
+    
+    # Store knowledge in hive memory via REST API
+    api_url = "http://localhost:6502"
+    hive_memory_url = f"{api_url}/api/hives/{hive_id}/memory/{knowledge_key}?key_id={key_id}"
+    
+    payload = {
+        "value": knowledge_value
+    }
+    
+    try:
+        response = requests.put(hive_memory_url, json=payload)
+        response.raise_for_status()
+        result = response.json()
+        
+        print(f"✅ Stored knowledge '{knowledge_key}' in hive {hive_id}")
+        print(f"   Value: {knowledge_value}")
+        print(f"   Response: {json.dumps(result, indent=2)}")
+        
+        # Also try to retrieve it to verify
+        get_url = f"{api_url}/api/hives/{hive_id}/memory?prefix={knowledge_key}&key_id={key_id}"
+        get_response = requests.get(get_url)
+        if get_response.status_code == 200:
+            memory_data = get_response.json()
+            print(f"\n✅ Verified: Retrieved {len(memory_data.get('items', []))} memory item(s) from hive")
+        
+    except requests.exceptions.RequestException as e:
+        print(f"ERROR: Failed to store knowledge in hive: {e}", file=sys.stderr)
+        if hasattr(e, 'response') and e.response is not None:
+            print(f"   Response: {e.response.text}", file=sys.stderr)
+        sys.exit(1)
+    
+    result = {
+        "status": "success",
+        "hive_id": hive_id,
+        "knowledge_key": knowledge_key,
+        "knowledge_value": knowledge_value,
+        "message": f"Knowledge '{knowledge_key}' stored in hive {hive_id}"
+    }
+    
+    print(json.dumps(result, indent=2))
+
+dependencies:
+  - requests
+
