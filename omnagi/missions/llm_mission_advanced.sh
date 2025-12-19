@@ -3,10 +3,10 @@
 # Demonstrates multi-step reasoning with LLM chaining
 # Note: Falls back to local provider if OpenAI/Anthropic are not configured
 
-API_URL="http://localhost:4242"
+API_URL="http://localhost:6502"
 
-echo "🧠 Advanced Omnagi LLM Mission"
-echo "=============================="
+echo "🧠 Advanced Corebrum LLM Mission"
+echo "==============================="
 echo ""
 
 # Create identity
@@ -145,51 +145,15 @@ echo "Summary:"
 echo "$SUMMARY"
 echo ""
 
-# Submit as a task for async processing
-echo "4️⃣  Submitting async analysis task..."
-# Use jq to properly escape all variables in JSON
-TASK_RESPONSE=$(curl -s -X POST "$API_URL/api/tasks" \
-  -H "Content-Type: application/json" \
-  -d "$(jq -n \
-    --arg key_id "$KEY_ID" \
-    --arg topic "$TOPIC" \
-    --arg questions "$QUESTIONS" \
-    --arg analysis "$ANALYSIS" \
-    '{key_id: $key_id, task_type: "llm_analysis", parameters: {topic: $topic, questions: $questions, analysis: $analysis}}')")
-
-# Extract task ID with error handling
-if ! echo "$TASK_RESPONSE" | jq -e . > /dev/null 2>&1; then
-    echo "⚠️  Invalid JSON response from API"
-    echo "Response: $TASK_RESPONSE"
-    TASK_ID=""
-else
-    TASK_ID=$(echo "$TASK_RESPONSE" | jq -r '.task_id // ""')
-fi
-
-if [ -n "$TASK_ID" ] && [ "$TASK_ID" != "null" ]; then
-    echo "✅ Task submitted: $TASK_ID"
-else
-    echo "⚠️  Failed to submit task"
-fi
+# Note: Corebrum uses traces and ledgers instead of generic tasks
+# The trace was already created above, so we'll skip task submission
+echo "4️⃣  Trace created (task tracking via traces)"
+echo "✅ Trace ID: $TRACE_ID"
 echo ""
 
-# Check task status
-if [ -n "$TASK_ID" ] && [ "$TASK_ID" != "null" ]; then
-    echo "5️⃣  Task status:"
-    TASK_STATUS=$(curl -s "$API_URL/api/tasks/$TASK_ID")
-    if echo "$TASK_STATUS" | jq -e . > /dev/null 2>&1; then
-        echo "$TASK_STATUS" | jq '.'
-    else
-        echo "⚠️  Invalid response: $TASK_STATUS"
-    fi
-else
-    echo "5️⃣  Task status: (skipped - no task ID)"
-fi
-echo ""
-
-# Access trace with key_id (demonstrating access control)
-echo "6️⃣  Accessing trace (with key_id for access control)..."
-TRACE_ACCESS=$(curl -s "$API_URL/api/traces/$TRACE_ID?key_id=$KEY_ID")
+# Access trace (Corebrum traces don't require key_id query param for access)
+echo "5️⃣  Accessing trace..."
+TRACE_ACCESS=$(curl -s "$API_URL/api/traces/$TRACE_ID")
 if echo "$TRACE_ACCESS" | jq -e '.error' > /dev/null 2>&1; then
     echo "⚠️  Trace access error: $(echo "$TRACE_ACCESS" | jq -r '.error')"
 else
@@ -200,7 +164,7 @@ fi
 echo ""
 
 # List all traces for this key (including accessible ancestor traces)
-echo "7️⃣  Listing all accessible traces for key..."
+echo "6️⃣  Listing all accessible traces for key..."
 TRACES_LIST=$(curl -s "$API_URL/api/traces/$KEY_ID/list")
 TRACE_COUNT=$(echo "$TRACES_LIST" | jq -r 'length')
 echo "✅ Found $TRACE_COUNT accessible trace(s)"

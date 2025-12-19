@@ -1,10 +1,10 @@
 #!/bin/bash
 # Local LLM Mission Test - Qwen via Ollama
-# This script tests Omnagi's local LLM integration using Qwen models via Ollama
+# This script tests Corebrum's local LLM integration using Qwen models via Ollama
 
 set +e  # Don't exit on errors, we want to see what happens
 
-API_URL="http://localhost:8123"
+API_URL="http://localhost:6502"
 
 echo "🔬 Local LLM Mission Test (Qwen via Ollama)"
 echo "==========================================="
@@ -14,13 +14,13 @@ echo ""
 echo "📋 Checking prerequisites..."
 echo ""
 
-# Check if Omnagi is running
-if ! curl -s "$API_URL/health" > /dev/null 2>&1; then
-    echo "❌ Error: Omnagi service is not running on $API_URL"
-    echo "   Start it with: cargo run"
+# Check if Corebrum is running
+if ! curl -s "$API_URL/api/identity" > /dev/null 2>&1; then
+    echo "❌ Error: Corebrum service is not running on $API_URL"
+    echo "   Start it with: cargo run --bin corebrum -- web"
     exit 1
 fi
-echo "✅ Omnagi service is running"
+echo "✅ Corebrum service is running"
 
 # Check if Ollama is running
 if ! curl -s "http://localhost:11434/api/tags" > /dev/null 2>&1; then
@@ -37,14 +37,13 @@ ollama list | grep -E "NAME|qwen" || echo "  (No Qwen models found)"
 echo ""
 
 # Check available providers
-echo "🔌 Available LLM providers in Omnagi:"
-PROVIDERS=$(curl -s "$API_URL/api/llm/providers" | jq -r '.providers[]' 2>/dev/null)
-if [ -z "$PROVIDERS" ]; then
-    echo "  ⚠️  No providers found"
-else
-    echo "$PROVIDERS" | while read provider; do
-        echo "  ✅ $provider"
-    done
+echo "🔌 Available LLM providers in Corebrum:"
+echo "  ✅ local (Ollama/Qwen)"
+if [ -n "$OPENAI_API_KEY" ]; then
+    echo "  ✅ openai"
+fi
+if [ -n "$ANTHROPIC_API_KEY" ]; then
+    echo "  ✅ anthropic"
 fi
 echo ""
 
