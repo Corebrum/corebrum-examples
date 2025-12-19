@@ -10,24 +10,47 @@ compute_logic:
   code: |
     import zenoh
     import json
+    import sys
     
-    session = zenoh.open()
+    # Get input value from inputs dict (always available in wrapper)
+    # If not provided, use default value of 100
+    # Handle both int and string types for 'n'
+    n_raw = inputs.get('n', 100)
+    n = int(n_raw) if n_raw is not None else 100
+    
+    # Debug: Print what we received
+    print(f"DEBUG: inputs = {inputs}", file=sys.stderr)
+    print(f"DEBUG: n_raw = {n_raw} (type: {type(n_raw).__name__})", file=sys.stderr)
+    print(f"DEBUG: n = {n} (type: {type(n).__name__})", file=sys.stderr)
+    
+    config = zenoh.Config()
+    session = zenoh.open(config)
     memory_key = f"corebrum/memory/cache/computation/{n}"
+    print(f"DEBUG: memory_key = {memory_key}", file=sys.stderr)
     
     # Check memory cache first (ephemeral, very fast)
-    cached = session.get(memory_key)
-    if cached:
-        try:
-            cached_data = json.loads(cached.payload.decode())
-            result = {
-                "result": cached_data.get("result"),
-                "from_memory": True,
-                "message": "Retrieved from in-memory cache"
-            }
-            print(json.dumps(result))
-            exit(0)
-        except:
-            pass
+    # session.get() returns an iterator of replies
+    cached_data = None
+    try:
+        replies = session.get(memory_key)
+        for reply in replies:
+            try:
+                sample = reply.ok()
+                cached_data = json.loads(sample.payload.decode())
+                break  # Use first successful reply
+            except:
+                continue
+    except:
+        pass
+    
+    if cached_data:
+        result = {
+            "result": cached_data.get("result"),
+            "from_memory": True,
+            "message": "Retrieved from in-memory cache"
+        }
+        print(json.dumps(result))
+        exit(0)
     
     # Expensive computation
     def expensive_computation(x):

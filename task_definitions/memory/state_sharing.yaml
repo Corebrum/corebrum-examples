@@ -11,8 +11,19 @@ compute_logic:
     import zenoh
     import json
     import time
+    import sys
     
-    session = zenoh.open()
+    # Get input values from inputs dict (always available in wrapper)
+    worker_id = inputs.get('worker_id', 'worker-unknown')
+    active_tasks = inputs.get('active_tasks', 0)
+    
+    # Debug: Print what we received
+    print(f"DEBUG: inputs = {inputs}", file=sys.stderr)
+    print(f"DEBUG: worker_id = {worker_id}", file=sys.stderr)
+    print(f"DEBUG: active_tasks = {active_tasks}", file=sys.stderr)
+    
+    config = zenoh.Config()
+    session = zenoh.open(config)
     state_key = f"corebrum/memory/state/workers/{worker_id}"
     
     # Publish worker state to shared memory
@@ -24,21 +35,48 @@ compute_logic:
         "status": "active"
     }
     
+    # Publish state to Zenoh (ephemeral memory/pub-sub)
+    # Note: session.put() publishes to a topic. For ephemeral memory without a storage backend,
+    # session.get() may not work immediately. The data is published and available to subscribers,
+    # but querying via get() requires a storage backend or queryable to be registered.
     session.put(state_key, json.dumps(state).encode())
     
-    # Verify by retrieving
-    retrieved = session.get(state_key)
-    if retrieved:
+    # Small delay to allow publish to complete
+    time.sleep(0.05)
+    
+    # Try to verify by retrieving (may fail without storage backend, but publish succeeded)
+    # session.get() returns an iterator of replies
+    retrieved_data = None
+    try:
+        replies = session.get(state_key)
+        for reply in replies:
+            try:
+                sample = reply.ok()
+                retrieved_data = json.loads(sample.payload.decode())
+                print(f"DEBUG: Successfully retrieved state: {retrieved_data}", file=sys.stderr)
+                break  # Use first successful reply
+            except Exception as e:
+                print(f"DEBUG: Error processing reply: {e}", file=sys.stderr)
+                continue
+    except Exception as e:
+        print(f"DEBUG: Note - session.get() may not work for ephemeral memory without storage backend: {e}", file=sys.stderr)
+        print(f"DEBUG: State was published successfully to {state_key}, available to subscribers", file=sys.stderr)
+        pass
+    
+    # Return result - even if verification failed, the publish succeeded
+    if retrieved_data:
         result = {
             "state_key": state_key,
             "status": "published_and_verified",
-            "state": json.loads(retrieved.payload.decode())
+            "state": retrieved_data
         }
     else:
+        # Publish succeeded, but verification via get() didn't work (expected for ephemeral memory)
         result = {
             "state_key": state_key,
-            "status": "published_failed",
-            "state": None
+            "status": "published",
+            "state": state,  # Return the state we published
+            "note": "State published successfully. Verification via get() may not work for ephemeral memory without storage backend."
         }
     
     print(json.dumps(result))
