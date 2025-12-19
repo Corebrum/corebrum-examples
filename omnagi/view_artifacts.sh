@@ -1,31 +1,44 @@
 #!/bin/bash
 # View all artifacts for a key
-# Usage: ./examples/view_artifacts.sh [key_id]
+# Usage: ./view_artifacts.sh [key_id]
 
-KEY_ID="${1:-9dd7ae25-758b-481b-be9e-257a7bce256d}"
-API_URL="http://localhost:8123"
+KEY_ID="${1:-}"
+API_URL="http://localhost:6502"
+
+# If no key_id provided, try to get the first identity from the list
+if [ -z "$KEY_ID" ]; then
+    echo "No key_id provided, fetching first identity..."
+    IDENTITIES=$(curl -s "$API_URL/api/identity")
+    KEY_ID=$(echo "$IDENTITIES" | jq -r '.[0].key_id' 2>/dev/null)
+    if [ -z "$KEY_ID" ] || [ "$KEY_ID" = "null" ]; then
+        echo "❌ Error: No identities found. Please create an identity first or provide a key_id."
+        exit 1
+    fi
+    echo "Using identity: $KEY_ID"
+    echo ""
+fi
 
 echo "🔍 Artifacts for Key: $KEY_ID"
 echo "=============================="
 echo ""
 
-# 1. Identity and Preferences
+# 1. Identity and Preferences (via artifacts endpoint)
 echo "1️⃣  Identity & Learned Preferences:"
 echo "-----------------------------------"
-IDENTITY=$(curl -s "$API_URL/api/identity/$KEY_ID")
-if echo "$IDENTITY" | jq -e '.error' > /dev/null 2>&1; then
-    echo "❌ Error: $(echo "$IDENTITY" | jq -r '.error')"
+ARTIFACTS=$(curl -s "$API_URL/api/artifacts/$KEY_ID/list")
+if echo "$ARTIFACTS" | jq -e '.error' > /dev/null 2>&1; then
+    echo "❌ Error: $(echo "$ARTIFACTS" | jq -r '.error')"
 else
-    echo "$IDENTITY" | jq '{
-        key_id: .key_id,
-        total_interactions: .preferences.context_preferences.total_interactions,
-        preferred_provider: .preferences.context_preferences.preferred_provider,
-        preferred_model: .preferences.context_preferences.preferred_model,
-        preferred_temperature: .preferences.context_preferences.preferred_temperature,
-        context_injection_enabled: .preferences.context_preferences.enable_context_injection,
-        created_at: .created_at,
-        updated_at: .updated_at
-    }'
+    echo "Key ID: $KEY_ID"
+    echo ""
+    echo "Learned Preferences:"
+    echo "$ARTIFACTS" | jq '.[] | select(.type == "preference") | "  \(.name): \(.value)"'
+    echo ""
+    echo "Metrics:"
+    echo "$ARTIFACTS" | jq '.[] | select(.type == "metric") | "  \(.name): \(.value)"'
+    echo ""
+    echo "Patterns:"
+    echo "$ARTIFACTS" | jq '.[] | select(.type == "pattern") | "  \(.name): \(.value)"'
 fi
 echo ""
 
@@ -49,7 +62,7 @@ echo "3️⃣  Recent LLM Interactions:"
 echo "---------------------------"
 if [ "$TRACE_COUNT" -gt 0 ] 2>/dev/null; then
     echo "$TRACES" | jq -r '.[].trace_id' | head -5 | while read TRACE_ID; do
-        TRACE=$(curl -s "$API_URL/api/traces/$TRACE_ID?key_id=$KEY_ID")
+        TRACE=$(curl -s "$API_URL/api/traces/$TRACE_ID")
         
         if echo "$TRACE" | jq -e '.error' > /dev/null 2>&1; then
             echo "⚠️  Trace $TRACE_ID: $(echo "$TRACE" | jq -r '.error')"
@@ -63,23 +76,23 @@ if [ "$TRACE_COUNT" -gt 0 ] 2>/dev/null; then
         
         if [ "$REQUEST" != "null" ] && [ -n "$REQUEST" ]; then
             PROMPT=$(echo "$REQUEST" | jq -r '.evidence.data.prompt // .message // ""' 2>/dev/null)
-            MODEL=$(echo "$REQUEST" | jq -r '.context.model // "unknown"' 2>/dev/null)
-            PROVIDER=$(echo "$REQUEST" | jq -r '.context.provider // "unknown"' 2>/dev/null)
-            TEMP=$(echo "$REQUEST" | jq -r '.context.temperature // "unknown"' 2>/dev/null)
+            MODEL=$(echo "$REQUEST" | jq -r '.context.model // .context."model" // "unknown"' 2>/dev/null)
+            PROVIDER=$(echo "$REQUEST" | jq -r '.context.provider // .context."provider" // "unknown"' 2>/dev/null)
+            TEMP=$(echo "$REQUEST" | jq -r '.context.temperature // .context."temperature" // "unknown"' 2>/dev/null)
             
             echo "📝 Trace: $TRACE_ID"
             echo "   Provider: $PROVIDER"
             echo "   Model: $MODEL"
             echo "   Temperature: $TEMP"
-            if [ -n "$PROMPT" ] && [ "$PROMPT" != "null" ]; then
+            if [ -n "$PROMPT" ] && [ "$PROMPT" != "null" ] && [ "$PROMPT" != "" ]; then
                 PROMPT_PREVIEW=$(echo "$PROMPT" | head -c 150)
                 echo "   Prompt: $PROMPT_PREVIEW..."
             fi
             
             if [ "$RESPONSE" != "null" ] && [ -n "$RESPONSE" ]; then
-                RESPONSE_TEXT=$(echo "$RESPONSE" | jq -r '.evidence.data.response_text // ""' 2>/dev/null)
-                TOKENS=$(echo "$RESPONSE" | jq -r '.context.total_tokens // 0' 2>/dev/null)
-                if [ -n "$RESPONSE_TEXT" ] && [ "$RESPONSE_TEXT" != "null" ]; then
+                RESPONSE_TEXT=$(echo "$RESPONSE" | jq -r '.evidence.data.response_text // .evidence.data.text // ""' 2>/dev/null)
+                TOKENS=$(echo "$RESPONSE" | jq -r '.context.total_tokens // .context."total_tokens" // 0' 2>/dev/null)
+                if [ -n "$RESPONSE_TEXT" ] && [ "$RESPONSE_TEXT" != "null" ] && [ "$RESPONSE_TEXT" != "" ]; then
                     RESPONSE_PREVIEW=$(echo "$RESPONSE_TEXT" | head -c 200)
                     echo "   Response: $RESPONSE_PREVIEW..."
                 fi
@@ -95,24 +108,21 @@ else
 fi
 echo ""
 
-# 4. Tasks
-echo "4️⃣  Tasks:"
-echo "--------"
-TASKS=$(curl -s "$API_URL/api/tasks/$KEY_ID/list")
-if echo "$TASKS" | jq -e '.error' > /dev/null 2>&1; then
-    echo "❌ Error: $(echo "$TASKS" | jq -r '.error')"
+# 4. Memory Entries
+echo "4️⃣  Memory Entries:"
+echo "------------------"
+MEMORY=$(curl -s "$API_URL/api/memory/$KEY_ID")
+if echo "$MEMORY" | jq -e '.error' > /dev/null 2>&1; then
+    echo "❌ Error: $(echo "$MEMORY" | jq -r '.error')"
 else
-    TASK_COUNT=$(echo "$TASKS" | jq 'length')
-    if [ "$TASK_COUNT" -gt 0 ]; then
-        echo "$TASKS" | jq '.[] | {
-            task_id: .task_id,
-            status: .status,
-            task_type: .task_type,
-            created_at: .created_at,
-            updated_at: .updated_at
-        }'
+    MEMORY_COUNT=$(echo "$MEMORY" | jq '.items | length' 2>/dev/null || echo "0")
+    if [ "$MEMORY_COUNT" -gt 0 ]; then
+        echo "Total memory entries: $MEMORY_COUNT"
+        echo ""
+        echo "Memory keys:"
+        echo "$MEMORY" | jq -r '.items[] | "  - \(.key)"' 2>/dev/null | head -10
     else
-        echo "No tasks found"
+        echo "No memory entries found"
     fi
 fi
 echo ""
@@ -138,21 +148,26 @@ else
 fi
 echo ""
 
-# 6. Reflection Logs
-echo "6️⃣  Reflection Logs:"
-echo "-------------------"
-REFLECTIONS=$(curl -s "$API_URL/api/reflections" 2>/dev/null)
-if echo "$REFLECTIONS" | jq -e '.error' > /dev/null 2>&1; then
-    echo "No reflection logs endpoint available"
+# 6. Artifacts Summary
+echo "6️⃣  Artifacts Summary:"
+echo "---------------------"
+if echo "$ARTIFACTS" | jq -e '.error' > /dev/null 2>&1; then
+    echo "No artifacts available"
 else
-    echo "Reflection logs: $(echo "$REFLECTIONS" | jq 'length')"
+    ARTIFACT_COUNT=$(echo "$ARTIFACTS" | jq 'length' 2>/dev/null || echo "0")
+    echo "Total artifacts: $ARTIFACT_COUNT"
+    echo ""
+    echo "Artifact types:"
+    echo "$ARTIFACTS" | jq -r 'group_by(.type) | .[] | "  \(.[0].type): \(length)"' 2>/dev/null
 fi
 echo ""
 
 echo "✅ Artifact viewing complete!"
 echo ""
 echo "💡 Tips:"
-echo "  - To view a specific trace: curl \"$API_URL/api/traces/{trace_id}?key_id=$KEY_ID\" | jq '.'"
-echo "  - To view full identity: curl \"$API_URL/api/identity/$KEY_ID\" | jq '.'"
+echo "  - To view a specific trace: curl \"$API_URL/api/traces/{trace_id}\" | jq '.'"
 echo "  - To view all traces: curl \"$API_URL/api/traces/$KEY_ID/list\" | jq '.'"
+echo "  - To view all ledgers: curl \"$API_URL/api/ledgers/$KEY_ID/list\" | jq '.'"
+echo "  - To view memory: curl \"$API_URL/api/memory/$KEY_ID\" | jq '.'"
+echo "  - To view artifacts: curl \"$API_URL/api/artifacts/$KEY_ID/list\" | jq '.'"
 
