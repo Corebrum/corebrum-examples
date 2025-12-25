@@ -1,0 +1,54 @@
+name: "stream_with_identity"
+version: "1.0"
+description: "Example stream task demonstrating identity context in streams"
+execution_mode: "stream_reactive"
+stream_config:
+  trigger: "time_interval"
+  interval_ms: 5000  # Execute every 5 seconds
+compute_logic:
+  type: "expression"
+  language: "python"
+  timeout_seconds: 300
+  code: |
+    import json
+    import sys
+    import time
+    
+    # Identity context is automatically available in stream tasks
+    # identity_id and identity_memory are pre-loaded
+    
+    # Get or initialize message count
+    message_count = get_memory(identity_id, "message_count")
+    if message_count is None:
+        message_count = 0
+    
+    message_count += 1
+    
+    # Store updated count
+    put_memory(identity_id, "message_count", message_count)
+    
+    # Get current timestamp
+    timestamp = __import__("datetime").datetime.now().isoformat()
+    
+    # Store execution history
+    execution_history = get_memory(identity_id, "execution_history") or []
+    execution_history.append({
+        "count": message_count,
+        "timestamp": timestamp
+    })
+    # Keep only last 10 executions
+    execution_history = execution_history[-10:]
+    put_memory(identity_id, "execution_history", execution_history)
+    
+    # Print status
+    print(f"Stream execution #{message_count} at {timestamp}", file=sys.stderr)
+    print(f"Identity: {identity_id}", file=sys.stderr)
+    print(f"Memory keys available: {list(identity_memory.keys()) if identity_memory else []}", file=sys.stderr)
+    
+    # Return result (optional for stream tasks)
+    result = {
+        "execution_count": message_count,
+        "timestamp": timestamp,
+        "identity_id": identity_id
+    }
+

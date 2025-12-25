@@ -1,0 +1,56 @@
+name: "task_with_identity"
+version: "1.0"
+description: "Example task demonstrating identity context and memory access"
+inputs:
+  - name: "number"
+    type: "number"
+outputs:
+  - name: "result"
+    type: "json"
+compute_logic:
+  type: "expression"
+  language: "python"
+  timeout_seconds: 30
+  code: |
+    import json
+    import sys
+    
+    # Identity context is automatically available
+    # identity_id and identity_memory are pre-loaded variables
+    
+    # Get input number
+    number = inputs.get("number", 0)
+    
+    # Try to get previous result from memory
+    previous_result = get_memory(identity_id, "previous_result")
+    if previous_result:
+        print(f"Previous result found: {previous_result}", file=sys.stderr)
+    else:
+        print("No previous result found (first execution)", file=sys.stderr)
+    
+    # Compute factorial
+    def factorial(n):
+        if n <= 1:
+            return 1
+        return n * factorial(n - 1)
+    
+    result_value = factorial(number)
+    
+    # Store result in memory for next execution
+    put_memory(identity_id, "previous_result", {
+        "number": number,
+        "factorial": result_value,
+        "timestamp": __import__("datetime").datetime.now().isoformat()
+    })
+    
+    # Return result
+    result = {
+        "number": number,
+        "factorial": result_value,
+        "previous_result": previous_result,
+        "identity_id": identity_id,
+        "memory_keys": list(identity_memory.keys()) if identity_memory else []
+    }
+metadata:
+  auto_store_result: true
+

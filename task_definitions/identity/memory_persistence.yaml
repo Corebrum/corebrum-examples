@@ -1,0 +1,61 @@
+name: "memory_persistence"
+version: "1.0"
+description: "Demonstrates memory persistence across task executions"
+inputs:
+  - name: "value"
+    type: "number"
+outputs:
+  - name: "result"
+    type: "json"
+compute_logic:
+  type: "expression"
+  language: "python"
+  timeout_seconds: 30
+  code: |
+    import json
+    import sys
+    
+    # Get current input value
+    current_value = inputs.get("value", 0)
+    
+    # Retrieve previous values from memory
+    previous_values = get_memory(identity_id, "previous_values") or []
+    last_value = previous_values[-1] if previous_values else None
+    
+    # Calculate difference from last value
+    if last_value:
+        difference = current_value - last_value
+        print(f"Previous value: {last_value}, Current: {current_value}, Difference: {difference}", file=sys.stderr)
+    else:
+        difference = None
+        print(f"First execution with value: {current_value}", file=sys.stderr)
+    
+    # Add current value to history
+    previous_values.append(current_value)
+    # Keep only last 5 values
+    previous_values = previous_values[-5:]
+    
+    # Store updated history
+    put_memory(identity_id, "previous_values", previous_values)
+    
+    # Store summary
+    summary = {
+        "current_value": current_value,
+        "previous_value": last_value,
+        "difference": difference,
+        "history_length": len(previous_values),
+        "timestamp": __import__("datetime").datetime.now().isoformat()
+    }
+    put_memory(identity_id, "last_summary", summary)
+    
+    # Return result
+    result = {
+        "current": current_value,
+        "previous": last_value,
+        "difference": difference,
+        "history": previous_values,
+        "summary": summary
+    }
+metadata:
+  auto_store_result: true
+
