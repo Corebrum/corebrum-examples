@@ -634,19 +634,19 @@ corebrum cmos --no-fuse
 
 CMOS provides commands for all Corebrum operations:
 
-- **Task Management**: `mesh-submit`, `mesh-status`, `mesh-results`, `mesh-logs`, `mesh-cancel`
-- **Network Operations**: `mesh-netstat`, `mesh-ping`, `mesh-topics`, `mesh-streams`
-- **Storage**: `mesh-storage-put`, `mesh-storage-get`, `mesh-storage-query`
-- **Memory**: `mesh-memory-put`, `mesh-memory-get`, `mesh-memory-query`
-- **Identity**: `mesh-identity-create`, `mesh-identity-list`, `mesh-identity-set`
-- **Hive**: `mesh-hive-create`, `mesh-hive-join`, `mesh-hive-memory-put`
+- **Task Management**: `submit`, `status`, `results`, `logs`, `cancel`
+- **Network Operations**: `netstat`, `ping`, `topics`, `streams`
+- **Storage**: `storage put`, `storage get`, `storage query`
+- **Memory**: `memory put`, `memory get`, `memory query`
+- **Identity**: `identity create`, `identity list`, `identity set`
+- **Hive**: `hive create`, `hive join`, `hive memory put`
 
 ### Interactive Task Creation
 
 CMOS supports interactive task creation:
 
 ```bash
-CMOS[user@local] > mesh-submit --interactive
+CMOS[user@local] > submit --interactive
 ```
 
 ### File System Operations (VFS)
@@ -665,13 +665,13 @@ ls memory/
 
 ```bash
 $ corebrum cmos
-CMOS[user@local] > mesh-submit --file task.yaml --input '{"number": 10}'
+CMOS[user@local] > submit --file task.yaml --input '{"number": 10}'
 ✅ Task submitted: abc123-def456-789
 
-CMOS[user@local] > mesh-status abc123-def456-789
+CMOS[user@local] > status abc123-def456-789
 Status: running
 
-CMOS[user@local] > mesh-results abc123-def456-789
+CMOS[user@local] > results abc123-def456-789
 {
   "result": 3628800,
   "status": "completed"
@@ -1469,15 +1469,15 @@ corebrum submit --file task_definitions/sequential/sequential_pipeline.yaml
 ```bash
 # View results for entire chain
 corebrum cmos
-CMOS[user@local] > mesh-results <parent-task-id> --chain
+CMOS[user@local] > results <parent-task-id> --chain
 
 # View logs for entire chain
-CMOS[user@local] > mesh-logs <parent-task-id> --chain
+CMOS[user@local] > logs <parent-task-id> --chain
 
 # Check status of individual tasks
-CMOS[user@local] > mesh-status <parent-task-id>-0  # First task
-CMOS[user@local] > mesh-status <parent-task-id>-1  # Second task
-CMOS[user@local] > mesh-status <parent-task-id>-2  # Third task
+CMOS[user@local] > status <parent-task-id>-0  # First task
+CMOS[user@local] > status <parent-task-id>-1  # Second task
+CMOS[user@local] > status <parent-task-id>-2  # Third task
 ```
 
 ### Task ID Structure
