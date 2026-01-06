@@ -220,7 +220,20 @@ brew install zenoh
 cargo install zenoh
 ```
 
-#### Linux / All Platforms
+#### Linux (APT - Debian/Ubuntu)
+
+```bash
+# Add Zenoh APT repository
+sudo sh -c 'echo "deb [trusted=yes] https://download.eclipse.org/zenoh/debian/ stable main" > /etc/apt/sources.list.d/zenoh.list'
+
+# Update package list
+sudo apt update
+
+# Install Zenoh
+sudo apt install zenoh
+```
+
+#### Linux / All Platforms (Alternative Methods)
 
 **Using Cargo:**
 ```bash
