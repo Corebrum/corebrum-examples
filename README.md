@@ -131,7 +131,26 @@ brew tap corebrum/corebrum
 brew install corebrum
 ```
 
-#### Method 3: From Source
+#### Method 3: Windows (Direct Download)
+
+```bash
+# Download Corebrum for Windows
+# Direct download: https://corebrum-releases.s3.amazonaws.com/releases/v0.2.112/corebrum-x86_64-pc-windows-msvc.zip
+
+# Extract the zip file
+# Add corebrum.exe to your PATH environment variable
+```
+
+**Windows Installation Steps:**
+1. Download the zip file from: https://corebrum-releases.s3.amazonaws.com/releases/v0.2.112/corebrum-x86_64-pc-windows-msvc.zip
+2. Extract the zip file to a directory (e.g., `C:\Program Files\Corebrum`)
+3. Add the directory containing `corebrum.exe` to your PATH:
+   - Open System Properties → Environment Variables
+   - Edit the `Path` variable in User or System variables
+   - Add the directory path (e.g., `C:\Program Files\Corebrum`)
+   - Click OK to save
+
+#### Method 4: From Source
 
 ```bash
 # Clone the repository
@@ -182,13 +201,34 @@ Zenoh is a high-performance, distributed pub/sub and storage system that Corebru
 
 ### Installing Zenoh Router
 
-```bash
-# Using Cargo
-cargo install zenoh
+#### macOS (Homebrew)
 
-# Or download from GitHub releases
-# https://github.com/eclipse-zenoh/zenoh/releases
+```bash
+# Install Zenoh using Homebrew
+brew install zenoh
 ```
+
+#### Windows
+
+**Option 1: Download Pre-built Binary**
+1. Download from GitHub releases: https://github.com/eclipse-zenoh/zenoh/releases
+2. Extract the zip file
+3. Add `zenohd.exe` to your PATH environment variable
+
+**Option 2: Using Cargo (if Rust is installed)**
+```bash
+cargo install zenoh
+```
+
+#### Linux / All Platforms
+
+**Using Cargo:**
+```bash
+cargo install zenoh
+```
+
+**Or download from GitHub releases:**
+- https://github.com/eclipse-zenoh/zenoh/releases
 
 ### Basic Zenoh Configuration
 
