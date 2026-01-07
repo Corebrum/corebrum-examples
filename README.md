@@ -2869,7 +2869,7 @@ corebrum web --host 0.0.0.0 --port 8080
 
 ### Python Library Examples
 
-The Corebrum Python library provides a convenient way to execute Python code on Corebrum without writing YAML/JSON task definitions. Examples are available in the [corebrum-pip repository](https://github.com/Corebrum/corebrum-pip/tree/main/examples):
+The Corebrum Python library provides a convenient way to execute Python code on Corebrum without writing YAML/JSON task definitions. Examples are available in the [`examples/python/`](examples/python/) directory:
 
 **Install the Python library:**
 ```bash
@@ -2878,13 +2878,13 @@ pip install corebrum
 
 **Example Scripts:**
 
-1. **`basic_usage.py`** - Basic examples covering fundamental Corebrum usage:
+1. **[`examples/python/basic_usage.py`](examples/python/basic_usage.py)** - Basic examples covering fundamental Corebrum usage:
    - Simple function execution with `@run()` decorator
    - Data processing with pandas (demonstrates automatic dependency installation)
    - Mathematical computations using standard library
    - Using `execute()` method for raw code execution
 
-2. **`advanced_usage.py`** - Advanced features and patterns:
+2. **[`examples/python/advanced_usage.py`](examples/python/advanced_usage.py)** - Advanced features and patterns:
    - Functions with default arguments
    - Error handling and exception catching
    - Custom timeout configuration
@@ -2892,7 +2892,7 @@ pip install corebrum
    - `execute()` with input data
    - Comprehensive error handling patterns
 
-3. **`factorial_demo.py`** - Comprehensive demonstration comparing `run()` vs `execute()`:
+3. **[`examples/python/factorial_demo.py`](examples/python/factorial_demo.py)** - Comprehensive demonstration comparing `run()` vs `execute()`:
    - Method 1: Using `@run()` decorator - best for existing functions
    - Method 2: Using `execute()` method - best for raw code strings
    - Method 3: Parallel execution of multiple factorial calculations
@@ -2916,11 +2916,68 @@ result = process_data([{"x": 1, "y": 2}, {"x": 3, "y": 4}])
 **Repository:** [https://github.com/Corebrum/corebrum-pip](https://github.com/Corebrum/corebrum-pip)  
 **PyPI Package:** [https://pypi.org/project/corebrum/](https://pypi.org/project/corebrum/)
 
+### JavaScript Library Examples
+
+The Corebrum JavaScript library provides a convenient way to execute JavaScript code on Corebrum without writing YAML/JSON task definitions. Examples are available in the [corebrum-npm repository](https://github.com/Corebrum/corebrum-npm/tree/main/examples):
+
+**Install the JavaScript library:**
+```bash
+npm install corebrum
+```
+
+**Example Scripts:**
+
+1. **`basic_usage.js`** - Basic examples covering fundamental Corebrum usage:
+   - Simple function execution with `run()` wrapper
+   - Data processing with array operations
+   - Mathematical computations using standard library
+   - Using `execute()` method for raw code execution
+
+2. **`advanced_usage.js`** - Advanced features and patterns:
+   - Functions with default arguments
+   - Error handling and exception catching
+   - Custom timeout configuration
+   - Using identity context for memory access
+   - `execute()` with input data
+   - Comprehensive error handling patterns
+
+3. **`factorial_demo.js`** - Comprehensive demonstration comparing `run()` vs `execute()`:
+   - Method 1: Using `run()` wrapper - best for existing functions
+   - Method 2: Using `execute()` method - best for raw code strings
+   - Method 3: Recursive factorial implementation
+   - Method 4: Parallel execution of multiple factorial calculations
+   - Includes detailed comments explaining when to use each approach
+
+**Quick Example:**
+```javascript
+const corebrum = require('corebrum');
+
+// Wrap function to run on Corebrum
+const processData = corebrum.run((data) => {
+  const result = data.map(item => ({
+    ...item,
+    processed: true,
+    timestamp: Date.now()
+  }));
+  return result;
+});
+
+// Call normally - executes on Corebrum
+const result = await processData([
+  { id: 1, name: 'Item 1' },
+  { id: 2, name: 'Item 2' }
+]);
+```
+
+**Repository:** [https://github.com/Corebrum/corebrum-npm](https://github.com/Corebrum/corebrum-npm)  
+**npm Package:** [https://www.npmjs.com/package/corebrum](https://www.npmjs.com/package/corebrum)
+
 ### Community Resources
 
 - **GitHub**: [https://github.com/corebrum/corebrum](https://github.com/corebrum/corebrum)
 - **Examples Repository**: [https://github.com/Corebrum/corebrum-examples](https://github.com/Corebrum/corebrum-examples)
 - **Python Library**: [https://github.com/Corebrum/corebrum-pip](https://github.com/Corebrum/corebrum-pip)
+- **JavaScript Library**: [https://github.com/Corebrum/corebrum-npm](https://github.com/Corebrum/corebrum-npm)
 
 ### Contributing
 
