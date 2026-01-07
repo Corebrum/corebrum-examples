@@ -1257,6 +1257,8 @@ requirements:
     - "pandas"
 ```
 
+**Note:** Python dependencies (like `numpy`, `pandas`, etc.) are automatically installed by Corebrum workers at runtime if they're not already present. This means you don't need to pre-install packages on workers - just specify them in the `dependencies` field. To disable auto-install, set `COREBRUM_AUTO_INSTALL_DEPS=false` before starting the daemon.
+
 ### Execution Modes
 
 #### One-Shot (Default)

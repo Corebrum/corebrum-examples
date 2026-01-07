@@ -152,9 +152,11 @@ task_definition:
 - **File references**: Point to local or remote Python files
 
 ### Dependency Management
-- **Package installation**: Automatically install required packages
-- **Version pinning**: Specify exact package versions
-- **Virtual environments**: Isolate dependencies per task
+- **Automatic installation**: Corebrum workers automatically install missing Python packages at runtime
+- **Package installation**: Required packages are installed using `pip3` before task execution
+- **Version pinning**: Specify exact package versions (e.g., `pandas==1.5.0`)
+- **Smart caching**: Already-installed packages are skipped for faster execution
+- **Configuration**: Control via `COREBRUM_AUTO_INSTALL_DEPS` environment variable (default: `true`)
 
 ### Input/Output Handling
 - **Type safety**: Strongly typed input/output parameters
@@ -180,18 +182,56 @@ task_definition:
 
 ## Dependencies
 
-Python tasks require Python 3.7+ on worker nodes. Common packages are automatically available:
+Python tasks require Python 3.7+ on worker nodes. **Python packages are automatically installed at runtime** if not already present on workers.
+
+### Automatic Package Installation
+
+Corebrum workers automatically install missing Python packages before executing tasks:
+
+- **Enabled by default**: Auto-install is enabled by default
+- **No pre-installation needed**: Just specify dependencies in your task definition
+- **Smart detection**: Workers check if packages are already installed before installing
+- **Version support**: Supports version specifiers (e.g., `pandas==1.5.0`, `numpy>=1.20.0`)
+
+**Configuration:**
 
 ```bash
-# Core packages (usually pre-installed)
+# Disable auto-install (if you want to pre-install packages manually)
+export COREBRUM_AUTO_INSTALL_DEPS=false
+corebrum daemon
+
+# Enable auto-install explicitly (default)
+export COREBRUM_AUTO_INSTALL_DEPS=true
+corebrum daemon
+```
+
+**Example with dependencies:**
+
+```yaml
+task_definition:
+  name: "data-analysis"
+  dependencies:
+    - "pandas"
+    - "numpy"
+    - "scikit-learn"
+  compute_logic:
+    type: "script"
+    language: "python"
+    code: |
+      import pandas as pd
+      import numpy as np
+      from sklearn.linear_model import LinearRegression
+      # ... your code ...
+```
+
+When this task runs, if any of these packages are missing, they will be automatically installed before execution.
+
+### Core Requirements
+
+```bash
+# Core packages (must be pre-installed on workers)
 python3
 pip3
-
-# Common scientific packages
-numpy
-pandas
-requests
-matplotlib
 ```
 
 ## Troubleshooting
