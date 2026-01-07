@@ -164,6 +164,43 @@ cargo build --release
 cargo install --path .
 ```
 
+#### Method 5: Python Library (PyPI)
+
+Install the Corebrum Python library to execute Python code on Corebrum's distributed infrastructure:
+
+```bash
+pip install corebrum
+```
+
+**Quick Start:**
+```python
+import corebrum
+
+# Configure Corebrum connection
+corebrum.configure(base_url="http://localhost:6502")
+
+# Decorate function to run on Corebrum
+@corebrum.run()
+def process_data(data):
+    import pandas as pd
+    df = pd.DataFrame(data)
+    return df.describe().to_dict()
+
+# Call normally - executes on Corebrum
+result = process_data([{"x": 1, "y": 2}, {"x": 3, "y": 4}])
+```
+
+**Features:**
+- Transparent execution: Code runs as if local, but executes on Corebrum
+- Automatic dependency detection and installation
+- Workers automatically install missing Python packages (e.g., pandas, numpy)
+- Two usage patterns: Decorator (`@corebrum.run()`) and raw code execution (`corebrum.execute()`)
+- Error handling with Python exceptions
+- Identity and memory support
+
+**Documentation:** [https://github.com/Corebrum/corebrum-pip](https://github.com/Corebrum/corebrum-pip)  
+**PyPI Package:** [https://pypi.org/project/corebrum/](https://pypi.org/project/corebrum/)
+
 ### Verify Installation
 
 ```bash
@@ -2830,10 +2867,60 @@ corebrum web --host 0.0.0.0 --port 8080
 - **Identity**: [`task_definitions/identity/`](task_definitions/identity/)
 - **Hive**: [`task_definitions/hive/`](task_definitions/hive/)
 
+### Python Library Examples
+
+The Corebrum Python library provides a convenient way to execute Python code on Corebrum without writing YAML/JSON task definitions. Examples are available in the [corebrum-pip repository](https://github.com/Corebrum/corebrum-pip/tree/main/examples):
+
+**Install the Python library:**
+```bash
+pip install corebrum
+```
+
+**Example Scripts:**
+
+1. **`basic_usage.py`** - Basic examples covering fundamental Corebrum usage:
+   - Simple function execution with `@run()` decorator
+   - Data processing with pandas (demonstrates automatic dependency installation)
+   - Mathematical computations using standard library
+   - Using `execute()` method for raw code execution
+
+2. **`advanced_usage.py`** - Advanced features and patterns:
+   - Functions with default arguments
+   - Error handling and exception catching
+   - Custom timeout configuration
+   - Using identity context for memory access
+   - `execute()` with input data
+   - Comprehensive error handling patterns
+
+3. **`factorial_demo.py`** - Comprehensive demonstration comparing `run()` vs `execute()`:
+   - Method 1: Using `@run()` decorator - best for existing functions
+   - Method 2: Using `execute()` method - best for raw code strings
+   - Method 3: Parallel execution of multiple factorial calculations
+   - Includes detailed comments explaining when to use each approach
+
+**Quick Example:**
+```python
+import corebrum
+
+# Decorate function to run on Corebrum
+@corebrum.run()
+def process_data(data):
+    import pandas as pd
+    df = pd.DataFrame(data)
+    return df.describe().to_dict()
+
+# Call normally - executes on Corebrum
+result = process_data([{"x": 1, "y": 2}, {"x": 3, "y": 4}])
+```
+
+**Repository:** [https://github.com/Corebrum/corebrum-pip](https://github.com/Corebrum/corebrum-pip)  
+**PyPI Package:** [https://pypi.org/project/corebrum/](https://pypi.org/project/corebrum/)
+
 ### Community Resources
 
 - **GitHub**: [https://github.com/corebrum/corebrum](https://github.com/corebrum/corebrum)
 - **Examples Repository**: [https://github.com/Corebrum/corebrum-examples](https://github.com/Corebrum/corebrum-examples)
+- **Python Library**: [https://github.com/Corebrum/corebrum-pip](https://github.com/Corebrum/corebrum-pip)
 
 ### Contributing
 
