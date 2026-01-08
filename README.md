@@ -6,24 +6,25 @@ Welcome to the Corebrum Getting Started Developer Guide! This comprehensive guid
 
 1. [Introduction & Architecture Overview](#1-introduction--architecture-overview)
 2. [Installation & Setup](#2-installation--setup)
-3. [Zenoh Configuration & Deployment](#3-zenoh-configuration--deployment)
-4. [Corebrum Daemon & Workers](#4-corebrum-daemon--workers)
-5. [Corebrum CLI](#5-corebrum-cli)
-6. [Corebrum CMOS (Interactive Shell)](#6-corebrum-cmos-interactive-shell)
-7. [Corebrum REST API](#7-corebrum-rest-api)
-8. [Corebrum Web UI](#8-corebrum-web-ui)
-9. [Task Definition Structure](#9-task-definition-structure)
-10. [Parallel Computing Examples](#10-parallel-computing-examples)
-11. [Sequential Computing Examples](#11-sequential-computing-examples)
-12. [Streaming Tasks](#12-streaming-tasks)
-13. [MCP (Model Context Protocol) Integration](#13-mcp-model-context-protocol-integration)
-14. [ROS2 + Corebrum: Physical AI Robotics](#14-ros2--corebrum-physical-ai-robotics)
-15. [Corebrum Cortex: Identity, Memory, and Hiveminds](#15-corebrum-cortex-identity-memory-and-hiveminds)
-16. [Storage System](#16-storage-system)
-17. [Advanced Features](#17-advanced-features)
-18. [Best Practices & Patterns](#18-best-practices--patterns)
-19. [Quick Reference](#19-quick-reference)
-20. [Next Steps & Resources](#20-next-steps--resources)
+3. [Building with Claude Code](#3-building-with-claude-code)
+4. [Zenoh Configuration & Deployment](#4-zenoh-configuration--deployment)
+5. [Corebrum Daemon & Workers](#5-corebrum-daemon--workers)
+6. [Corebrum CLI](#6-corebrum-cli)
+7. [Corebrum CMOS (Interactive Shell)](#7-corebrum-cmos-interactive-shell)
+8. [Corebrum REST API](#8-corebrum-rest-api)
+9. [Corebrum Web UI](#9-corebrum-web-ui)
+10. [Task Definition Structure](#10-task-definition-structure)
+11. [Parallel Computing Examples](#11-parallel-computing-examples)
+12. [Sequential Computing Examples](#12-sequential-computing-examples)
+13. [Streaming Tasks](#13-streaming-tasks)
+14. [MCP (Model Context Protocol) Integration](#14-mcp-model-context-protocol-integration)
+15. [ROS2 + Corebrum: Physical AI Robotics](#15-ros2--corebrum-physical-ai-robotics)
+16. [Corebrum Cortex: Identity, Memory, and Hiveminds](#16-corebrum-cortex-identity-memory-and-hiveminds)
+17. [Storage System](#17-storage-system)
+18. [Advanced Features](#18-advanced-features)
+19. [Best Practices & Patterns](#19-best-practices--patterns)
+20. [Quick Reference](#20-quick-reference)
+21. [Next Steps & Resources](#21-next-steps--resources)
 
 ---
 
@@ -226,7 +227,94 @@ corebrum daemon --zenoh-router tcp://your-router:7447
 
 ---
 
-## 3. Zenoh Configuration & Deployment
+## 3. Building with Claude Code
+
+[Claude Code](https://claude.com/product/claude-code) is an AI-powered development environment that can help you build and run Corebrum applications interactively. With Claude Code, you can describe what you want to build in natural language, and Claude will help you create task definitions, write code, and execute your Corebrum apps.
+
+### Getting Started with Claude Code
+
+1. **Clone the repository:**
+   ```bash
+   git clone git@github.com:Corebrum/corebrum-examples.git
+   cd corebrum-examples
+   ```
+
+2. **Launch Claude Code:**
+   ```bash
+   claude
+   ```
+
+3. **Ask Claude to build a Corebrum app:**
+   At the Claude Code prompt, describe what you want to build. For example:
+   ```
+   help me build and run a corebrum app that calculates pi out to 5 decimals
+   ```
+
+4. **Approve Claude's actions:**
+   Answer **YES** to Claude's requests to fix and run commands. Claude will:
+   - Create task definition files (YAML/JSON)
+   - Write the necessary code
+   - Submit tasks to Corebrum
+   - Monitor execution and retrieve results
+
+### Example Workflow
+
+**Initial Request:**
+```
+help me build and run a corebrum app that calculates pi out to 5 decimals
+```
+
+Claude will:
+- Create a task definition file (e.g., `task_definitions/python/pi_calculation.yaml`)
+- Write Python code to calculate π using a method like the Leibniz formula or Monte Carlo
+- Submit the task using `corebrum submit`
+- Wait for completion and display results
+
+**Iterative Refinement:**
+```
+now run it out to 10 decimals
+```
+
+Claude will modify the task definition and resubmit with updated parameters.
+
+### Benefits of Using Claude Code
+
+- **Natural Language Interface**: Describe what you want in plain English
+- **Interactive Development**: Iterate on your apps through conversation
+- **Automatic Code Generation**: Claude writes task definitions and code for you
+- **Error Handling**: Claude fixes issues and retries automatically
+- **Learning Tool**: See how Corebrum apps are structured by watching Claude build them
+
+### Prerequisites
+
+- Claude Code installed and configured
+- Corebrum daemon running (see [Section 5: Corebrum Daemon & Workers](#5-corebrum-daemon--workers))
+- Zenoh router running (see [Section 4: Zenoh Configuration & Deployment](#4-zenoh-configuration--deployment))
+
+### Example Task Definitions Created by Claude
+
+Claude can create various types of Corebrum tasks:
+- **Mathematical computations**: Factorial, Fibonacci, π calculation
+- **Data processing**: CSV parsing, JSON transformation
+- **Parallel tasks**: Multiple independent computations
+- **Sequential pipelines**: Multi-stage data processing
+- **Streaming tasks**: Real-time data processing
+
+### Tips for Best Results
+
+1. **Be Specific**: Clearly describe what you want the app to do
+2. **Provide Context**: Mention if you want parallel execution, specific precision, etc.
+3. **Iterate**: Ask Claude to modify or improve the app after initial creation
+4. **Review Generated Code**: Check the task definitions Claude creates to learn the structure
+
+### Reference
+
+For a detailed walkthrough and examples, see the Medium article:
+**[Building and running Corebrum apps with Claude Code!](https://medium.com/corebrum/building-and-running-corebrum-apps-with-claude-code-e7929c47ce68)**
+
+---
+
+## 4. Zenoh Configuration & Deployment
 
 ### What is Zenoh?
 
@@ -383,7 +471,7 @@ For detailed Zenoh configuration, see: [`../corebrum/docs/zenoh_configs/`](../co
 
 ---
 
-## 4. Corebrum Daemon & Workers
+## 5. Corebrum Daemon & Workers
 
 ### Starting the Daemon
 
@@ -464,7 +552,7 @@ corebrum ping <worker-id>
 
 ---
 
-## 5. Corebrum CLI
+## 6. Corebrum CLI
 
 The Corebrum CLI provides command-line access to all Corebrum functionality.
 
@@ -700,7 +788,7 @@ For complete CLI documentation, see: [`../corebrum/src/cli/commands/`](../corebr
 
 ---
 
-## 6. Corebrum CMOS (Interactive Shell)
+## 7. Corebrum CMOS (Interactive Shell)
 
 CMOS (Corebrum Mesh Operating System) is an interactive shell that provides a unified interface for managing Corebrum operations.
 
@@ -774,7 +862,7 @@ For detailed CMOS documentation, see: [`../corebrum/src/shell/`](../corebrum/src
 
 ---
 
-## 7. Corebrum REST API
+## 8. Corebrum REST API
 
 The Corebrum REST API provides programmatic access to all Corebrum functionality.
 
@@ -1098,7 +1186,7 @@ For complete API reference, see: [`../corebrum/src/web/routes.rs`](../corebrum/s
 
 ---
 
-## 8. Corebrum Web UI
+## 9. Corebrum Web UI
 
 The Corebrum Web UI provides a visual interface for managing and monitoring Corebrum operations.
 
@@ -1173,7 +1261,7 @@ For UI source code, see: [`../corebrum/src/web/ui/`](../corebrum/src/web/ui/)
 
 ---
 
-## 9. Task Definition Structure
+## 10. Task Definition Structure
 
 Task definitions specify what work should be executed and how. They can be written in YAML or JSON format.
 
@@ -1338,7 +1426,7 @@ For complete examples, see: [`task_definitions/`](task_definitions/)
 
 ---
 
-## 10. Parallel Computing Examples
+## 11. Parallel Computing Examples
 
 Corebrum excels at parallel computing where multiple independent tasks execute simultaneously across the mesh network.
 
@@ -1497,7 +1585,7 @@ For more examples, see: [`task_definitions/python/`](task_definitions/python/), 
 
 ---
 
-## 11. Sequential Computing Examples
+## 12. Sequential Computing Examples
 
 Sequential tasks execute in order, with each task's output becoming the next task's input.
 
@@ -1589,7 +1677,7 @@ For more examples, see: [`task_definitions/sequential/`](task_definitions/sequen
 
 ---
 
-## 12. Streaming Tasks
+## 13. Streaming Tasks
 
 Streaming tasks are long-running tasks that process data continuously, responding to triggers or time intervals.
 
@@ -1656,17 +1744,17 @@ stream_config:
 
 ### ROS2 Streaming Examples
 
-See [Section 14: ROS2 + Corebrum](#14-ros2--corebrum-physical-ai-robotics) for comprehensive ROS2 streaming examples.
+See [Section 15: ROS2 + Corebrum](#15-ros2--corebrum-physical-ai-robotics) for comprehensive ROS2 streaming examples.
 
 ### MCP Streaming Examples
 
-See [Section 13: MCP Integration](#13-mcp-model-context-protocol-integration) for MCP streaming patterns.
+See [Section 14: MCP Integration](#14-mcp-model-context-protocol-integration) for MCP streaming patterns.
 
 For more examples, see: [`task_definitions/ros2/`](task_definitions/ros2/), [`task_definitions/mcp/`](task_definitions/mcp/)
 
 ---
 
-## 13. MCP (Model Context Protocol) Integration
+## 14. MCP (Model Context Protocol) Integration
 
 MCP is a standardized protocol for AI systems (LLMs) to interact with external tools and data sources.
 
@@ -1832,7 +1920,7 @@ For complete MCP documentation, see: [`task_definitions/mcp/README.md`](task_def
 
 ---
 
-## 14. ROS2 + Corebrum: Physical AI Robotics
+## 15. ROS2 + Corebrum: Physical AI Robotics
 
 Corebrum provides native, bi-directional ROS2 integration through Zenoh, enabling seamless communication between ROS2 robots and Corebrum's distributed computing mesh.
 
@@ -2165,7 +2253,7 @@ For comprehensive ROS2 examples, see: [`task_definitions/ros2/README.md`](task_d
 
 ---
 
-## 15. Corebrum Cortex: Identity, Memory, and Hiveminds
+## 16. Corebrum Cortex: Identity, Memory, and Hiveminds
 
 The Corebrum Cortex is the cognitive architecture that transforms Corebrum from a compute platform into a true cognitive mesh supercomputer. It consists of three fundamental systems that enable robots to learn, remember, and collaborate.
 
@@ -2549,7 +2637,7 @@ For comprehensive Cortex documentation, see: [`../corebrum/docs/blog/introducing
 
 ---
 
-## 16. Storage System
+## 17. Storage System
 
 Corebrum provides persistent storage capabilities using Zenoh storage backends.
 
@@ -2647,7 +2735,7 @@ For complete storage examples, see: [`task_definitions/storage/README.md`](task_
 
 ---
 
-## 17. Advanced Features
+## 18. Advanced Features
 
 ### Learning and Preferences
 
@@ -2680,7 +2768,7 @@ For advanced features, see: [`task_definitions/omnagi/`](task_definitions/omnagi
 
 ---
 
-## 18. Best Practices & Patterns
+## 19. Best Practices & Patterns
 
 ### Task Design Principles
 
@@ -2736,7 +2824,7 @@ requirements:
 
 ---
 
-## 19. Quick Reference
+## 20. Quick Reference
 
 ### Command Cheat Sheet
 
@@ -2848,7 +2936,7 @@ corebrum web --host 0.0.0.0 --port 8080
 
 ---
 
-## 20. Next Steps & Resources
+## 21. Next Steps & Resources
 
 ### Detailed Documentation
 

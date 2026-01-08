@@ -1,0 +1,55 @@
+task_definition:
+  name: "pi_calculation"
+  version: "1.0"
+  description: "Calculate pi to 5 decimal places using Python"
+
+  inputs:
+    - name: "decimal_places"
+      type: "integer"
+      required: false
+      default: 5
+      description: "Number of decimal places to calculate pi (default: 5)"
+
+  outputs:
+    - name: "pi_value"
+      type: "number"
+      description: "Pi calculated to specified decimal places"
+    - name: "decimal_places"
+      type: "integer"
+      description: "Number of decimal places used"
+    - name: "method"
+      type: "string"
+      description: "Method used for calculation"
+
+  compute_logic:
+    type: "expression"
+    language: "python"
+    timeout_seconds: 30
+
+    code: |
+      import math
+
+      # Get decimal places from input, default to 5
+      decimal_places = int(inputs.get('decimal_places', 5))
+
+      # Calculate pi using Python's math.pi and round to specified decimals
+      pi_value = round(math.pi, decimal_places)
+
+      # Set result variable (required by Corebrum)
+      result = {
+          'pi_value': pi_value,
+          'decimal_places': decimal_places,
+          'method': 'math.pi rounded to {} decimals'.format(decimal_places),
+          'full_representation': str(pi_value)
+      }
+
+  validation:
+    - field: "decimal_places"
+      min: 1
+      max: 15
+      message: "Decimal places must be between 1 and 15"
+
+  metadata:
+    estimated_duration_ms: 50
+    memory_requirement_mb: 10
+    cpu_intensive: false
