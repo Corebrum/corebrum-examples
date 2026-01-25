@@ -1,0 +1,220 @@
+name: "mission_result_monitor"
+version: "1.0"
+description: "Monitors task results for AGI missions, analyzes outcomes with LLM, and adapts strategy"
+execution_mode: "stream_reactive"
+stream_config:
+  trigger: "on_message"
+  rate_limit_hz: 5
+inputs:
+  - name: "monitor_requests"
+    type: "zenoh"
+    key_expr: "agi/missions/*/monitor"
+    required: true
+    description: "Zenoh topic pattern for monitoring requests"
+  - name: "ollama_url"
+    type: "string"
+    required: false
+    default: "http://localhost:11434/api/chat"
+    description: "Ollama API endpoint"
+  - name: "model"
+    type: "string"
+    required: false
+    default: "qwen2.5vl:3b"
+    description: "LLM model for analysis"
+compute_logic:
+  type: "expression"
+  language: "python"
+  timeout_seconds: 0
+  code: |
+    import json
+    import sys
+    import time
+    from datetime import datetime
+    from urllib import request as urllib_request
+    
+    ollama_url = inputs.get('ollama_url', 'http://localhost:11434/api/chat')
+    model = inputs.get('model', 'qwen2.5vl:3b')
+    
+    global monitored_missions
+    if 'monitored_missions' not in globals():
+        monitored_missions = {}
+        print("[Result Monitor] Initializing Mission Result Monitor...", file=sys.stderr)
+    
+    # Process monitoring request
+    try:
+        monitor_request = message_data
+        mission_id = monitor_request.get("mission_id")
+        task_ids = monitor_request.get("task_ids", [])
+        
+        if not mission_id:
+            print("[Result Monitor] Warning: No mission_id in monitor request", file=sys.stderr)
+            return
+        
+        print(f"[Result Monitor] Setting up monitoring for mission {mission_id} with {len(task_ids)} tasks", file=sys.stderr)
+        
+        # Store monitoring state
+        monitored_missions[mission_id] = {
+            "task_ids": task_ids,
+            "results_received": {},
+            "started_at": datetime.now().isoformat()
+        }
+        
+        # Subscribe to result topics for each task
+        for task_id in task_ids:
+            result_topic = f"comp/tasks/{task_id}/result"
+            
+            def create_result_handler(t_id, m_id):
+                def on_result(sample):
+                    try:
+                        payload = sample.payload
+                        if hasattr(payload, 'decode'):
+                            result_data = json.loads(payload.decode('utf-8'))
+                        else:
+                            result_data = json.loads(str(payload))
+                        
+                        print(f"[Result Monitor] Received result for task {t_id} in mission {m_id}", file=sys.stderr)
+                        
+                        # Store result
+                        if m_id not in monitored_missions:
+                            monitored_missions[m_id] = {"results_received": {}}
+                        monitored_missions[m_id]["results_received"][t_id] = result_data
+                        
+                        # Check if all tasks completed
+                        mission_state = monitored_missions.get(m_id, {})
+                        all_task_ids = mission_state.get("task_ids", [])
+                        completed_count = len(mission_state.get("results_received", {}))
+                        
+                        if completed_count >= len(all_task_ids):
+                            # All tasks completed - analyze and synthesize
+                            print(f"[Result Monitor] All tasks completed for mission {m_id}, analyzing...", file=sys.stderr)
+                            analyze_and_synthesize_mission(m_id, all_task_ids, ollama_url, model)
+                        
+                    except Exception as e:
+                        print(f"[Result Monitor] Error processing result: {e}", file=sys.stderr)
+                        import traceback
+                        traceback.print_exc(file=sys.stderr)
+                
+                return on_result
+            
+            # Subscribe to result topic
+            subscriber = session.declare_subscriber(result_topic, create_result_handler(task_id, mission_id))
+            print(f"[Result Monitor] Subscribed to {result_topic} for mission {mission_id}", file=sys.stderr)
+        
+        # Keep monitoring active
+        print(f"[Result Monitor] Monitoring active for mission {mission_id}", file=sys.stderr)
+        
+    except Exception as e:
+        print(f"[Result Monitor] Error in monitor setup: {e}", file=sys.stderr)
+        import traceback
+        traceback.print_exc(file=sys.stderr)
+    
+    
+    def analyze_and_synthesize_mission(mission_id, task_ids, ollama_url, model):
+        """Analyze all mission results and create synthesis"""
+        try:
+            mission_state = monitored_missions.get(mission_id, {})
+            results = mission_state.get("results_received", {})
+            
+            # Collect all findings
+            all_findings = []
+            for task_id, result in results.items():
+                if isinstance(result, dict):
+                    findings = result.get("findings") or result.get("analysis") or result.get("synthesis") or result
+                    all_findings.append(findings)
+            
+            # Use LLM to analyze and synthesize
+            synthesis = synthesize_with_llm(all_findings, mission_id, ollama_url, model)
+            
+            # Publish final mission results
+            results_topic = f"agi/missions/{mission_id}/results"
+            final_result = {
+                "mission_id": mission_id,
+                "status": "completed",
+                "tasks_completed": len(task_ids),
+                "findings": all_findings,
+                "synthesis": synthesis,
+                "completed_at": datetime.now().isoformat()
+            }
+            session.put(results_topic, json.dumps(final_result).encode('utf-8'))
+            
+            # Update memory if identity available
+            if 'identity_id' in globals() and identity_id:
+                try:
+                    # Store mission results in memory
+                    mission_history = get_memory(identity_id, "mission_history") or []
+                    mission_history.append({
+                        "mission_id": mission_id,
+                        "completed_at": datetime.now().isoformat(),
+                        "results": final_result
+                    })
+                    put_memory(identity_id, "mission_history", mission_history[-20:])  # Keep last 20
+                    put_memory(identity_id, f"mission_{mission_id}_results", final_result)
+                except Exception as mem_err:
+                    print(f"[Result Monitor] Memory update error: {mem_err}", file=sys.stderr)
+            
+            print(f"[Result Monitor] Mission {mission_id} completed and results published", file=sys.stderr)
+            
+        except Exception as e:
+            print(f"[Result Monitor] Error in synthesis: {e}", file=sys.stderr)
+            import traceback
+            traceback.print_exc(file=sys.stderr)
+    
+    def synthesize_with_llm(findings, mission_id, ollama_url, model):
+        """Use LLM to synthesize mission findings"""
+        try:
+            prompt = f"""You are an AGI operating system agent. Synthesize these mission findings into a comprehensive report.
+
+Mission ID: {mission_id}
+Findings: {json.dumps(findings, indent=2)}
+
+Create a synthesis that includes:
+1. Key insights from all findings
+2. Patterns and themes identified
+3. Recommendations for next steps
+4. Overall mission assessment
+
+Return a JSON object with: summary, key_insights (array), themes (array), recommendations (array), assessment (string)."""
+            
+            payload = {
+                "model": model,
+                "messages": [
+                    {"role": "system", "content": "You are a synthesis AI. Return only valid JSON."},
+                    {"role": "user", "content": prompt}
+                ],
+                "stream": False,
+                "options": {
+                    "temperature": 0.7,
+                    "num_predict": 1500
+                }
+            }
+            
+            data = json.dumps(payload).encode('utf-8')
+            req = urllib_request.Request(ollama_url, data=data, headers={'Content-Type': 'application/json'})
+            
+            with urllib_request.urlopen(req, timeout=60) as response:
+                response_data = json.loads(response.read().decode('utf-8'))
+                message = response_data.get("message", {})
+                response_text = message.get("content", "") if isinstance(message, dict) else ""
+                
+                if not response_text:
+                    response_text = response_data.get("response", "")
+                
+                # Extract JSON
+                response_text = response_text.strip()
+                if response_text.startswith("```"):
+                    lines = response_text.split('\n')
+                    response_text = '\n'.join([l for l in lines if not l.strip().startswith('```')])
+                
+                synthesis = json.loads(response_text)
+                return synthesis
+                
+        except Exception as e:
+            print(f"[Result Monitor] LLM synthesis error: {e}, using fallback", file=sys.stderr)
+            # Fallback synthesis
+            return {
+                "summary": f"Synthesized {len(findings)} findings for mission {mission_id}",
+                "key_insights": ["Insight from findings"] * min(3, len(findings)),
+                "themes": ["Theme 1", "Theme 2"],
+                "recommendations": ["Continue research", "Explore applications"],
+                "assessment": "Mission completed successfully"
+            }

@@ -2954,6 +2954,7 @@ corebrum web --host 0.0.0.0 --port 8080
 - **Sequential**: [`task_definitions/sequential/`](task_definitions/sequential/)
 - **Identity**: [`task_definitions/identity/`](task_definitions/identity/)
 - **Hive**: [`task_definitions/hive/`](task_definitions/hive/)
+- **AGI Operating System**: [`task_definitions/agi/`](task_definitions/agi/) - Autonomous mission agents that create and manage their own tasks
 
 ### Python Library Examples
 

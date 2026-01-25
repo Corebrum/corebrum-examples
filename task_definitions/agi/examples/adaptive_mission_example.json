@@ -1,0 +1,19 @@
+{
+  "mission_id": "adaptive_research_001",
+  "mission_type": "research",
+  "topic": "artificial general intelligence",
+  "depth": "comprehensive",
+  "deliverable": "comprehensive analysis with adaptive refinement",
+  "adaptive": true,
+  "learning_enabled": true,
+  "strategy": {
+    "initial_approach": "broad_research",
+    "refinement_based_on": "findings_quality",
+    "max_iterations": 10
+  },
+  "requirements": {
+    "min_findings": 10,
+    "quality_threshold": 0.8,
+    "adapt_if_below_threshold": true
+  }
+}

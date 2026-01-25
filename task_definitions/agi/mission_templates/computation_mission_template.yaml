@@ -1,0 +1,15 @@
+# Computation Mission Template
+# Template for creating computation-focused AGI missions
+
+mission_type: "computation"
+objective: "{{OBJECTIVE}}"  # Replace with computation objective
+iterations: 5  # Number of computation iterations
+computation_inputs:
+  operation: "{{OPERATION}}"  # e.g., "pi_calculation", "factorial", "fibonacci"
+  # Add operation-specific parameters here
+adaptive: true
+learning_enabled: true
+
+# Example usage:
+# Replace {{OBJECTIVE}} with goal, e.g., "calculate pi to increasing precision"
+# Replace {{OPERATION}} with operation type

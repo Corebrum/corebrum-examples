@@ -1,0 +1,16 @@
+# Research Mission Template
+# Template for creating research-focused AGI missions
+
+mission_type: "research"
+topic: "{{TOPIC}}"  # Replace with research topic
+depth: "comprehensive"  # Options: basic, intermediate, comprehensive
+deliverable: "analysis report with key findings"
+requirements:
+  min_findings: 5
+  include_applications: true
+  include_recent_developments: true
+adaptive: true
+learning_enabled: true
+
+# Example usage:
+# Replace {{TOPIC}} with actual topic, e.g., "quantum computing", "machine learning", etc.

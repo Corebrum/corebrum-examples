@@ -1,0 +1,14 @@
+{
+  "mission_id": "research_quantum_computing_001",
+  "mission_type": "research",
+  "topic": "quantum computing",
+  "depth": "comprehensive",
+  "deliverable": "analysis report with at least 5 key findings",
+  "requirements": {
+    "min_findings": 5,
+    "include_applications": true,
+    "include_recent_developments": true
+  },
+  "priority": "high",
+  "adaptive": true
+}

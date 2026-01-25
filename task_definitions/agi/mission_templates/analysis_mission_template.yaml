@@ -1,0 +1,14 @@
+# Analysis Mission Template
+# Template for creating data analysis-focused AGI missions
+
+mission_type: "analysis"
+data_source: "{{DATA_SOURCE}}"  # Replace with data source description
+analysis_type: "pattern_detection"  # Options: pattern_detection, synthesis, statistical
+adaptive: true
+learning_enabled: true
+requirements:
+  min_patterns: 3
+  confidence_threshold: 0.7
+
+# Example usage:
+# Replace {{DATA_SOURCE}} with source, e.g., "sensor_data", "research_findings", etc.

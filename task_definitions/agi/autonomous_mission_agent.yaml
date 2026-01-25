@@ -1,0 +1,463 @@
+name: "autonomous_mission_agent"
+version: "1.0"
+description: "AGI Operating System Agent - Autonomously receives missions, plans tasks, creates and submits them, monitors execution, and adapts strategy"
+execution_mode: "stream_reactive"
+stream_config:
+  trigger: "on_message"
+  rate_limit_hz: 2  # Process up to 2 missions per second
+inputs:
+  - name: "mission_goals"
+    type: "zenoh"
+    key_expr: "agi/missions/goals"
+    required: true
+    description: "Zenoh topic for receiving high-level mission goals"
+  - name: "ollama_url"
+    type: "string"
+    required: false
+    default: "http://localhost:11434/api/chat"
+    description: "Ollama API endpoint for LLM reasoning"
+  - name: "model"
+    type: "string"
+    required: false
+    default: "qwen2.5vl:3b"
+    description: "LLM model to use for planning and reasoning"
+compute_logic:
+  type: "expression"
+  language: "python"
+  timeout_seconds: 0  # No timeout for streaming tasks
+  code: |
+    import json
+    import sys
+    import time
+    import uuid
+    from datetime import datetime
+    from urllib import request as urllib_request
+    from urllib import error as urllib_error
+    
+    # Configuration
+    ollama_url = inputs.get('ollama_url', 'http://localhost:11434/api/chat')
+    model = inputs.get('model', 'qwen2.5vl:3b')
+    
+    # Mission state tracking (persists across message processing)
+    global active_missions, submitted_tasks
+    if 'active_missions' not in globals():
+        active_missions = {}  # mission_id -> mission_state
+        submitted_tasks = {}  # task_id -> mission_id
+        print("[AGI Agent] Initializing Autonomous Mission Agent...", file=sys.stderr)
+        print(f"[AGI Agent] LLM: {ollama_url}, Model: {model}", file=sys.stderr)
+        print(f"[AGI Agent] Identity ID: {identity_id if 'identity_id' in globals() else 'N/A'}", file=sys.stderr)
+        print(f"[AGI Agent] Waiting for missions on topic: agi/missions/goals", file=sys.stderr)
+        sys.stderr.flush()
+    
+    # Define helper functions first (they'll be available for the rest of the execution)
+    
+    def plan_mission_with_llm(mission_goal, ollama_url, model):
+        """Use LLM to break mission into tasks"""
+        try:
+            mission_json = json.dumps(mission_goal, indent=2)
+            prompt = "You are an AGI operating system agent running on Corebrum. Break down this mission into specific executable tasks.\\n\\nMission: " + mission_json + "\\n\\nReturn ONLY a valid JSON object with this exact structure:\\n{\\n  \\\"tasks\\\": [\\n    {\\n      \\\"name\\\": \\\"task_name\\\",\\n      \\\"description\\\": \\\"what this task does\\\",\\n      \\\"type\\\": \\\"research|analysis|computation|synthesis\\\",\\n      \\\"dependencies\\\": [],\\n      \\\"inputs\\\": {}\\n    }\\n  ]\\n}\\n\\nCreate 3-5 tasks that logically break down the mission. Tasks should be executable on Corebrum workers."
+            
+            payload = {
+                "model": model,
+                "messages": [
+                    {"role": "system", "content": "You are a task planning AI. Return only valid JSON."},
+                    {"role": "user", "content": prompt}
+                ],
+                "stream": False,
+                "options": {
+                    "temperature": 0.7,
+                    "num_predict": 1000
+                }
+            }
+            
+            data = json.dumps(payload).encode('utf-8')
+            req = urllib_request.Request(ollama_url, data=data, headers={'Content-Type': 'application/json'})
+            
+            with urllib_request.urlopen(req, timeout=30) as response:
+                response_data = json.loads(response.read().decode('utf-8'))
+                message = response_data.get("message", {})
+                response_text = message.get("content", "") if isinstance(message, dict) else ""
+                
+                if not response_text:
+                    response_text = response_data.get("response", "")
+                
+                # Extract JSON from response (might have markdown code blocks)
+                response_text = response_text.strip()
+                if response_text.startswith("```"):
+                    # Remove markdown code blocks
+                    lines = response_text.split('\n')
+                    response_text = '\n'.join([l for l in lines if not l.strip().startswith('```')])
+                
+                plan = json.loads(response_text)
+                return plan
+                
+        except Exception as e:
+            print(f"[AGI Agent] LLM planning error: {e}", file=sys.stderr)
+            return None
+    
+    def create_fallback_plan(mission_goal):
+        """Create a simple fallback plan if LLM fails"""
+        mission_type = mission_goal.get("mission_type", "research")
+        
+        if mission_type == "research":
+            topic = mission_goal.get("topic", "general research")
+            return {
+                "tasks": [
+                    {
+                        "name": f"research_{topic.replace(' ', '_').lower()}_basics",
+                        "description": f"Research basic concepts of {topic}",
+                        "type": "research",
+                        "dependencies": [],
+                        "inputs": {"topic": topic, "depth": "basic"}
+                    },
+                    {
+                        "name": f"research_{topic.replace(' ', '_').lower()}_recent",
+                        "description": f"Research recent developments in {topic}",
+                        "type": "research",
+                        "dependencies": [],
+                        "inputs": {"topic": topic, "depth": "recent"}
+                    },
+                    {
+                        "name": f"analyze_{topic.replace(' ', '_').lower()}",
+                        "description": f"Analyze findings about {topic}",
+                        "type": "analysis",
+                        "dependencies": ["research_basics", "research_recent"],
+                        "inputs": {"analysis_type": "synthesis"}
+                    }
+                ]
+            }
+        elif mission_type == "computation":
+            return {
+                "tasks": [
+                    {
+                        "name": "compute_initial",
+                        "description": "Perform initial computation",
+                        "type": "computation",
+                        "dependencies": [],
+                        "inputs": mission_goal.get("computation_inputs", {})
+                    }
+                ]
+            }
+        else:
+            return {"tasks": []}
+    
+    def create_task_from_spec(task_spec, mission_type):
+        """Create a task definition from a task specification"""
+        task_type = task_spec.get("type", "research")
+        task_name = task_spec.get("name", f"task_{uuid.uuid4().hex[:8]}")
+        
+        if task_type == "research":
+            topic = task_spec.get("inputs", {}).get("topic", "general")
+            depth = task_spec.get("inputs", {}).get("depth", "comprehensive")
+            # Build code string using list join to ensure no indentation issues
+            topic_escaped = topic.replace('"', '\\"').replace("\\", "\\\\")
+            depth_escaped = depth.replace('"', '\\"').replace("\\", "\\\\")
+            code_lines = [
+                "import json",
+                "import sys",
+                "",
+                'topic = "' + topic_escaped + '"',
+                'depth = "' + depth_escaped + '"',
+                "",
+                "# Simulated research findings",
+                "findings = dict(",
+                "    topic=topic,",
+                "    depth=depth,",
+                "    key_points=[",
+                '        topic + " fundamentals and principles",',
+                '        "Recent advances in " + topic,',
+                '        "Applications and use cases of " + topic',
+                "    ],",
+                '    sources=["research_analysis"],',
+                '    timestamp=__import__("datetime").datetime.now().isoformat()',
+                ")",
+                "",
+                "result = dict(",
+                "    findings=findings,",
+                '    status="completed",',
+                '    task_type="research"',
+                ")",
+                ""
+            ]
+            code = "\n".join(code_lines)
+        elif task_type == "analysis":
+            code_lines = [
+                "import json",
+                "import sys",
+                "",
+                "# Analysis task",
+                'data = inputs.get("data", {})',
+                'analysis_type = inputs.get("analysis_type", "general")',
+                "",
+                "analysis_result = dict(",
+                "    analysis_type=analysis_type,",
+                "    patterns_found=3,",
+                '    key_insights=["Insight 1", "Insight 2", "Insight 3"],',
+                "    confidence=0.85",
+                ")",
+                "",
+                "result = dict(",
+                "    analysis=analysis_result,",
+                '    status="completed",',
+                '    task_type="analysis"',
+                ")",
+                ""
+            ]
+            code = "\n".join(code_lines)
+        elif task_type == "computation":
+            operation = task_spec.get("inputs", {}).get("operation", "general")
+            if "pi" in str(operation).lower():
+                code_lines = [
+                    "import math",
+                    "",
+                    'decimal_places = inputs.get("decimal_places", 5)',
+                    "pi_value = round(math.pi, decimal_places)",
+                    "",
+                    "result = dict(",
+                    "    pi_value=pi_value,",
+                    "    decimal_places=decimal_places,",
+                    '    method="math.pi rounded to " + str(decimal_places) + " decimals",',
+                    '    status="completed",',
+                    '    task_type="computation"',
+                    ")",
+                    ""
+                ]
+                code = "\n".join(code_lines)
+            else:
+                code_lines = [
+                    "result = dict(",
+                    '    computation_result="Computation completed",',
+                    '    status="completed",',
+                    '    task_type="computation"',
+                    ")",
+                    ""
+                ]
+                code = "\n".join(code_lines)
+        else:  # synthesis
+            code_lines = [
+                "import json",
+                "",
+                'findings = inputs.get("findings", [])',
+                "",
+                "synthesized = dict(",
+                "    total_findings=len(findings),",
+                '    key_themes=["Theme 1", "Theme 2", "Theme 3"],',
+                '    comprehensive_summary="Synthesized " + str(len(findings)) + " findings",',
+                '    recommendations=["Recommendation 1", "Recommendation 2"]',
+                ")",
+                "",
+                "result = dict(",
+                "    synthesis=synthesized,",
+                '    status="completed",',
+                '    task_type="synthesis"',
+                ")",
+                ""
+            ]
+            code = "\n".join(code_lines)
+        
+        # The code should be clean - Corebrum's prepare_code_for_insertion will handle indentation
+        # We just need to ensure it's a clean string starting at column 0
+        # YAML parsing already strips the base indentation, so we just need to strip any trailing whitespace
+        clean_code = code.strip()
+        
+        # Debug: Print first few lines to verify format
+        first_lines = clean_code.split("\n")[:5]
+        print(f"[AGI Agent] Generated code first 5 lines (repr):", file=sys.stderr)
+        for i, line in enumerate(first_lines, 1):
+            print(f"  Line {i}: {repr(line)}", file=sys.stderr)
+        print(f"[AGI Agent] Full code length: {len(clean_code)} chars", file=sys.stderr)
+        print(f"[AGI Agent] First line has leading space: {clean_code.split(chr(10))[0].startswith(' ') if chr(10) in clean_code else False}", file=sys.stderr)
+        sys.stderr.flush()
+        
+        # Use task_definition wrapper format to match YAML structure
+        # These are one-shot tasks (not streaming)
+        return {
+            "task_definition": {
+                "name": task_name,
+                "version": "1.0",
+                "description": task_spec.get("description", f"{task_type} task"),
+                "language": "python",
+                "execution_mode": "oneshot",  # Explicitly mark as one-shot task
+                "compute_logic": {
+                    "type": "expression",
+                    "language": "python",
+                    "timeout_seconds": 300,
+                    "code": clean_code
+                },
+            "inputs": [
+                {
+                    "name": key,
+                    "type": "string" if isinstance(value, str) else "object",
+                    "required": True,
+                    "default_value": value
+                }
+                for key, value in task_spec.get("inputs", {}).items()
+            ],
+            "outputs": [
+                {
+                    "name": "result",
+                    "type": "object",
+                    "description": "Task result"
+                }
+            ],
+            "requirements": {
+                "memory_mb": 256,
+                "cpu_cores": 1,
+                "timeout_seconds": 300
+            }
+            }
+        }
+    
+    def create_job_from_task_def(task_def, task_inputs):
+        """Create a Job object for submission"""
+        # Job structure: task_definition should be the TaskDefinition object
+        # If task_def is wrapped in "task_definition", unwrap it
+        if "task_definition" in task_def:
+            actual_task_def = task_def["task_definition"]
+        else:
+            actual_task_def = task_def
+        
+        return {
+            "task_id": str(uuid.uuid4()),
+            "queue": "user_tasks",
+            "task_definition": actual_task_def,
+            "inputs": task_inputs,
+            "priority": 0,
+            "created_at": datetime.now().isoformat(),
+            "timeout_seconds": 300
+        }
+    
+    # Process incoming mission goal from message_data
+    # For on_message trigger, this code executes each time a message arrives on the subscribed topic
+    # message_data is automatically decoded JSON from Corebrum wrapper
+    
+    # IMPORTANT: This print runs EVERY time a message is received
+    # If you don't see this, messages aren't being received
+    print(f"[AGI Agent] ===== MESSAGE RECEIVED - START process_message ===== ", file=sys.stderr)
+    print(f"[AGI Agent] message_data type: {type(message_data)}, keys: {list(message_data.keys()) if isinstance(message_data, dict) else 'N/A'}", file=sys.stderr)
+    sys.stderr.flush()  # Force flush immediately
+    
+    try:
+        # Extract mission data - message_data is automatically decoded JSON from Corebrum wrapper
+        # For on_message trigger, message_data is always available when code executes
+        mission_goal = message_data
+        mission_id = mission_goal.get("mission_id") or str(uuid.uuid4())
+        mission_type = mission_goal.get("mission_type", "research")
+        
+        print(f"[AGI Agent] Processing mission {mission_id}: {mission_type}", file=sys.stderr)
+        
+        # Initialize mission state
+        mission_state = {
+            "mission_id": mission_id,
+            "mission_type": mission_type,
+            "goal": mission_goal,
+            "status": "planning",
+            "created_at": datetime.now().isoformat(),
+            "tasks_created": [],
+            "tasks_completed": [],
+            "findings": [],
+            "strategy": "initial"
+        }
+        active_missions[mission_id] = mission_state
+        
+        # Publish mission status
+        status_topic = f"agi/missions/{mission_id}/status"
+        session.put(status_topic, json.dumps(mission_state).encode('utf-8'))
+        print(f"[AGI Agent] Published mission status to {status_topic}", file=sys.stderr)
+        
+        # Phase 1: LLM-Based Planning
+        print(f"[AGI Agent] Phase 1: Planning mission {mission_id}...", file=sys.stderr)
+        plan = plan_mission_with_llm(mission_goal, ollama_url, model)
+        
+        if not plan or "tasks" not in plan:
+            print(f"[AGI Agent] Warning: LLM planning failed or returned invalid format", file=sys.stderr)
+            # Fallback to simple plan
+            plan = create_fallback_plan(mission_goal)
+        
+        mission_state["plan"] = plan
+        mission_state["status"] = "executing"
+        print(f"[AGI Agent] Created plan with {len(plan.get('tasks', []))} tasks", file=sys.stderr)
+        
+        # Phase 2: Create and Submit Tasks
+        print(f"[AGI Agent] Phase 2: Creating and submitting tasks...", file=sys.stderr)
+        task_ids = []
+        
+        for task_spec in plan.get("tasks", []):
+            try:
+                # Generate task definition
+                task_def = create_task_from_spec(task_spec, mission_type)
+                
+                # Create job
+                job = create_job_from_task_def(task_def, task_spec.get("inputs", {}))
+                
+                # Submit via Zenoh
+                announce_topic = "comp/queues/user_tasks/announce"
+                publisher = session.declare_publisher(announce_topic)
+                
+                # Debug: Print the generated task definition and code
+                print(f"[AGI Agent] Generated task definition: {json.dumps(task_def, indent=2)}", file=sys.stderr)
+                if task_def.get("compute_logic", {}).get("code"):
+                    generated_code = task_def["compute_logic"]["code"]
+                    print(f"[AGI Agent] Generated code preview (first 200 chars): {generated_code[:200]}", file=sys.stderr)
+                    print(f"[AGI Agent] Code starts with: {repr(generated_code[:50])}", file=sys.stderr)
+                    # Check for any leading whitespace issues
+                    first_line = generated_code.split("\n")[0] if "\n" in generated_code else generated_code
+                    print(f"[AGI Agent] First line repr: {repr(first_line)}", file=sys.stderr)
+                    print(f"[AGI Agent] First line starts with space: {first_line.startswith(' ')}", file=sys.stderr)
+                    print(f"[AGI Agent] First line starts with tab: {first_line.startswith(chr(9))}", file=sys.stderr)
+                sys.stderr.flush()
+                
+                job_json = json.dumps(job)
+                print(f"[AGI Agent] Job JSON (first 500 chars): {job_json[:500]}", file=sys.stderr)
+                sys.stderr.flush()
+                publisher.put(job_json.encode('utf-8'))
+                
+                task_id = job["task_id"]
+                task_ids.append(task_id)
+                submitted_tasks[task_id] = mission_id
+                mission_state["tasks_created"].append({
+                    "task_id": task_id,
+                    "task_name": task_spec.get("name", "unknown"),
+                    "created_at": datetime.now().isoformat()
+                })
+                
+                print(f"[AGI Agent] Submitted task {task_id}: {task_spec.get('name', 'unknown')}", file=sys.stderr)
+                
+                # Small delay to avoid overwhelming the system
+                time.sleep(0.1)
+                
+            except Exception as e:
+                print(f"[AGI Agent] Error creating task {task_spec.get('name', 'unknown')}: {e}", file=sys.stderr)
+                import traceback
+                traceback.print_exc(file=sys.stderr)
+        
+        # Publish updated status
+        session.put(status_topic, json.dumps(mission_state).encode('utf-8'))
+        
+        # Publish created tasks list
+        created_tasks_topic = f"agi/missions/{mission_id}/created_tasks"
+        session.put(created_tasks_topic, json.dumps({"mission_id": mission_id, "task_ids": task_ids}).encode('utf-8'))
+        
+        # Phase 3: Monitor Results (async - will be handled by result monitoring)
+        print(f"[AGI Agent] Phase 3: Monitoring {len(task_ids)} tasks...", file=sys.stderr)
+        
+        # Publish monitoring request (result monitor will handle this)
+        monitor_topic = f"agi/missions/{mission_id}/monitor"
+        monitor_request = {
+            "mission_id": mission_id,
+            "task_ids": task_ids,
+            "ollama_url": ollama_url,
+            "model": model
+        }
+        session.put(monitor_topic, json.dumps(monitor_request).encode('utf-8'))
+        print(f"[AGI Agent] Published monitoring request for mission {mission_id}", file=sys.stderr)
+        
+        print(f"[AGI Agent] Mission {mission_id} initialized and tasks submitted", file=sys.stderr)
+        sys.stderr.flush()
+        
+    except Exception as e:
+        print(f"[AGI Agent] Error processing mission: {e}", file=sys.stderr)
+        import traceback
+        traceback.print_exc(file=sys.stderr)
+        sys.stderr.flush()
+

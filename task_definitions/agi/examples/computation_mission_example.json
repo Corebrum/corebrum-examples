@@ -1,0 +1,15 @@
+{
+  "mission_id": "compute_pi_precision_001",
+  "mission_type": "computation",
+  "objective": "calculate pi to increasing precision",
+  "iterations": 5,
+  "computation_inputs": {
+    "operation": "pi_calculation",
+    "start_precision": 5,
+    "max_precision": 15,
+    "increment": 2
+  },
+  "learning": true,
+  "adaptive": true,
+  "goal": "Demonstrate computational capability and precision improvement"
+}
