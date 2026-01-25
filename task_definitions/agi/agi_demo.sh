@@ -265,8 +265,8 @@ echo ""
 # Try to extract task ID from various possible formats
 AGENT_TASK_ID=$(echo "$SUBMIT_OUTPUT" | grep -oE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' | head -1)
 
-    # If no UUID found, try checking if it's already running via streams
-    if [ -z "$AGENT_TASK_ID" ]; then
+# If no UUID found, try checking if it's already running via streams
+if [ -z "$AGENT_TASK_ID" ]; then
         echo -e "${YELLOW}⚠️  Could not extract task ID from output. Checking if task is already running...${NC}"
         STREAMS_OUTPUT=$($COREBRUM_CMD streams 2>&1)
     echo "$STREAMS_OUTPUT"
