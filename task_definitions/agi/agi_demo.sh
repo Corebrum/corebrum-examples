@@ -144,28 +144,49 @@ if [ -n "$IDENTITY_ID" ]; then
 else
     echo "1️⃣  Creating AGI agent identity..."
     
-    # Try CLI method first (works with CMOS and direct daemon)
-    if [ "$USE_TIMEOUT" = true ]; then
-        IDENTITY_OUTPUT=$(timeout 10 $COREBRUM_CMD identity create --name "AGI Mission Agent" 2>&1)
-    else
-        IDENTITY_OUTPUT=$($COREBRUM_CMD identity create --name "AGI Mission Agent" 2>&1)
-    fi
-    IDENTITY_ID=$(echo "$IDENTITY_OUTPUT" | grep -oE '[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}' | head -1)
+    # Try API method first (faster if web API is running)
+    echo "   Trying API method..."
+    IDENTITY_RESPONSE=$(curl -s --max-time 5 -X POST "$API_URL/api/identity" \
+      -H "Content-Type: application/json" \
+      -d '{"name": "AGI Mission Agent"}' 2>&1)
     
-    # If CLI method failed, try API method
-    if [ -z "$IDENTITY_ID" ]; then
-        echo "   Trying API method..."
-        IDENTITY_RESPONSE=$(curl -s -X POST "$API_URL/api/identity" \
-          -H "Content-Type: application/json" \
-          -d '{"name": "AGI Mission Agent"}' 2>&1)
+    IDENTITY_ID=$(echo "$IDENTITY_RESPONSE" | jq -r '.key_id' 2>/dev/null)
+    
+    # If API method failed, try CLI method (works with CMOS and direct daemon)
+    if [ -z "$IDENTITY_ID" ] || [ "$IDENTITY_ID" = "null" ]; then
+        echo "   Trying CLI method..."
+        if [ "$USE_TIMEOUT" = true ]; then
+            IDENTITY_OUTPUT=$(timeout 15 $COREBRUM_CMD identity create --name "AGI Mission Agent" 2>&1)
+        else
+            # Use curl timeout as fallback if timeout command not available
+            echo "   (Using curl timeout as fallback - this may take up to 15 seconds...)"
+            IDENTITY_OUTPUT=$(curl -s --max-time 15 -X POST "$API_URL/api/identity" \
+              -H "Content-Type: application/json" \
+              -d '{"name": "AGI Mission Agent"}' 2>&1)
+            # If API still doesn't work, try CLI with a workaround
+            if [ -z "$(echo "$IDENTITY_OUTPUT" | jq -r '.key_id' 2>/dev/null)" ]; then
+                # Last resort: try CLI but warn it might hang
+                echo -e "${YELLOW}   Warning: CLI method may hang without timeout command${NC}"
+                echo "   Consider installing 'timeout' command or using API method"
+                IDENTITY_OUTPUT=$($COREBRUM_CMD identity create --name "AGI Mission Agent" 2>&1) || true
+            fi
+        fi
+        IDENTITY_ID=$(echo "$IDENTITY_OUTPUT" | grep -oE '[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}' | head -1)
         
-        IDENTITY_ID=$(echo "$IDENTITY_RESPONSE" | jq -r '.key_id' 2>/dev/null)
-        if [ -z "$IDENTITY_ID" ] || [ "$IDENTITY_ID" = "null" ]; then
+        if [ -z "$IDENTITY_ID" ]; then
             echo -e "${RED}❌ Failed to create identity${NC}"
-            echo "CLI output: $IDENTITY_OUTPUT"
             if [ -n "$IDENTITY_RESPONSE" ]; then
                 echo "API response: $IDENTITY_RESPONSE"
             fi
+            if [ -n "$IDENTITY_OUTPUT" ]; then
+                echo "CLI output: $IDENTITY_OUTPUT"
+            fi
+            echo ""
+            echo "You can create an identity manually and run the script with:"
+            echo "  IDENTITY_ID=<your-id> ./task_definitions/agi/agi_demo.sh"
+            echo ""
+            echo "Or create it manually:"
+            echo "  $COREBRUM_CMD identity create --name 'AGI Mission Agent'"
             exit 1
         fi
     fi
