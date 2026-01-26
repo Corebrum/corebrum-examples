@@ -172,14 +172,16 @@ compute_logic:
                 '    timestamp=__import__("datetime").datetime.now().isoformat()',
                 ")",
                 "",
-                "result = dict(",
-                "    findings=findings,",
-                '    status="completed",',
-                '    task_type="research"',
-                ")",
-                ""
-            ]
-            code = "\n".join(code_lines)
+            "result = dict(",
+            "    findings=findings,",
+            '    status="completed",',
+            '    task_type="research"',
+            ")",
+            "",
+            "# Return result as last expression",
+            "result"
+        ]
+        code = "\n".join(code_lines)
         elif task_type == "analysis":
             code_lines = [
                 "import json",
@@ -196,14 +198,16 @@ compute_logic:
                 "    confidence=0.85",
                 ")",
                 "",
-                "result = dict(",
-                "    analysis=analysis_result,",
-                '    status="completed",',
-                '    task_type="analysis"',
-                ")",
-                ""
-            ]
-            code = "\n".join(code_lines)
+            "result = dict(",
+            "    analysis=analysis_result,",
+            '    status="completed",',
+            '    task_type="analysis"',
+            ")",
+            "",
+            "# Return result as last expression",
+            "result"
+        ]
+        code = "\n".join(code_lines)
         elif task_type == "computation":
             operation = task_spec.get("inputs", {}).get("operation", "general")
             if "pi" in str(operation).lower():
@@ -220,7 +224,9 @@ compute_logic:
                     '    status="completed",',
                     '    task_type="computation"',
                     ")",
-                    ""
+                    "",
+                    "# Return result as last expression",
+                    "result"
                 ]
                 code = "\n".join(code_lines)
             else:
@@ -230,7 +236,9 @@ compute_logic:
                     '    status="completed",',
                     '    task_type="computation"',
                     ")",
-                    ""
+                    "",
+                    "# Return result as last expression",
+                    "result"
                 ]
                 code = "\n".join(code_lines)
         else:  # synthesis
@@ -246,14 +254,16 @@ compute_logic:
                 '    recommendations=["Recommendation 1", "Recommendation 2"]',
                 ")",
                 "",
-                "result = dict(",
-                "    synthesis=synthesized,",
-                '    status="completed",',
-                '    task_type="synthesis"',
-                ")",
-                ""
-            ]
-            code = "\n".join(code_lines)
+            "result = dict(",
+            "    synthesis=synthesized,",
+            '    status="completed",',
+            '    task_type="synthesis"',
+            ")",
+            "",
+            "# Return result as last expression",
+            "result"
+        ]
+        code = "\n".join(code_lines)
         
         # The code should be clean - Corebrum's prepare_code_for_insertion will handle indentation
         # We just need to ensure it's a clean string starting at column 0
@@ -345,6 +355,12 @@ compute_logic:
         mission_type = mission_goal.get("mission_type", "research")
         
         print(f"[AGI Agent] Processing mission {mission_id}: {mission_type}", file=sys.stderr)
+        print(f"[AGI Agent] Mission goal keys: {list(mission_goal.keys())}", file=sys.stderr)
+        if "topic" in mission_goal:
+            print(f"[AGI Agent] Topic: {mission_goal.get('topic')}", file=sys.stderr)
+        if "computation_inputs" in mission_goal:
+            print(f"[AGI Agent] Computation inputs: {mission_goal.get('computation_inputs')}", file=sys.stderr)
+        sys.stderr.flush()
         
         # Initialize mission state
         mission_state = {
