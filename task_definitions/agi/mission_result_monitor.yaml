@@ -162,18 +162,16 @@ compute_logic:
     def synthesize_with_llm(findings, mission_id, ollama_url, model):
         """Use LLM to synthesize mission findings"""
         try:
-            prompt = f"""You are an AGI operating system agent. Synthesize these mission findings into a comprehensive report.
-
-Mission ID: {mission_id}
-Findings: {json.dumps(findings, indent=2)}
-
-Create a synthesis that includes:
-1. Key insights from all findings
-2. Patterns and themes identified
-3. Recommendations for next steps
-4. Overall mission assessment
-
-Return a JSON object with: summary, key_insights (array), themes (array), recommendations (array), assessment (string)."""
+            findings_json = json.dumps(findings, indent=2)
+            prompt = "You are an AGI operating system agent. Synthesize these mission findings into a comprehensive report.\\n\\n"
+            prompt += f"Mission ID: {mission_id}\\n"
+            prompt += f"Findings: {findings_json}\\n\\n"
+            prompt += "Create a synthesis that includes:\\n"
+            prompt += "Key insights from all findings\\n"
+            prompt += "Patterns and themes identified\\n"
+            prompt += "Recommendations for next steps\\n"
+            prompt += "Overall mission assessment\\n\\n"
+            prompt += "Return a JSON object with: summary, key_insights (array), themes (array), recommendations (array), assessment (string)."
             
             payload = {
                 "model": model,

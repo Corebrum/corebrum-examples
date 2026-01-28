@@ -172,32 +172,32 @@ compute_logic:
                 '    timestamp=__import__("datetime").datetime.now().isoformat()',
                 ")",
                 "",
-            "result = dict(",
-            "    findings=findings,",
-            '    status="completed",',
-            '    task_type="research"',
-            ")",
-            "",
-            "# Return result as last expression",
-            "result"
-        ]
-        code = "\n".join(code_lines)
-        elif task_type == "analysis":
-            code_lines = [
-                "import json",
-                "import sys",
-                "",
-                "# Analysis task",
-                'data = inputs.get("data", {})',
-                'analysis_type = inputs.get("analysis_type", "general")',
-                "",
-                "analysis_result = dict(",
-                "    analysis_type=analysis_type,",
-                "    patterns_found=3,",
-                '    key_insights=["Insight 1", "Insight 2", "Insight 3"],',
-                "    confidence=0.85",
+                "result = dict(",
+                "    findings=findings,",
+                '    status="completed",',
+                '    task_type="research"',
                 ")",
                 "",
+                "# Return result as last expression",
+                "result"
+            ]
+            code = "\n".join(code_lines)
+        elif task_type == "analysis":
+            code_lines = [
+            "import json",
+            "import sys",
+            "",
+            "# Analysis task",
+            'data = inputs.get("data", {})',
+            'analysis_type = inputs.get("analysis_type", "general")',
+            "",
+            "analysis_result = dict(",
+            "    analysis_type=analysis_type,",
+            "    patterns_found=3,",
+            '    key_insights=["Insight 1", "Insight 2", "Insight 3"],',
+            "    confidence=0.85",
+            ")",
+            "",
             "result = dict(",
             "    analysis=analysis_result,",
             '    status="completed",',
@@ -206,8 +206,8 @@ compute_logic:
             "",
             "# Return result as last expression",
             "result"
-        ]
-        code = "\n".join(code_lines)
+            ]
+            code = "\n".join(code_lines)
         elif task_type == "computation":
             operation = task_spec.get("inputs", {}).get("operation", "general")
             if "pi" in str(operation).lower():
@@ -254,16 +254,16 @@ compute_logic:
                 '    recommendations=["Recommendation 1", "Recommendation 2"]',
                 ")",
                 "",
-            "result = dict(",
-            "    synthesis=synthesized,",
-            '    status="completed",',
-            '    task_type="synthesis"',
-            ")",
-            "",
-            "# Return result as last expression",
-            "result"
-        ]
-        code = "\n".join(code_lines)
+                "result = dict(",
+                "    synthesis=synthesized,",
+                '    status="completed",',
+                '    task_type="synthesis"',
+                ")",
+                "",
+                "# Return result as last expression",
+                "result"
+            ]
+            code = "\n".join(code_lines)
         
         # The code should be clean - Corebrum's prepare_code_for_insertion will handle indentation
         # We just need to ensure it's a clean string starting at column 0
@@ -284,20 +284,17 @@ compute_logic:
         return {
             "task_definition": {
                 "name": task_name,
-                "version": "1.0",
                 "description": task_spec.get("description", f"{task_type} task"),
                 "language": "python",
-                "execution_mode": "oneshot",  # Explicitly mark as one-shot task
-                "compute_logic": {
-                    "type": "expression",
-                    "language": "python",
-                    "timeout_seconds": 300,
-                    "code": clean_code
+                "source": {
+                    "Inline": {
+                        "code": clean_code
+                    }
                 },
             "inputs": [
                 {
                     "name": key,
-                    "type": "string" if isinstance(value, str) else "object",
+                    "description": None,
                     "required": True,
                     "default_value": value
                 }
@@ -306,14 +303,15 @@ compute_logic:
             "outputs": [
                 {
                     "name": "result",
-                    "type": "object",
-                    "description": "Task result"
+                    "description": "Task result",
+                    "data_type": "object"
                 }
             ],
             "requirements": {
                 "memory_mb": 256,
                 "cpu_cores": 1,
-                "timeout_seconds": 300
+                "timeout_seconds": 300,
+                "dependencies": ["python"]  # Also specify in requirements for worker matching
             }
             }
         }
@@ -327,13 +325,17 @@ compute_logic:
         else:
             actual_task_def = task_def
         
+        # Format created_at as ISO 8601 with Z suffix (UTC) for Rust chrono compatibility
+        from datetime import timezone
+        created_at_str = datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
+        
         return {
             "task_id": str(uuid.uuid4()),
             "queue": "user_tasks",
             "task_definition": actual_task_def,
             "inputs": task_inputs,
             "priority": 0,
-            "created_at": datetime.now().isoformat(),
+            "created_at": created_at_str,
             "timeout_seconds": 300
         }
     
@@ -412,8 +414,10 @@ compute_logic:
                 
                 # Debug: Print the generated task definition and code
                 print(f"[AGI Agent] Generated task definition: {json.dumps(task_def, indent=2)}", file=sys.stderr)
-                if task_def.get("compute_logic", {}).get("code"):
-                    generated_code = task_def["compute_logic"]["code"]
+                # Check for code in source.Inline.code (Rust TaskDefinition format)
+                task_def_obj = task_def.get("task_definition", task_def)
+                if task_def_obj.get("source", {}).get("Inline", {}).get("code"):
+                    generated_code = task_def_obj["source"]["Inline"]["code"]
                     print(f"[AGI Agent] Generated code preview (first 200 chars): {generated_code[:200]}", file=sys.stderr)
                     print(f"[AGI Agent] Code starts with: {repr(generated_code[:50])}", file=sys.stderr)
                     # Check for any leading whitespace issues
@@ -421,6 +425,19 @@ compute_logic:
                     print(f"[AGI Agent] First line repr: {repr(first_line)}", file=sys.stderr)
                     print(f"[AGI Agent] First line starts with space: {first_line.startswith(' ')}", file=sys.stderr)
                     print(f"[AGI Agent] First line starts with tab: {first_line.startswith(chr(9))}", file=sys.stderr)
+                    # Check last lines to verify result return
+                    code_lines_list = generated_code.split("\n")
+                    print(f"[AGI Agent] Total code lines: {len(code_lines_list)}", file=sys.stderr)
+                    if len(code_lines_list) >= 3:
+                        print(f"[AGI Agent] Last 3 lines: {[repr(l) for l in code_lines_list[-3:]]}", file=sys.stderr)
+                    print(f"[AGI Agent] Code ends with 'result': {generated_code.strip().endswith('result')}", file=sys.stderr)
+                    print(f"[AGI Agent] Last 50 chars: {repr(generated_code[-50:])}", file=sys.stderr)
+                    # Check if dependencies field is present in requirements
+                    reqs = task_def_obj.get("requirements", {})
+                    if reqs and "dependencies" in reqs:
+                        print(f"[AGI Agent] Task has dependencies: {reqs.get('dependencies')}", file=sys.stderr)
+                    else:
+                        print(f"[AGI Agent] WARNING: Task definition missing 'dependencies' in requirements!", file=sys.stderr)
                 sys.stderr.flush()
                 
                 job_json = json.dumps(job)

@@ -213,6 +213,8 @@ corebrum submit --file task_definitions/agi/autonomous_mission_agent.yaml \
   --identity $IDENTITY_ID
 ```
 
+**Important**: If you update the agent code, you must resubmit it for changes to take effect. The agent runs as a streaming task, so it uses the code from when it was submitted.
+
 You should see:
 - `✅ Job submitted successfully with ID: <task-id>`
 - `🌊 Stream-reactive task detected`
@@ -277,6 +279,74 @@ corebrum jobs
 
 # Check specific task status
 corebrum status <task-id>
+
+# Check task logs (to see if there were errors)
+corebrum logs <task-id>
+```
+
+### 9. View Task Results
+
+There are several ways to view results from AGI mission tasks:
+
+#### Method 1: Check Individual Task Results
+
+```bash
+# Get results for a specific task ID (from agent logs)
+corebrum results <task-id>
+
+# Example:
+corebrum results 91c863a4-3321-4c7c-a3d6-8673126c998a
+
+# If result not found, check status first:
+corebrum status <task-id>
+corebrum logs <task-id>
+```
+
+**Note**: If `corebrum results` shows "Task result not found", the task may:
+- Still be running (check with `corebrum status`)
+- Have failed (check with `corebrum logs`)
+- Not have published results yet (wait a few seconds and try again)
+
+#### Method 2: Subscribe to Zenoh Result Topics
+
+The Result Monitor subscribes to result topics. You can also subscribe directly:
+
+```bash
+# Subscribe to all task results
+zenoh subscribe -k comp/tasks/*/result
+
+# Subscribe to a specific task result
+zenoh subscribe -k comp/tasks/<task-id>/result
+```
+
+#### Method 3: Check Mission Results via Result Monitor
+
+If the Result Monitor is running, it will:
+1. Collect results from all tasks in a mission
+2. Synthesize them using an LLM
+3. Publish the final synthesis to `agi/missions/<mission-id>/results`
+
+```bash
+# Subscribe to mission results
+zenoh subscribe -k agi/missions/*/results
+
+# Or check a specific mission
+zenoh subscribe -k agi/missions/<mission-id>/results
+```
+
+#### Method 4: Check Agent Logs for Task IDs
+
+The AGI agent logs show all submitted task IDs. Use these IDs to check results:
+
+```bash
+# Get agent task ID first
+corebrum streams
+
+# Then check agent logs
+corebrum logs <agent-task-id> | grep "Submitted task"
+
+# Copy a task ID and check its result
+corebrum results <task-id-from-logs>
 ```
 
 ## Common Commands Reference
@@ -480,6 +550,100 @@ The agent would create tasks that:
 - Make navigation decisions
 - Publish control commands
 - Adapt based on sensor feedback
+
+## Troubleshooting
+
+### Tasks Stuck in "Pending" Status
+
+If tasks show "pending" status and never get picked up:
+
+**Note**: Tasks submitted programmatically by the AGI agent use a different format than YAML-submitted tasks. The agent generates tasks in Rust `TaskDefinition` format with `source: {Inline: {code: ...}}` instead of `compute_logic`. If tasks remain pending, check:
+
+1. **Task Format**: Verify the generated task uses `source: {Inline: {code: ...}}` format (check agent logs)
+2. **Worker Capabilities**: Ensure workers have matching capabilities (e.g., `python`)
+3. **Scheduler Processing**: The scheduler should process tasks from `comp/queues/user_tasks/announce` - check scheduler logs for errors
+
+#### 1. Check if Workers are Running
+
+```bash
+# Check network status (shows available workers)
+corebrum netstat
+
+# Check if daemon is running
+corebrum daemon --status
+
+# Or check via API (if web UI is running)
+curl http://localhost:8080/api/v1/workers
+```
+
+**Solution**: If no workers are shown, start a worker:
+```bash
+# Start Corebrum daemon (which includes workers)
+corebrum daemon --zenoh-router tcp://127.0.0.1:7447
+```
+
+#### 2. Check Task Definition Format
+
+Tasks might be pending if the task definition has errors. Check the agent logs:
+
+```bash
+# Get agent task ID
+corebrum streams
+
+# Check agent logs for errors
+corebrum logs <agent-task-id> | grep -i error
+```
+
+#### 3. Verify Zenoh Connection
+
+```bash
+# Check if Zenoh router is running
+zenoh info
+
+# Test Zenoh connectivity
+zenoh put -k test/key -v "test"
+zenoh get -k test/key
+```
+
+#### 4. Check Scheduler Status
+
+The scheduler should be running as part of the daemon. Verify:
+
+```bash
+# Check daemon logs
+corebrum daemon --status
+
+# Or check if tasks are being announced
+zenoh subscribe -k comp/queues/user_tasks/announce
+```
+
+#### 5. Restart Daemon
+
+If workers aren't picking up tasks, try restarting:
+
+```bash
+# Stop daemon
+pkill -f "corebrum daemon"
+
+# Start fresh
+corebrum daemon --zenoh-router tcp://127.0.0.1:7447
+```
+
+### Tasks Complete But No Results
+
+If tasks show "completed" but `corebrum results` shows "not found":
+
+1. **Check Zenoh topics directly** - Results are published to Zenoh:
+   ```bash
+   zenoh subscribe -k comp/tasks/<task-id>/result
+   ```
+
+2. **Check Result Monitor logs** - The monitor should receive results:
+   ```bash
+   corebrum logs <monitor-task-id>
+   ```
+
+3. **Wait a few seconds** - Results may take time to propagate
 
 ## Troubleshooting
 
