@@ -279,40 +279,43 @@ compute_logic:
         print(f"[AGI Agent] First line has leading space: {clean_code.split(chr(10))[0].startswith(' ') if chr(10) in clean_code else False}", file=sys.stderr)
         sys.stderr.flush()
         
-        # Use task_definition wrapper format to match YAML structure
+        # Use compute_logic format for programmatic submission (matches YAML format)
         # These are one-shot tasks (not streaming)
         return {
             "task_definition": {
                 "name": task_name,
+                "version": "1.0",  # Required by Corebrum TaskDefinition schema
                 "description": task_spec.get("description", f"{task_type} task"),
                 "language": "python",
-                "source": {
-                    "Inline": {
-                        "code": clean_code
-                    }
+                "execution_mode": "one_shot",  # Must be "one_shot" not "oneshot"
+                "compute_logic": {
+                    "type": "expression",  # Must be "expression", not "python"
+                    "language": "python",
+                    "timeout_seconds": 300,
+                    "code": clean_code
                 },
-            "inputs": [
-                {
-                    "name": key,
-                    "description": None,
-                    "required": True,
-                    "default_value": value
+                "inputs": [
+                    {
+                        "name": key,
+                        "type": "object" if isinstance(value, dict) else type(value).__name__,
+                        "required": True,
+                        "default_value": value
+                    }
+                    for key, value in task_spec.get("inputs", {}).items()
+                ],
+                "outputs": [
+                    {
+                        "name": "result",
+                        "type": "object",
+                        "description": "Task result"
+                    }
+                ],
+                "requirements": {
+                    "memory_mb": 256,
+                    "cpu_cores": 1,
+                    "timeout_seconds": 300,
+                    "dependencies": ["python"]  # Also specify in requirements for worker matching
                 }
-                for key, value in task_spec.get("inputs", {}).items()
-            ],
-            "outputs": [
-                {
-                    "name": "result",
-                    "description": "Task result",
-                    "data_type": "object"
-                }
-            ],
-            "requirements": {
-                "memory_mb": 256,
-                "cpu_cores": 1,
-                "timeout_seconds": 300,
-                "dependencies": ["python"]  # Also specify in requirements for worker matching
-            }
             }
         }
     
@@ -408,16 +411,31 @@ compute_logic:
                 # Create job
                 job = create_job_from_task_def(task_def, task_spec.get("inputs", {}))
                 
-                # Submit via Zenoh
-                announce_topic = "comp/queues/user_tasks/announce"
-                publisher = session.declare_publisher(announce_topic)
+                # Submit via Zenoh using the same format as corebrum submit command
+                # The scheduler listens to corebrum/tasks/{task_id}/submit, not comp/queues/user_tasks/announce
+                task_id = job.get("task_id")
+                submit_topic = f"corebrum/tasks/{task_id}/submit"
+                
+                # Format the submission to match what the scheduler expects
+                # The scheduler expects: {task_definition, user_inputs, timestamp, identity_id?}
+                # NOT the full Job struct
+                actual_task_def = job.get("task_definition")
+                submission_data = {
+                    "task_id": task_id,
+                    "task_definition": actual_task_def,
+                    "user_inputs": job.get("inputs", {}),
+                    "timestamp": int(datetime.now().timestamp())
+                }
+                
+                publisher = session.declare_publisher(submit_topic)
                 
                 # Debug: Print the generated task definition and code
                 print(f"[AGI Agent] Generated task definition: {json.dumps(task_def, indent=2)}", file=sys.stderr)
-                # Check for code in source.Inline.code (Rust TaskDefinition format)
+                # Check for code in compute_logic.code (Corebrum format)
                 task_def_obj = task_def.get("task_definition", task_def)
-                if task_def_obj.get("source", {}).get("Inline", {}).get("code"):
-                    generated_code = task_def_obj["source"]["Inline"]["code"]
+                compute_logic = task_def_obj.get("compute_logic", {})
+                if compute_logic.get("code"):
+                    generated_code = compute_logic["code"]
                     print(f"[AGI Agent] Generated code preview (first 200 chars): {generated_code[:200]}", file=sys.stderr)
                     print(f"[AGI Agent] Code starts with: {repr(generated_code[:50])}", file=sys.stderr)
                     # Check for any leading whitespace issues
@@ -440,12 +458,13 @@ compute_logic:
                         print(f"[AGI Agent] WARNING: Task definition missing 'dependencies' in requirements!", file=sys.stderr)
                 sys.stderr.flush()
                 
-                job_json = json.dumps(job)
-                print(f"[AGI Agent] Job JSON (first 500 chars): {job_json[:500]}", file=sys.stderr)
+                submission_json = json.dumps(submission_data)
+                print(f"[AGI Agent] Submission JSON (first 500 chars): {submission_json[:500]}", file=sys.stderr)
+                print(f"[AGI Agent] Publishing to topic: {submit_topic}", file=sys.stderr)
                 sys.stderr.flush()
-                publisher.put(job_json.encode('utf-8'))
+                publisher.put(submission_json.encode('utf-8'))
                 
-                task_id = job["task_id"]
+                task_id = submission_data["task_id"]
                 task_ids.append(task_id)
                 submitted_tasks[task_id] = mission_id
                 mission_state["tasks_created"].append({
