@@ -2,6 +2,7 @@ name: "omnagi_qwen_streaming"
 version: "1.0"
 description: "Streaming Qwen LLM service for Omnagi chat UI - handles multiple concurrent LLM requests via Zenoh topics"
 execution_mode: "stream_reactive"
+dependencies: ["python", "omnagi"] 
 stream_config:
   trigger: "on_message"  # Execute when input messages arrive
 inputs:
