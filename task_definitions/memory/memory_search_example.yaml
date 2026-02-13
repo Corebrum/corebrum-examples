@@ -1,0 +1,44 @@
+name: "memory_search_example"
+version: "1.0"
+description: "Demonstrate content-based memory search using BM25"
+inputs: [
+  {"name": "key_id", "type": "string", "required": true},
+  {"name": "query", "type": "string", "required": true}
+]
+outputs: [{"name": "results", "type": "array"}]
+compute_logic:
+  type: "expression"
+  language: "python"
+  timeout_seconds: 30
+  code: |
+    import requests
+    import json
+    import sys
+    
+    key_id = inputs.get('key_id')
+    query = inputs.get('query', '')
+    
+    if not key_id:
+        print(json.dumps({"error": "key_id is required"}), file=sys.stderr)
+        exit(1)
+    
+    # Search memories by content
+    api_url = f"http://localhost:6502/api/memory/{key_id}/search"
+    payload = {
+        "query": query,
+        "limit": 10,
+        "memory_type": None,  # Search both ephemeral and durable
+        "include_ancestor": False,
+        "include_hive": False
+    }
+    
+    try:
+        response = requests.post(api_url, json=payload)
+        response.raise_for_status()
+        results = response.json()
+        print(json.dumps(results, indent=2))
+    except Exception as e:
+        print(json.dumps({"error": str(e)}), file=sys.stderr)
+        exit(1)
+validation: []
+metadata: {}

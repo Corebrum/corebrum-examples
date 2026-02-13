@@ -1,0 +1,45 @@
+name: "memory_with_type_example"
+version: "1.0"
+description: "Demonstrate storing ephemeral and durable memories"
+inputs: [
+  {"name": "key_id", "type": "string", "required": true},
+  {"name": "memory_key", "type": "string", "required": true},
+  {"name": "value", "type": "string", "required": true},
+  {"name": "memory_type", "type": "string", "default": "durable"}
+]
+outputs: [{"name": "success", "type": "boolean"}]
+compute_logic:
+  type: "expression"
+  language: "python"
+  timeout_seconds: 30
+  code: |
+    import requests
+    import json
+    import sys
+    
+    key_id = inputs.get('key_id')
+    memory_key = inputs.get('memory_key')
+    value = inputs.get('value')
+    memory_type = inputs.get('memory_type', 'durable')
+    
+    if not all([key_id, memory_key, value]):
+        print(json.dumps({"error": "key_id, memory_key, and value are required"}), file=sys.stderr)
+        exit(1)
+    
+    # Store memory with type (ephemeral or durable)
+    api_url = f"http://localhost:6502/api/memory/memory/{key_id}/{memory_key}"
+    payload = {
+        "value": json.loads(value) if value.startswith('{') or value.startswith('[') else value,
+        "memory_type": memory_type
+    }
+    
+    try:
+        response = requests.put(api_url, json=payload)
+        response.raise_for_status()
+        result = response.json()
+        print(json.dumps({"success": True, "message": result.get("message", "Memory stored")}))
+    except Exception as e:
+        print(json.dumps({"success": False, "error": str(e)}), file=sys.stderr)
+        exit(1)
+validation: []
+metadata: {}

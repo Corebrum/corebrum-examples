@@ -1,0 +1,68 @@
+name: "memory_limits_example"
+version: "1.0"
+description: "Demonstrate configuring memory limits and checking statistics"
+inputs: [
+  {"name": "key_id", "type": "string", "required": true},
+  {"name": "action", "type": "string", "default": "stats"}
+]
+outputs: [{"name": "result", "type": "object"}]
+compute_logic:
+  type: "expression"
+  language: "python"
+  timeout_seconds: 30
+  code: |
+    import requests
+    import json
+    import sys
+    
+    key_id = inputs.get('key_id')
+    action = inputs.get('action', 'stats')
+    
+    if not key_id:
+        print(json.dumps({"error": "key_id is required"}), file=sys.stderr)
+        exit(1)
+    
+    base_url = f"http://localhost:6502/api/identity/{key_id}"
+    
+    try:
+        if action == "stats":
+            # Get memory statistics
+            response = requests.get(f"{base_url}/memory-stats")
+            response.raise_for_status()
+            stats = response.json()
+            print(json.dumps({"action": "stats", "stats": stats}, indent=2))
+        
+        elif action == "set_limits":
+            # Set memory limits
+            limits = {
+                "max_entries": 20000,
+                "max_size_bytes": 200000000  # 200 MB
+            }
+            response = requests.put(f"{base_url}/memory-limits", json=limits)
+            response.raise_for_status()
+            result = response.json()
+            print(json.dumps({"action": "set_limits", "limits": result.get("limits")}, indent=2))
+        
+        elif action == "get_limits":
+            # Get memory limits
+            response = requests.get(f"{base_url}/memory-limits")
+            response.raise_for_status()
+            limits = response.json()
+            print(json.dumps({"action": "get_limits", "limits": limits}, indent=2))
+        
+        elif action == "compact":
+            # Trigger manual compaction
+            response = requests.post(f"{base_url}/memory-compact")
+            response.raise_for_status()
+            result = response.json()
+            print(json.dumps({"action": "compact", "result": result}, indent=2))
+        
+        else:
+            print(json.dumps({"error": f"Unknown action: {action}"}), file=sys.stderr)
+            exit(1)
+    
+    except Exception as e:
+        print(json.dumps({"error": str(e)}), file=sys.stderr)
+        exit(1)
+validation: []
+metadata: {}

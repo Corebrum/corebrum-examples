@@ -1,6 +1,6 @@
 # Memory Examples
 
-Examples demonstrating Corebrum's in-memory storage capabilities for fast, ephemeral data access.
+Examples demonstrating Corebrum's memory system capabilities, including persistent identity memory, content-based search, ephemeral vs durable memory, and hive memory collaboration.
 
 ## Prerequisites
 
@@ -115,5 +115,51 @@ if data:
 - `session.get()` returns an iterator - iterate over replies and use `reply.ok()` to get the sample
 - For ephemeral memory without a storage backend, `session.get()` may not work immediately after `session.put()` - the data is published and available to subscribers, but querying requires a storage backend or queryable
 
-For complete documentation, see the [Memory Backends Guide](https://github.com/corebrum/corebrum/blob/main/docs/memory-backends.md) in the Corebrum repository.
+## New Features (Memory Architecture v2)
+
+### Content-Based Search
+
+Search memories by content using BM25 text search:
+
+```bash
+corebrum submit-and-wait --file task_definitions/memory/memory_search_example.yaml \
+  --input '{"key_id": "your-key-id", "query": "door closed"}'
+```
+
+### Ephemeral vs Durable Memory
+
+Store memories with explicit types:
+
+```bash
+# Store durable memory (long-term)
+corebrum submit-and-wait --file task_definitions/memory/memory_with_type_example.yaml \
+  --input '{"key_id": "your-key-id", "memory_key": "preference", "value": "Python", "memory_type": "durable"}'
+
+# Store ephemeral memory (temporary, auto-expires)
+corebrum submit-and-wait --file task_definitions/memory/memory_with_type_example.yaml \
+  --input '{"key_id": "your-key-id", "memory_key": "observation", "value": "Door closed", "memory_type": "ephemeral"}'
+```
+
+### Memory Limits and Statistics
+
+Configure limits and check statistics:
+
+```bash
+# Check memory statistics
+corebrum submit-and-wait --file task_definitions/memory/memory_limits_example.yaml \
+  --input '{"key_id": "your-key-id", "action": "stats"}'
+
+# Set memory limits
+corebrum submit-and-wait --file task_definitions/memory/memory_limits_example.yaml \
+  --input '{"key_id": "your-key-id", "action": "set_limits"}'
+
+# Trigger compaction
+corebrum submit-and-wait --file task_definitions/memory/memory_limits_example.yaml \
+  --input '{"key_id": "your-key-id", "action": "compact"}'
+```
+
+## Documentation
+
+- [Memory Architecture Guide](https://github.com/corebrum/corebrum/blob/main/docs/memory-architecture.md) - Complete guide to memory features
+- [Memory Backends Guide](https://github.com/corebrum/corebrum/blob/main/docs/memory-backends.md) - Zenoh memory backend configuration
 
