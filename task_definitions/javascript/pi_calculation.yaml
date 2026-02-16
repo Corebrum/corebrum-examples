@@ -1,0 +1,48 @@
+task_definition:
+  name: "pi_calculation_js"
+  version: "1.0"
+  description: "Calculate pi to N decimal places using Node.js (Math.PI)"
+
+  inputs:
+    - name: "decimal_places"
+      type: "integer"
+      required: false
+      default: 5
+      description: "Number of decimal places to calculate pi (default: 5)"
+
+  outputs:
+    - name: "pi_value"
+      type: "number"
+      description: "Pi calculated to specified decimal places"
+    - name: "decimal_places"
+      type: "integer"
+      description: "Number of decimal places used"
+    - name: "method"
+      type: "string"
+      description: "Method used for calculation"
+
+  compute_logic:
+    type: "expression"
+    language: "javascript"
+    timeout_seconds: 30
+
+    code: |
+      const decimal_places = parseInt(inputs.decimal_places || inputs['decimal_places'] || 5, 10);
+      const pi_value = parseFloat(Math.PI.toFixed(decimal_places));
+      result = {
+        pi_value,
+        decimal_places,
+        method: `Math.PI rounded to ${decimal_places} decimals`,
+        full_representation: String(pi_value)
+      };
+
+  validation:
+    - field: "decimal_places"
+      min: 1
+      max: 15
+      message: "Decimal places must be between 1 and 15"
+
+  metadata:
+    estimated_duration_ms: 50
+    memory_requirement_mb: 10
+    cpu_intensive: false

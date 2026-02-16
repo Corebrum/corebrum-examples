@@ -1,0 +1,23 @@
+task_definition:
+  name: "javascript_factorial_stdin_stdout"
+  version: "1.0"
+  description: "Calculate factorial using embedded inputs (Node.js); publish via Zenoh"
+  inputs:
+    - name: "n"
+      type: "number"
+  outputs:
+    - name: "result"
+      type: "zenoh"
+      key: "corebrum/examples/factorial/result"
+  compute_logic:
+    type: "expression"
+    language: "javascript"
+    timeout_seconds: 30
+    code: |
+      const n = parseInt(inputs.n || inputs['n'] || 10, 10);
+      function factorial(x) {
+        return x <= 1 ? 1 : x * factorial(x - 1);
+      }
+      result = { n, factorial: factorial(n) };
+  validation: []
+  metadata: {}

@@ -1,0 +1,44 @@
+task_definition:
+  name: "javascript_factorial_with_deps"
+  version: "1.0"
+  description: "JavaScript factorial using embedded inputs; publishes to Zenoh"
+  inputs:
+    - name: "number"
+      type: "number"
+  outputs:
+    - name: "result"
+      type: "zenoh"
+      key: "corebrum/examples/javascript_deps/result"
+  validation: []
+  metadata: {}
+  dependencies: ["javascript"]
+
+  compute_logic:
+    type: "expression"
+    language: "javascript"
+    timeout_seconds: 10
+
+    code: |
+      const number = parseInt(inputs.number || inputs['number'] || 10, 10);
+      function factorial(n) {
+        return n <= 1 ? 1 : n * factorial(n - 1);
+      }
+      const start = Date.now();
+      const value = factorial(number);
+      const end = Date.now();
+      result = {
+        factorial: value,
+        input_number: number,
+        computation_time_ms: end - start,
+        method: 'javascript',
+        dependencies_required: ['javascript']
+      };
+
+  input_schema:
+    type: "object"
+    properties:
+      number:
+        type: "integer"
+        minimum: 0
+        maximum: 20
+    required: ["number"]
