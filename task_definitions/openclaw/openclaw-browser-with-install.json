@@ -1,0 +1,19 @@
+{
+  "task_definition": {
+    "name": "openclaw-browser-with-install",
+    "version": "1.0.0",
+    "description": "Browser automation with automatic Playwright browser installation",
+    "dependencies": ["playwright"],
+    "compute_logic": {
+      "type": "script",
+      "language": "python",
+      "code": "import json\nimport subprocess\nimport sys\nimport os\n\n# Install Playwright browser binaries if needed\n# (Playwright Python package is auto-installed by Corebrum)\ntry:\n    from playwright.async_api import async_playwright\n    # Check if browsers are installed by trying to list them\n    result = subprocess.run(\n        [sys.executable, '-m', 'playwright', 'install', '--dry-run', 'chromium'],\n        capture_output=True,\n        text=True\n    )\n    # If dry-run suggests installation needed, install it\n    if 'chromium' in result.stdout.lower() or result.returncode != 0:\n        print('Installing Chromium browser...', file=sys.stderr)\n        subprocess.check_call([sys.executable, '-m', 'playwright', 'install', 'chromium'])\nexcept ImportError:\n    # Playwright not installed - Corebrum should auto-install it\n    print('Playwright not found - will be auto-installed by Corebrum', file=sys.stderr)\n    import subprocess\n    subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'playwright'])\n    subprocess.check_call([sys.executable, '-m', 'playwright', 'install', 'chromium'])\n\nimport asyncio\nfrom playwright.async_api import async_playwright\n\nasync def main():\n    async with async_playwright() as p:\n        browser = await p.chromium.launch(headless=True)\n        page = await browser.new_page()\n        \n        await page.goto('https://corebrum.com', wait_until='networkidle')\n        \n        result = {\n            'message': 'Browser automation with auto-install successful',\n            'title': await page.title(),\n            'url': page.url,\n            'browser_installed': True\n        }\n        \n        await browser.close()\n        return result\n\nresult = asyncio.run(main())\nprint(json.dumps(result))",
+      "timeout_seconds": 180
+    }
+  },
+  "identity_id": "afae6eea-4d8c-4ef0-823c-58328addbe27",
+  "openclaw_metadata": {
+    "workspace_path": "~/.openclaw/workspace",
+    "callback_url": "ws://127.0.0.1:18789/callback"
+  }
+}

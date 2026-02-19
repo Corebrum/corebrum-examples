@@ -1,0 +1,19 @@
+{
+  "task_definition": {
+    "name": "openclaw-browser-example",
+    "version": "1.0.0",
+    "description": "Browser automation example using Playwright via OpenClaw bridge",
+    "dependencies": ["playwright"],
+    "compute_logic": {
+      "type": "script",
+      "language": "python",
+      "code": "import json\nimport asyncio\nimport subprocess\nimport sys\n\ntry:\n    from playwright.async_api import async_playwright\nexcept ImportError:\n    # Playwright package should be auto-installed by Corebrum, but if not:\n    subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'playwright'])\n    from playwright.async_api import async_playwright\n\nasync def main():\n    # Install browser binaries if needed (check by trying to launch)\n    try:\n        async with async_playwright() as p:\n            browser = await p.chromium.launch(headless=True)\n            await browser.close()\n    except Exception as e:\n        # Browser binaries not installed, install them\n        print(f'Installing Chromium browser binaries... (error: {e})', file=sys.stderr)\n        subprocess.check_call([sys.executable, '-m', 'playwright', 'install', 'chromium'])\n        # Retry after installation\n        async with async_playwright() as p:\n            browser = await p.chromium.launch(headless=True)\n            await browser.close()\n    \n    # Now run the actual browser automation\n    async with async_playwright() as p:\n        # Launch browser (headless by default)\n        browser = await p.chromium.launch(headless=True)\n        page = await browser.new_page()\n        \n        # Navigate to a website\n        await page.goto('https://corebrum.com')\n        \n        # Extract page information\n        title = await page.title()\n        url = page.url\n        \n        # Get page content\n        heading = await page.query_selector('h1')\n        heading_text = await heading.inner_text() if heading else None\n        \n        # Take a screenshot (optional, for debugging)\n        # screenshot = await page.screenshot(path='screenshot.png')\n        \n        await browser.close()\n        \n        return {\n            'message': 'Browser automation successful',\n            'title': title,\n            'url': url,\n            'heading': heading_text,\n            'browser': 'chromium',\n            'headless': True\n        }\n\n# Run the async function\nresult = asyncio.run(main())\nprint(json.dumps(result))",
+      "timeout_seconds": 60
+    }
+  },
+  "identity_id": "afae6eea-4d8c-4ef0-823c-58328addbe27",
+  "openclaw_metadata": {
+    "workspace_path": "~/.openclaw/workspace",
+    "callback_url": "ws://127.0.0.1:18789/callback"
+  }
+}

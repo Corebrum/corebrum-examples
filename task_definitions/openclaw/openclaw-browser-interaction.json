@@ -1,0 +1,19 @@
+{
+  "task_definition": {
+    "name": "openclaw-browser-interaction",
+    "version": "1.0.0",
+    "description": "Browser interaction example - filling forms, clicking buttons, navigating",
+    "dependencies": ["playwright"],
+    "compute_logic": {
+      "type": "script",
+      "language": "python",
+      "code": "import json\nimport asyncio\nfrom playwright.async_api import async_playwright\n\nasync def interact_with_page():\n    async with async_playwright() as p:\n        browser = await p.chromium.launch(headless=True)\n        context = await browser.new_context(\n            viewport={'width': 1920, 'height': 1080},\n            user_agent='Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'\n        )\n        page = await context.new_page()\n        \n        # Navigate to a page with forms\n        await page.goto('https://corebrum.com', wait_until='networkidle')\n        \n        actions = []\n        \n        # Example: Click a link if it exists\n        try:\n            link = await page.query_selector('a')\n            if link:\n                link_text = await link.inner_text()\n                await link.click()\n                await page.wait_for_load_state('networkidle')\n                actions.append({\n                    'action': 'clicked_link',\n                    'link_text': link_text,\n                    'new_url': page.url\n                })\n        except Exception as e:\n            actions.append({'action': 'click_link_error', 'error': str(e)})\n        \n        # Example: Fill a form field if it exists\n        try:\n            input_field = await page.query_selector('input[type=\"text\"]')\n            if input_field:\n                await input_field.fill('test input')\n                actions.append({\n                    'action': 'filled_input',\n                    'value': 'test input'\n                })\n        except Exception as e:\n            actions.append({'action': 'fill_input_error', 'error': str(e)})\n        \n        # Get final page state\n        final_state = {\n            'url': page.url,\n            'title': await page.title(),\n            'actions_performed': actions\n        }\n        \n        await browser.close()\n        \n        return {\n            'message': 'Browser interaction completed',\n            'final_state': final_state,\n            'success': True\n        }\n\nresult = asyncio.run(interact_with_page())\nprint(json.dumps(result, indent=2))",
+      "timeout_seconds": 120
+    }
+  },
+  "identity_id": "afae6eea-4d8c-4ef0-823c-58328addbe27",
+  "openclaw_metadata": {
+    "workspace_path": "~/.openclaw/workspace",
+    "callback_url": "ws://127.0.0.1:18789/callback"
+  }
+}

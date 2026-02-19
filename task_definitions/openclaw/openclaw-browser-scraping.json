@@ -1,0 +1,19 @@
+{
+  "task_definition": {
+    "name": "openclaw-browser-scraping",
+    "version": "1.0.0",
+    "description": "Web scraping example using Playwright to extract data from a webpage",
+    "dependencies": ["playwright"],
+    "compute_logic": {
+      "type": "script",
+      "language": "python",
+      "code": "import json\nimport asyncio\nfrom playwright.async_api import async_playwright\n\nasync def scrape_website():\n    async with async_playwright() as p:\n        browser = await p.chromium.launch(headless=True)\n        page = await browser.new_page()\n        \n        # Navigate to a news or content site\n        await page.goto('https://corebrum.com', wait_until='networkidle')\n        \n        # Extract structured data\n        data = {\n            'title': await page.title(),\n            'url': page.url,\n            'headings': [],\n            'links': [],\n            'paragraphs': []\n        }\n        \n        # Extract all headings\n        headings = await page.query_selector_all('h1, h2, h3')\n        for heading in headings[:10]:  # Limit to first 10\n            text = await heading.inner_text()\n            tag = await heading.evaluate('el => el.tagName')\n            data['headings'].append({'tag': tag, 'text': text.strip()})\n        \n        # Extract links\n        links = await page.query_selector_all('a[href]')\n        for link in links[:20]:  # Limit to first 20\n            href = await link.get_attribute('href')\n            text = await link.inner_text()\n            if href and text:\n                data['links'].append({'url': href, 'text': text.strip()[:50]})\n        \n        # Extract paragraphs\n        paragraphs = await page.query_selector_all('p')\n        for para in paragraphs[:5]:  # Limit to first 5\n            text = await para.inner_text()\n            if text.strip():\n                data['paragraphs'].append(text.strip()[:200])\n        \n        await browser.close()\n        \n        return data\n\nresult = asyncio.run(scrape_website())\nprint(json.dumps(result, indent=2))",
+      "timeout_seconds": 90
+    }
+  },
+  "identity_id": "afae6eea-4d8c-4ef0-823c-58328addbe27",
+  "openclaw_metadata": {
+    "workspace_path": "~/.openclaw/workspace",
+    "callback_url": "ws://127.0.0.1:18789/callback"
+  }
+}

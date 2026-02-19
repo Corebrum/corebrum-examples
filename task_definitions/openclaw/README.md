@@ -124,6 +124,70 @@ A task that leverages shared hive memory across OpenClaw instances.
 corebrum submit --file task_definitions/openclaw/openclaw-hive-task.json
 ```
 
+### 4. Browser Automation (`openclaw-browser-example.json`)
+
+Basic browser automation using Playwright.
+
+**Features:**
+- Launches headless Chromium browser
+- Navigates to websites
+- Extracts page information (title, headings, content)
+- Demonstrates browser capability via OpenClaw bridge
+
+**Usage:**
+```bash
+corebrum submit --file task_definitions/openclaw/openclaw-browser-example.json
+```
+
+**Dependencies:** Playwright will be automatically installed by Corebrum workers
+
+### 5. Web Scraping (`openclaw-browser-scraping.json`)
+
+Advanced web scraping example extracting structured data from web pages.
+
+**Features:**
+- Extracts headings, links, and paragraphs
+- Structured data extraction
+- Network idle waiting for dynamic content
+- Demonstrates data collection patterns
+
+**Usage:**
+```bash
+corebrum submit --file task_definitions/openclaw/openclaw-browser-scraping.json
+```
+
+### 6. Browser Interaction (`openclaw-browser-interaction.json`)
+
+Browser interaction example - clicking, form filling, navigation.
+
+**Features:**
+- Form filling and button clicking
+- Page navigation
+- Custom viewport and user agent
+- Action logging and state tracking
+
+**Usage:**
+```bash
+corebrum submit --file task_definitions/openclaw/openclaw-browser-interaction.json
+```
+
+### 7. Browser with Auto-Install (`openclaw-browser-with-install.json`)
+
+Browser automation that automatically installs Playwright browser binaries if needed.
+
+**Features:**
+- Automatic Playwright browser installation
+- Handles missing dependencies gracefully
+- Useful for workers that don't have browsers pre-installed
+- Longer timeout to account for installation time
+
+**Usage:**
+```bash
+corebrum submit --file task_definitions/openclaw/openclaw-browser-with-install.json
+```
+
+**Note**: This example includes installation logic, but OpenClaw bridge workers should already have browsers installed.
+
 ## Task Definition Structure
 
 ### Basic OpenClaw Task
@@ -153,6 +217,79 @@ corebrum submit --file task_definitions/openclaw/openclaw-hive-task.json
 
 - **`workspace_path`** (optional): Path to OpenClaw workspace directory
 - **`callback_url`** (optional): WebSocket URL for OpenClaw Gateway callbacks
+
+## Browser Automation
+
+OpenClaw bridge supports browser automation via the `browser` capability. Tasks can use Playwright to:
+
+- **Navigate websites**: Load and interact with web pages
+- **Extract data**: Scrape content, headings, links, etc.
+- **Fill forms**: Automate form submissions
+- **Click elements**: Interact with buttons and links
+- **Take screenshots**: Capture page visuals
+- **Handle dynamic content**: Wait for JavaScript to load
+
+### Browser Task Requirements
+
+1. **Playwright dependency**: Tasks using browser automation should include Playwright in their code
+2. **Browser capability**: Ensure the task is routed to a worker with `browser` capability (OpenClaw bridge has this)
+3. **Timeout**: Browser tasks may need longer timeouts (60-120 seconds)
+
+### Example Browser Task Structure
+
+```json
+{
+  "task_definition": {
+    "name": "browser-task",
+    "compute_logic": {
+      "type": "script",
+      "language": "python",
+      "code": "import asyncio\nfrom playwright.async_api import async_playwright\n\nasync def main():\n    async with async_playwright() as p:\n        browser = await p.chromium.launch(headless=True)\n        page = await browser.new_page()\n        await page.goto('https://example.com')\n        title = await page.title()\n        await browser.close()\n        return {'title': title}\n\nresult = asyncio.run(main())\nprint(json.dumps(result))",
+      "timeout_seconds": 60
+    }
+  },
+  "openclaw_metadata": {
+    "workspace_path": "~/.openclaw/workspace"
+  }
+}
+```
+
+### Browser Automation Best Practices
+
+1. **Use headless mode**: Set `headless=True` for server environments
+2. **Wait for content**: Use `wait_until='networkidle'` for dynamic pages
+3. **Handle errors**: Wrap browser operations in try/except blocks
+4. **Clean up**: Always close browsers to free resources
+5. **Set timeouts**: Configure appropriate timeouts for slow-loading pages
+
+### Playwright Installation
+
+**Important**: Playwright requires both the Python package AND browser binaries:
+
+1. **Python Package**: Corebrum will **automatically install** the `playwright` Python package if you include it in the `dependencies` field:
+   ```json
+   {
+     "task_definition": {
+       "dependencies": ["playwright"],
+       ...
+     }
+   }
+   ```
+
+2. **Browser Binaries**: Browser binaries need to be installed separately. The examples handle this automatically:
+   - **Simple examples** (`openclaw-browser-example.json`): Try to use browser, install if missing
+   - **With-install example** (`openclaw-browser-with-install.json`): Explicitly checks and installs browsers
+
+**For OpenClaw Bridge Workers**: Browser binaries should already be available since OpenClaw uses browser automation. The bridge has `browser` capability.
+
+**For Regular Workers**: Browser binaries will be auto-installed by the task code if missing (adds ~30-60 seconds to first run).
+
+**Manual Installation** (optional, for faster first run):
+```bash
+# On worker machines
+pip install playwright
+playwright install chromium
+```
 
 ## Key Features
 
