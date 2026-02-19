@@ -1,0 +1,18 @@
+{
+  "task_definition": {
+    "name": "openclaw-test",
+    "version": "1.0.0",
+    "description": "Test task for OpenClaw bridge verification",
+    "compute_logic": {
+      "type": "script",
+      "language": "python",
+      "code": "import json\nimport os\nresult = {\n    'message': 'OpenClaw bridge test successful',\n    'workspace_exists': os.path.exists(os.path.expanduser('~/.openclaw/workspace')),\n    'python_version': __import__('sys').version\n}\nprint(json.dumps(result))",
+      "timeout_seconds": 30
+    }
+  },
+  "identity_id": "afae6eea-4d8c-4ef0-823c-58328addbe27",
+  "openclaw_metadata": {
+    "workspace_path": "~/.openclaw/workspace",
+    "callback_url": "ws://127.0.0.1:18789/callback"
+  }
+}

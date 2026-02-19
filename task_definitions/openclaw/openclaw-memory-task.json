@@ -1,0 +1,17 @@
+{
+  "task_definition": {
+    "name": "openclaw-memory-task",
+    "version": "1.0.0",
+    "description": "Task that uses OpenClaw workspace memory context",
+    "compute_logic": {
+      "type": "script",
+      "language": "python",
+      "code": "import json\nimport os\nfrom pathlib import Path\n\nworkspace_path = Path.home() / '.openclaw' / 'workspace'\nmemory_path = workspace_path / 'memory'\n\nresult = {\n    'message': 'OpenClaw memory context task',\n    'workspace_exists': workspace_path.exists(),\n    'memory_dir_exists': memory_path.exists() if workspace_path.exists() else False,\n    'memory_files': []\n}\n\nif memory_path.exists():\n    memory_files = list(memory_path.glob('*.json'))\n    result['memory_files'] = [f.name for f in memory_files[:5]]\n    result['memory_file_count'] = len(memory_files)\n\nprint(json.dumps(result))",
+      "timeout_seconds": 30
+    }
+  },
+  "identity_id": "afae6eea-4d8c-4ef0-823c-58328addbe27",
+  "openclaw_metadata": {
+    "workspace_path": "~/.openclaw/workspace"
+  }
+}

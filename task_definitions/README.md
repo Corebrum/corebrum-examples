@@ -98,6 +98,18 @@ This directory contains example task definitions organized by type and use case.
 - Group-based memory access
 - Multi-robot learning and coordination
 
+### 📁 [openclaw/](openclaw/)
+**OpenClaw Integration Examples**
+- Personal AI assistant platform integration
+- Workspace memory synchronization
+- Identity and hive management for OpenClaw instances
+- Bridge-based worker coordination
+
+**Examples:**
+- `openclaw-test.json` - Basic OpenClaw bridge test
+- `openclaw-memory-task.json` - Memory context task
+- `openclaw-hive-task.json` - Hive memory sharing task
+
 **Examples:**
 - `hive_shared_knowledge.yaml` - Basic knowledge sharing in a hive
 - `hive_collaborative_learning.yaml` - Collaborative learning with shared insights
