@@ -143,7 +143,7 @@ brew install corebrum
 ```
 
 **Windows Installation Steps:**
-1. Download the zip file from: https://corebrum-releases.s3.amazonaws.com/releases/v0.2.112/corebrum-x86_64-pc-windows-msvc.zip
+1. Download the corebrum-x86_64-pc-windows-msvc.zip file from: https://github.com/Corebrum/corebrum/releases 
 2. Extract the zip file to a directory (e.g., `C:\Program Files\Corebrum`)
 3. Add the directory containing `corebrum.exe` to your PATH:
    - Open System Properties → Environment Variables
