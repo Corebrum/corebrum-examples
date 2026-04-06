@@ -26,6 +26,8 @@ Welcome to the Corebrum Getting Started Developer Guide! This comprehensive guid
 20. [Quick Reference](#20-quick-reference)
 21. [Next Steps & Resources](#21-next-steps--resources)
 
+**Agent integration test scripts:** [scripts/agents/README.md](./scripts/agents/README.md) — shell checks for OpenClaw, Claude (HTTP + optional MCP), and Gemini; overview also in [§14 MCP](#14-mcp-model-context-protocol-integration).
+
 ---
 
 ## 1. Introduction & Architecture Overview
@@ -1757,6 +1759,14 @@ For more examples, see: [`task_definitions/ros2/`](task_definitions/ros2/), [`ta
 ## 14. MCP (Model Context Protocol) Integration
 
 MCP is a standardized protocol for AI systems (LLMs) to interact with external tools and data sources.
+
+### Official Corebrum MCP server
+
+The main Corebrum repo ships **`contrib/corebrum-mcp`**: a stdio MCP server that calls the REST API (`/api/submit`, `/api/jobs`, `/api/v1/integration/register-worker`, …). Use it with Claude Code / Desktop / Dispatch. See that package’s `README.md` for `COREBRUM_URL` and Claude config snippets.
+
+**Smoke script:** [`scripts/integration/smoke_hub_api.sh`](./scripts/integration/smoke_hub_api.sh) — quick `curl` checks against a running `corebrum web` instance.
+
+**Per-agent scripts:** [`scripts/agents/`](./scripts/agents/) — `test_openclaw.sh`, `test_claude.sh`, `test_gemini.sh`, optional `test_claude_mcp.mjs`, and `run_all_agent_tests.sh` (see [`scripts/agents/README.md`](./scripts/agents/README.md)).
 
 ### What is MCP?
 

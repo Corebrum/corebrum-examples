@@ -110,6 +110,8 @@ This directory contains example task definitions organized by type and use case.
 - `openclaw-memory-task.json` - Memory context task
 - `openclaw-hive-task.json` - Hive memory sharing task
 
+**Automated hub API tests:** [`scripts/agents/test_openclaw.sh`](../scripts/agents/test_openclaw.sh) (and related scripts) — see [`scripts/agents/README.md`](../scripts/agents/README.md).
+
 **Examples:**
 - `hive_shared_knowledge.yaml` - Basic knowledge sharing in a hive
 - `hive_collaborative_learning.yaml` - Collaborative learning with shared insights

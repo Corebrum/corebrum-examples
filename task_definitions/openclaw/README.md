@@ -18,8 +18,12 @@ OpenClaw integration allows you to:
 2. **OpenClaw Gateway running**: Start the OpenClaw Gateway (typically on `ws://127.0.0.1:18789`)
 3. **Corebrum bridge running**: Start the OpenClaw bridge in CMOS:
    ```bash
-   open-claw bridge-start --identity-id <your-identity-id>
+   integration bridge-start --identity-id <your-identity-id>
    ```
+
+## Automated API tests
+
+From the **corebrum-examples** repo root, [`scripts/agents/test_openclaw.sh`](../../scripts/agents/test_openclaw.sh) exercises the integration hub (`register-worker`, `sync-memory`, `workspace/{id}`). Claude- and Gemini-oriented HTTP checks live in the same folder; see [`scripts/agents/README.md`](../../scripts/agents/README.md).
 
 ## Setup
 
@@ -27,17 +31,17 @@ OpenClaw integration allows you to:
 
 **In CMOS:**
 ```bash
-open-claw register --gateway-url ws://127.0.0.1:18789 --workspace-path ~/.openclaw/workspace --user-id topher
+integration register --gateway-url ws://127.0.0.1:18789 --workspace-path ~/.openclaw/workspace --user-id topher
 ```
 
 **Via CLI:**
 ```bash
-corebrum open-claw register --gateway-url ws://127.0.0.1:18789 --workspace-path ~/.openclaw/workspace
+corebrum integration register --gateway-url ws://127.0.0.1:18789 --workspace-path ~/.openclaw/workspace
 ```
 
 **Via API:**
 ```bash
-curl -X POST http://localhost:6502/api/openclaw/register-worker \
+curl -X POST http://localhost:6502/api/v1/integration/register-worker \
   -H "Content-Type: application/json" \
   -d '{
     "gateway_url": "ws://127.0.0.1:18789",
@@ -50,24 +54,24 @@ curl -X POST http://localhost:6502/api/openclaw/register-worker \
 
 **In CMOS:**
 ```bash
-open-claw bridge-start --identity-id <identity-id>
+integration bridge-start --identity-id <identity-id>
 ```
 
 **Via CLI:**
 ```bash
-corebrum open-claw bridge --identity-id <identity-id>
+corebrum integration bridge --identity-id <identity-id>
 ```
 
 ### 3. Sync Memory
 
 **In CMOS:**
 ```bash
-open-claw sync-memory --identity-id <identity-id> --workspace-path ~/.openclaw/workspace
+integration sync-memory --identity-id <identity-id> --workspace-path ~/.openclaw/workspace
 ```
 
 **Via CLI:**
 ```bash
-corebrum open-claw sync-memory --identity-id <identity-id> --workspace-path ~/.openclaw/workspace
+corebrum integration sync-memory --identity-id <identity-id> --workspace-path ~/.openclaw/workspace
 ```
 
 ## Examples
@@ -206,15 +210,17 @@ corebrum submit --file task_definitions/openclaw/openclaw-browser-with-install.j
     }
   },
   "identity_id": "your-identity-id",
-  "openclaw_metadata": {
+  "integration_metadata": {
+    "provider": "openclaw",
     "workspace_path": "~/.openclaw/workspace",
     "callback_url": "ws://127.0.0.1:18789/callback"
   }
 }
 ```
 
-### OpenClaw Metadata Fields
+### Integration metadata fields (OpenClaw)
 
+- **`provider`** (required for typed clients): `openclaw` | `claude` | `gemini` | `custom`
 - **`workspace_path`** (optional): Path to OpenClaw workspace directory
 - **`callback_url`** (optional): WebSocket URL for OpenClaw Gateway callbacks
 
@@ -248,7 +254,8 @@ OpenClaw bridge supports browser automation via the `browser` capability. Tasks 
       "timeout_seconds": 60
     }
   },
-  "openclaw_metadata": {
+  "integration_metadata": {
+    "provider": "openclaw",
     "workspace_path": "~/.openclaw/workspace"
   }
 }
@@ -321,89 +328,89 @@ playwright install chromium
 
 ### Register Worker
 ```bash
-POST /api/openclaw/register-worker
+POST /api/v1/integration/register-worker
 ```
 
 ### Sync Memory
 ```bash
-POST /api/openclaw/sync-memory
+POST /api/v1/integration/sync-memory
 ```
 
 ### Get Workspace Info
 ```bash
-GET /api/openclaw/workspace/{identity_id}
+GET /api/v1/integration/workspace/{identity_id}
 ```
 
 ### Join Hive
 ```bash
-POST /api/openclaw/join-hive
+POST /api/v1/integration/join-hive
 ```
 
 ### Leave Hive
 ```bash
-POST /api/openclaw/leave-hive
+POST /api/v1/integration/leave-hive
 ```
 
 ## CMOS Commands
 
 ### Register
 ```bash
-open-claw register [--gateway-url URL] [--workspace-path PATH] [--user-id ID]
+integration register [--gateway-url URL] [--workspace-path PATH] [--user-id ID]
 ```
 
 ### Sync Memory
 ```bash
-open-claw sync-memory --identity-id ID --workspace-path PATH
+integration sync-memory --identity-id ID --workspace-path PATH
 ```
 
 ### Start Bridge
 ```bash
-open-claw bridge-start --identity-id ID [--gateway-url URL]
+integration bridge-start --identity-id ID [--gateway-url URL]
 ```
 
 ### Stop Bridge
 ```bash
-open-claw bridge-stop
+integration bridge-stop
 ```
 
 ### Status
 ```bash
-open-claw status
+integration status
 ```
 
 ## CLI Commands
 
 ### Register
 ```bash
-corebrum open-claw register [--gateway-url URL] [--workspace-path PATH] [--user-id ID]
+corebrum integration register [--gateway-url URL] [--workspace-path PATH] [--user-id ID]
 ```
 
 ### Sync Memory
 ```bash
-corebrum open-claw sync-memory --identity-id ID --workspace-path PATH
+corebrum integration sync-memory --identity-id ID --workspace-path PATH
 ```
 
 ### Bridge
 ```bash
-corebrum open-claw bridge --identity-id ID [--gateway-url URL]
+corebrum integration bridge --identity-id ID [--gateway-url URL]
 ```
 
 ### Status
 ```bash
-corebrum open-claw status
+corebrum integration status
 ```
 
 ## Troubleshooting
 
 ### Bridge Not Appearing
 
-- Check bridge is running: `ps aux | grep "open-claw bridge"`
+- Check bridge is running: `ps aux | grep "corebrum integration bridge"`
 - Verify Zenoh router is accessible
 - Check bridge logs for errors
 
 ### Tasks Not Routing to Bridge
 
-- Verify bridge has `openclaw` capability: `open-claw status`
+- Verify bridge has `openclaw` capability: `integration status`
 - Check task requires `python` capability (bridge supports `python`)
 - Ensure identity_id matches registered identity
 
@@ -415,7 +422,7 @@ corebrum open-claw status
 
 ## Related Documentation
 
-- **Corebrum OpenClaw Integration**: See `../../docs/openclaw-integration.md`
+- **Agent integration hub**: See Corebrum `docs/agent-integration.md` and `docs/openclaw-integration.md`
 - **Bridge Testing**: See `../../docs/openclaw-bridge-testing.md`
 - **CMOS Commands**: See `../../docs/openclaw-cmos-commands.md`
 - **Setup Guide**: See `../../docs/openclaw-setup-testing.md`

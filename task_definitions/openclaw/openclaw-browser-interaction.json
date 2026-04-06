@@ -3,7 +3,9 @@
     "name": "openclaw-browser-interaction",
     "version": "1.0.0",
     "description": "Browser interaction example - filling forms, clicking buttons, navigating",
-    "dependencies": ["playwright"],
+    "dependencies": [
+      "playwright"
+    ],
     "compute_logic": {
       "type": "script",
       "language": "python",
@@ -12,7 +14,8 @@
     }
   },
   "identity_id": "afae6eea-4d8c-4ef0-823c-58328addbe27",
-  "openclaw_metadata": {
+  "integration_metadata": {
+    "provider": "openclaw",
     "workspace_path": "~/.openclaw/workspace",
     "callback_url": "ws://127.0.0.1:18789/callback"
   }
