@@ -31,7 +31,7 @@ Demonstrates a task running with identity context, accessing and storing memory.
 IDENTITY_ID=$(corebrum identity create --name "Test Robot" | grep -o '[a-f0-9-]\{36\}')
 
 # Submit task with identity context
-corebrum submit-and-wait --file task_definitions/identity/task_with_identity.yaml \
+corebrum submit-and-wait --file cortex/task_definitions/identity/task_with_identity.yaml \
   --input '{"number": 8}' \
   --identity $IDENTITY_ID
 ```
@@ -51,7 +51,7 @@ Demonstrates a stream task running with identity context, continuously accessing
 IDENTITY_ID=$(corebrum identity create --name "Stream Robot" | grep -o '[a-f0-9-]\{36\}')
 
 # Submit stream task with identity context
-corebrum submit --file task_definitions/identity/stream_with_identity.yaml \
+corebrum submit --file cortex/task_definitions/identity/stream_with_identity.yaml \
   --identity $IDENTITY_ID
 
 # Monitor the stream
@@ -77,11 +77,11 @@ IDENTITY_ID=$(corebrum identity create --name "Persistent Robot" | grep -o '[a-f
 corebrum identity set $IDENTITY_ID
 
 # First execution - stores result
-corebrum submit-and-wait --file task_definitions/identity/memory_persistence.yaml \
+corebrum submit-and-wait --file cortex/task_definitions/identity/memory_persistence.yaml \
   --input '{"value": 42}'
 
 # Second execution - retrieves previous result
-corebrum submit-and-wait --file task_definitions/identity/memory_persistence.yaml \
+corebrum submit-and-wait --file cortex/task_definitions/identity/memory_persistence.yaml \
   --input '{"value": 100}'
 ```
 
@@ -204,6 +204,12 @@ If a feature is not enabled, operations will fail with a clear error message.
 3. **Handle Missing Memory**: Always check if memory exists before using it
 4. **Enable Auto-Store Results**: Set `auto_store_result: true` in task metadata to automatically save results
 5. **Use Hive Memory for Collaboration**: Share knowledge across robots using hive memory
+
+## Troubleshooting
+
+### `SyntaxError: unterminated string literal` near `identity_id`
+
+That line is emitted by the **Corebrum worker’s generated Python bootstrap**, not by your task YAML. If you still see `identity_id = "`… with a broken string, rebuild Corebrum from a tree that includes the safe embedding fix, then **restart the daemon and workers** so they load the new binary.
 
 ## See Also
 

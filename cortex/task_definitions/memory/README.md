@@ -22,15 +22,15 @@ Fast in-memory caching for repeated computations.
 
 ```bash
 # First call - computes and caches in memory (uses default n=100 if no input provided)
-corebrum submit-and-wait --file task_definitions/memory/memory_cache_example.yaml \
+corebrum submit-and-wait --file cortex/task_definitions/memory/memory_cache_example.yaml \
   --input '{"n": 100}'
 
 # Second call - retrieves from memory cache (very fast)
-corebrum submit-and-wait --file task_definitions/memory/memory_cache_example.yaml \
+corebrum submit-and-wait --file cortex/task_definitions/memory/memory_cache_example.yaml \
   --input '{"n": 100}'
 
 # Without input - uses default value of n=100
-corebrum submit-and-wait --file task_definitions/memory/memory_cache_example.yaml
+corebrum submit-and-wait --file cortex/task_definitions/memory/memory_cache_example.yaml
 ```
 
 **Key Features:**
@@ -45,15 +45,15 @@ Real-time state sharing between tasks.
 
 ```bash
 # Task 1: Publish state
-corebrum submit --file task_definitions/memory/state_sharing.yaml \
+corebrum submit --file cortex/task_definitions/memory/state_sharing.yaml \
   --input '{"worker_id": "worker-1", "active_tasks": 3}'
 
 # Task 2: Update state (in another task/worker)
-corebrum submit --file task_definitions/memory/state_sharing.yaml \
+corebrum submit --file cortex/task_definitions/memory/state_sharing.yaml \
   --input '{"worker_id": "worker-1", "active_tasks": 5}'
 
 # Without input - uses defaults (worker-unknown, active_tasks=0)
-corebrum submit --file task_definitions/memory/state_sharing.yaml
+corebrum submit --file cortex/task_definitions/memory/state_sharing.yaml
 ```
 
 **Key Features:**
@@ -122,7 +122,7 @@ if data:
 Search memories by content using BM25 text search:
 
 ```bash
-corebrum submit-and-wait --file task_definitions/memory/memory_search_example.yaml \
+corebrum submit-and-wait --file cortex/task_definitions/memory/memory_search_example.yaml \
   --input '{"key_id": "your-key-id", "query": "door closed"}'
 ```
 
@@ -132,11 +132,11 @@ Store memories with explicit types:
 
 ```bash
 # Store durable memory (long-term)
-corebrum submit-and-wait --file task_definitions/memory/memory_with_type_example.yaml \
+corebrum submit-and-wait --file cortex/task_definitions/memory/memory_with_type_example.yaml \
   --input '{"key_id": "your-key-id", "memory_key": "preference", "value": "Python", "memory_type": "durable"}'
 
 # Store ephemeral memory (temporary, auto-expires)
-corebrum submit-and-wait --file task_definitions/memory/memory_with_type_example.yaml \
+corebrum submit-and-wait --file cortex/task_definitions/memory/memory_with_type_example.yaml \
   --input '{"key_id": "your-key-id", "memory_key": "observation", "value": "Door closed", "memory_type": "ephemeral"}'
 ```
 
@@ -146,15 +146,15 @@ Configure limits and check statistics:
 
 ```bash
 # Check memory statistics
-corebrum submit-and-wait --file task_definitions/memory/memory_limits_example.yaml \
+corebrum submit-and-wait --file cortex/task_definitions/memory/memory_limits_example.yaml \
   --input '{"key_id": "your-key-id", "action": "stats"}'
 
 # Set memory limits
-corebrum submit-and-wait --file task_definitions/memory/memory_limits_example.yaml \
+corebrum submit-and-wait --file cortex/task_definitions/memory/memory_limits_example.yaml \
   --input '{"key_id": "your-key-id", "action": "set_limits"}'
 
 # Trigger compaction
-corebrum submit-and-wait --file task_definitions/memory/memory_limits_example.yaml \
+corebrum submit-and-wait --file cortex/task_definitions/memory/memory_limits_example.yaml \
   --input '{"key_id": "your-key-id", "action": "compact"}'
 ```
 

@@ -82,40 +82,11 @@ This directory contains example task definitions organized by type and use case.
 - `store_and_retrieve.yaml` - Basic storage operations
 - `factorial_with_cache.yaml` - Persistent result caching
 
-### 📁 [memory/](memory/)
-**Memory Examples**
-- In-memory storage for fast, ephemeral data access
-- Real-time state sharing between tasks
-- High-speed caching without persistence
+### Cortex-backed bundles (identity, memory, hive, OpenClaw)
 
-**Examples:**
-- `memory_cache_example.yaml` - Fast in-memory caching
-- `state_sharing.yaml` - Real-time state coordination
+Examples that depend on **Corebrum Cortex** live under [`../cortex/task_definitions/`](../cortex/task_definitions/) — see [`../cortex/README.md`](../cortex/README.md) for prerequisites and path prefixes.
 
-### 📁 [hive/](hive/)
-**Hive Memory Sharing Examples**
-- Collaborative knowledge sharing between robots
-- Group-based memory access
-- Multi-robot learning and coordination
-
-### 📁 [openclaw/](openclaw/)
-**OpenClaw Integration Examples**
-- Personal AI assistant platform integration
-- Workspace memory synchronization
-- Identity and hive management for OpenClaw instances
-- Bridge-based worker coordination
-
-**Examples:**
-- `openclaw-test.json` - Basic OpenClaw bridge test
-- `openclaw-memory-task.json` - Memory context task
-- `openclaw-hive-task.json` - Hive memory sharing task
-
-**Automated hub API tests:** [`scripts/agents/test_openclaw.sh`](../scripts/agents/test_openclaw.sh) (and related scripts) — see [`scripts/agents/README.md`](../scripts/agents/README.md).
-
-**Examples:**
-- `hive_shared_knowledge.yaml` - Basic knowledge sharing in a hive
-- `hive_collaborative_learning.yaml` - Collaborative learning with shared insights
-- `hive_demo.sh` - Complete demo script showing hive creation and usage
+The OpenClaw hub API smoke script still lives at [`scripts/agents/test_openclaw.sh`](../scripts/agents/test_openclaw.sh) (see [`scripts/agents/README.md`](../scripts/agents/README.md)).
 
 ## Getting Started
 
@@ -131,10 +102,10 @@ This directory contains example task definitions organized by type and use case.
 corebrum submit --file task_definitions/ros2/object_detection.yaml
 
 # Monitor task execution
-mesh-streams
+streams
 
 # View task results
-mesh-results <task-id>
+results <task-id>
 ```
 
 ### Task Definition Formats (updated I/O model)
@@ -222,19 +193,19 @@ See examples:
 ### Corebrum Commands
 ```bash
 # List active tasks
-mesh-streams
+streams
 
 # View task status
-mesh-status <task-id>
+status <task-id>
 
 # Get task results
-mesh-results <task-id>
+results <task-id>
 
 # Cancel a task
-mesh-cancel <task-id>
+cancel <task-id>
 
 # List available topics
-mesh-topics
+topics
 
 # Monitor network
 netstat
@@ -242,7 +213,7 @@ netstat
 
 ### Logging and Debugging
 - Check worker logs for execution details
-- Use `mesh-topics` to monitor data flow
+- Use `topics` to monitor data flow
 - Review task definitions for configuration issues
 - Test with simple examples before complex workflows
 
@@ -296,4 +267,4 @@ netstat
 ### Troubleshooting
 - **Common issues**: Check category-specific READMEs for troubleshooting
 - **Logs**: Review worker and task logs for error details
-- **Network**: Use `mesh-topics` and `netstat` to diagnose connectivity issues
+- **Network**: Use `topics` and `netstat` to diagnose connectivity issues

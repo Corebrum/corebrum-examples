@@ -88,12 +88,12 @@ A simple test task that verifies OpenClaw integration is working.
 **Usage:**
 ```bash
 # Via CLI
-corebrum submit --file task_definitions/openclaw/openclaw-test.json
+corebrum submit --file cortex/task_definitions/openclaw/openclaw-test.json
 
 # Via API
 curl -X POST http://localhost:6502/api/submit \
   -H "Content-Type: application/json" \
-  -d @task_definitions/openclaw/openclaw-test.json
+  -d @cortex/task_definitions/openclaw/openclaw-test.json
 
 # In CMOS
 submit
@@ -111,7 +111,7 @@ A task that uses OpenClaw workspace memory context.
 
 **Usage:**
 ```bash
-corebrum submit --file task_definitions/openclaw/openclaw-memory-task.json
+corebrum submit --file cortex/task_definitions/openclaw/openclaw-memory-task.json
 ```
 
 ### 3. OpenClaw Hive Task (`openclaw-hive-task.json`)
@@ -125,7 +125,7 @@ A task that leverages shared hive memory across OpenClaw instances.
 
 **Usage:**
 ```bash
-corebrum submit --file task_definitions/openclaw/openclaw-hive-task.json
+corebrum submit --file cortex/task_definitions/openclaw/openclaw-hive-task.json
 ```
 
 ### 4. Browser Automation (`openclaw-browser-example.json`)
@@ -140,7 +140,7 @@ Basic browser automation using Playwright.
 
 **Usage:**
 ```bash
-corebrum submit --file task_definitions/openclaw/openclaw-browser-example.json
+corebrum submit --file cortex/task_definitions/openclaw/openclaw-browser-example.json
 ```
 
 **Dependencies:** Playwright will be automatically installed by Corebrum workers
@@ -157,7 +157,7 @@ Advanced web scraping example extracting structured data from web pages.
 
 **Usage:**
 ```bash
-corebrum submit --file task_definitions/openclaw/openclaw-browser-scraping.json
+corebrum submit --file cortex/task_definitions/openclaw/openclaw-browser-scraping.json
 ```
 
 ### 6. Browser Interaction (`openclaw-browser-interaction.json`)
@@ -172,7 +172,7 @@ Browser interaction example - clicking, form filling, navigation.
 
 **Usage:**
 ```bash
-corebrum submit --file task_definitions/openclaw/openclaw-browser-interaction.json
+corebrum submit --file cortex/task_definitions/openclaw/openclaw-browser-interaction.json
 ```
 
 ### 7. Browser with Auto-Install (`openclaw-browser-with-install.json`)
@@ -187,7 +187,7 @@ Browser automation that automatically installs Playwright browser binaries if ne
 
 **Usage:**
 ```bash
-corebrum submit --file task_definitions/openclaw/openclaw-browser-with-install.json
+corebrum submit --file cortex/task_definitions/openclaw/openclaw-browser-with-install.json
 ```
 
 **Note**: This example includes installation logic, but OpenClaw bridge workers should already have browsers installed.

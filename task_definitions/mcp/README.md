@@ -426,7 +426,7 @@ stream_config:
 Consider caching MCP results for frequently called tools:
 ```python
 # Use Corebrum memory storage for caching
-# See task_definitions/memory/ for examples
+# See cortex/task_definitions/memory/ for examples
 ```
 
 ### 5. Security

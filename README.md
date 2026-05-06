@@ -28,6 +28,8 @@ Welcome to the Corebrum Getting Started Developer Guide! This comprehensive guid
 
 **Agent integration test scripts:** [scripts/agents/README.md](./scripts/agents/README.md) — shell checks for OpenClaw, Claude (HTTP + optional MCP), and Gemini; overview also in [§14 MCP](#14-mcp-model-context-protocol-integration).
 
+**Example layout:** General mesh task definitions are under [`task_definitions/`](task_definitions/). Bundles that require **Corebrum Cortex** (identity, memory, hive, OpenClaw) are under [`cortex/task_definitions/`](cortex/task_definitions/) — start at [`cortex/README.md`](cortex/README.md).
+
 ---
 
 ## 1. Introduction & Architecture Overview
@@ -2342,7 +2344,7 @@ corebrum identity set <key_id>
 corebrum submit --file task.yaml  # Uses default identity
 ```
 
-For complete identity examples, see: [`task_definitions/identity/README.md`](task_definitions/identity/README.md)
+For complete identity examples, see: [`cortex/task_definitions/identity/README.md`](cortex/task_definitions/identity/README.md)
 
 ### 15.2 Memory System: Three-Tier Cognitive Architecture
 
@@ -2497,7 +2499,7 @@ The response includes:
 - All ancestor memories (from parent lineage, if AncestorAccess enabled)
 - All hive memories (from all hives the robot belongs to, if Hive enabled)
 
-For complete memory examples, see: [`task_definitions/identity/README.md`](task_definitions/identity/README.md), [`task_definitions/memory/README.md`](task_definitions/memory/README.md)
+For complete memory examples, see: [`cortex/task_definitions/identity/README.md`](cortex/task_definitions/identity/README.md), [`cortex/task_definitions/memory/README.md`](cortex/task_definitions/memory/README.md)
 
 ### 15.3 Hive System: Collaborative Learning Groups
 
@@ -2582,7 +2584,7 @@ put_hive_memory("research_team", "discovery_42", {
 # All hive members can now access this knowledge
 ```
 
-For complete hive examples, see: [`task_definitions/hive/README.md`](task_definitions/hive/README.md), [`task_definitions/hive/hive_demo.sh`](task_definitions/hive/hive_demo.sh)
+For complete hive examples, see: [`cortex/task_definitions/hive/README.md`](cortex/task_definitions/hive/README.md), [`cortex/task_definitions/hive/hive_demo.sh`](cortex/task_definitions/hive/hive_demo.sh)
 
 ### 15.4 Cortex Integration Examples
 
@@ -2962,8 +2964,10 @@ corebrum web --host 0.0.0.0 --port 8080
 - **ROS2**: [`task_definitions/ros2/`](task_definitions/ros2/)
 - **MCP**: [`task_definitions/mcp/`](task_definitions/mcp/)
 - **Sequential**: [`task_definitions/sequential/`](task_definitions/sequential/)
-- **Identity**: [`task_definitions/identity/`](task_definitions/identity/)
-- **Hive**: [`task_definitions/hive/`](task_definitions/hive/)
+- **Identity** (Cortex): [`cortex/task_definitions/identity/`](cortex/task_definitions/identity/)
+- **Memory** (Cortex): [`cortex/task_definitions/memory/`](cortex/task_definitions/memory/)
+- **Hive** (Cortex): [`cortex/task_definitions/hive/`](cortex/task_definitions/hive/)
+- **OpenClaw** (Cortex): [`cortex/task_definitions/openclaw/`](cortex/task_definitions/openclaw/)
 - **AGI Operating System**: [`task_definitions/agi/`](task_definitions/agi/) - Autonomous mission agents that create and manage their own tasks
 
 ### Python Library Examples

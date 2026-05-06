@@ -53,7 +53,7 @@ curl -X PUT "http://localhost:6502/api/hives/HIVE_ID/members/KEY_ID_2"
 ```bash
 # Robot 1 stores knowledge in the hive
 corebrum submit-and-wait \
-  --file task_definitions/hive/hive_shared_knowledge.yaml \
+  --file cortex/task_definitions/hive/hive_shared_knowledge.yaml \
   --input '{
     "hive_id": "YOUR_HIVE_ID",
     "key_id": "KEY_ID_1",
@@ -63,7 +63,7 @@ corebrum submit-and-wait \
 
 # Robot 2 stores different knowledge
 corebrum submit-and-wait \
-  --file task_definitions/hive/hive_shared_knowledge.yaml \
+  --file cortex/task_definitions/hive/hive_shared_knowledge.yaml \
   --input '{
     "hive_id": "YOUR_HIVE_ID",
     "key_id": "KEY_ID_2",
@@ -95,7 +95,7 @@ Demonstrates collaborative learning where robots share insights and learn from e
 ```bash
 # Robot 1 shares an insight
 corebrum submit-and-wait \
-  --file task_definitions/hive/hive_collaborative_learning.yaml \
+  --file cortex/task_definitions/hive/hive_collaborative_learning.yaml \
   --input '{
     "hive_id": "YOUR_HIVE_ID",
     "key_id": "KEY_ID_1",
@@ -105,7 +105,7 @@ corebrum submit-and-wait \
 
 # Robot 2 shares a different insight
 corebrum submit-and-wait \
-  --file task_definitions/hive/hive_collaborative_learning.yaml \
+  --file cortex/task_definitions/hive/hive_collaborative_learning.yaml \
   --input '{
     "hive_id": "YOUR_HIVE_ID",
     "key_id": "KEY_ID_2",
@@ -115,7 +115,7 @@ corebrum submit-and-wait \
 
 # Robot 1 runs again - now sees all shared insights
 corebrum submit-and-wait \
-  --file task_definitions/hive/hive_collaborative_learning.yaml \
+  --file cortex/task_definitions/hive/hive_collaborative_learning.yaml \
   --input '{
     "hive_id": "YOUR_HIVE_ID",
     "key_id": "KEY_ID_1",

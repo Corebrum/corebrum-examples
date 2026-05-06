@@ -15,8 +15,7 @@ compute_logic:
     import json
     import sys
     
-    # Identity context is automatically available
-    # identity_id and identity_memory are pre-loaded variables
+    # identity_id and identity_memory are injected by the worker; this block is appended after the runtime preamble.
     
     # Get input number
     number = inputs.get("number", 0)
