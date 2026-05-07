@@ -225,7 +225,7 @@ submit ../corebrum-examples/cortex/task_definitions/identity/memory_persistence.
 ## OpenClaw
 
 ```bash
-open-claw bridge start
+open-claw bridge-start --identity-id 08585eb1-0aa1-42b6-9792-de23ce452e3a
 corebrum submit --file ../corebrum-examples/cortex/task_definitions/openclaw/openclaw-test.json
 ```
 
