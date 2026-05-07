@@ -78,7 +78,7 @@ corebrum submit --file https://raw.githubusercontent.com/user/repo/main/script.p
 corebrum submit --file ../corebrum-examples/task_definitions/ros2/ros2_message_type_demo.yaml
 
 # From this repo’s root:
-corebrum submit --file task_definitions/python/pi_calculation.yaml --input '{"decimal_places": 10}'
+corebrum submit --file ../corebrum-examples/task_definitions/python/pi_calculation.yaml --input '{"decimal_places": 10}'
 ```
 
 ## JavaScript
