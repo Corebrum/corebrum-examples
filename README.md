@@ -30,6 +30,8 @@ Welcome to the Corebrum Getting Started Developer Guide! This comprehensive guid
 
 **Example layout:** General mesh task definitions are under [`task_definitions/`](task_definitions/). Bundles that require **Corebrum Cortex** (identity, memory, hive, OpenClaw) are under [`cortex/task_definitions/`](cortex/task_definitions/) — start at [`cortex/README.md`](cortex/README.md).
 
+**Hands-on commands** (Zenoh, daemon, CMOS, ROS2, streams, REST, Cortex paths from a sibling `corebrum` checkout): [`CHEATSHEET.md`](CHEATSHEET.md).
+
 ---
 
 ## 1. Introduction & Architecture Overview
