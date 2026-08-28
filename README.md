@@ -444,14 +444,20 @@ zenohd
 
 #### Distributed Deployment
 
-For distributed mesh networks, configure Zenoh to listen on network interfaces:
+For a laptop/edge hub plus workers and robots, generate matching JSON5 instead of a one-off listen flag or a missing `zenoh-distributed.json5`:
 
 ```bash
-# Start zenohd on specific interface
-zenohd --listen tcp/0.0.0.0:7447
+npx zenoh-fleet                      # wizard (same CLI as @agenticros/zenoh-fleet)
+zenohd -c /path/to/<fleet>/zenohd.json5
+corebrum daemon --zenoh-router tcp://<hub>:7447
+```
 
-# Or use configuration file
-zenohd --config zenoh-distributed.json5
+Corebrum joins over **native TCP** (`tcp://<hub>:7447`), not AgenticROS's WebSocket endpoint (`ws://…:10000`). Full CLI: [zenoh-fleet](https://github.com/agenticros/zenoh-fleet). ROS2 mesh steps: [`../corebrum/ROS2-README.md`](../corebrum/ROS2-README.md).
+
+To listen on all interfaces without a generated file:
+
+```bash
+zenohd --listen tcp/0.0.0.0:7447
 ```
 
 ### Verifying Zenoh Connection
@@ -470,10 +476,10 @@ zenoh pub -k test/topic "Hello, Zenoh!"
 ### Troubleshooting
 
 - **Router not starting**: Check if port 7447 is available
-- **Connection refused**: Verify router is running and accessible
+- **Connection refused**: Verify router is running and accessible. For a laptop+robots mesh, run `npx zenoh-fleet` then `corebrum daemon --zenoh-router tcp://<hub>:7447`. From another machine: `nc -zv <hub> 7447`.
 - **Storage errors**: Ensure storage directories exist and are writable
 
-For detailed Zenoh configuration, see: [`../corebrum/docs/zenoh_configs/`](../corebrum/docs/zenoh_configs/)
+For fleet topology configs, see [zenoh-fleet](https://github.com/agenticros/zenoh-fleet). For storage backend JSON5, see: [`../corebrum/docs/zenoh_configs/`](../corebrum/docs/zenoh_configs/)
 
 ---
 
@@ -1958,15 +1964,26 @@ Corebrum automatically handles ROS2 message types with:
 
 #### Setup and Configuration
 
-The `zenoh-bridge-ros2dds` bridges ROS2 DDS topics to Zenoh key expressions:
+The `zenoh-bridge-ros2dds` bridges ROS2 DDS topics to Zenoh key expressions. Generate matching hub/member configs with [`npx zenoh-fleet`](https://github.com/agenticros/zenoh-fleet) (robot is a **member** — do not run a second `zenohd` on the robot). Then start Corebrum on the hub over TCP:
+
+```bash
+npx zenoh-fleet
+zenohd -c /path/to/<fleet>/zenohd.json5
+corebrum daemon --zenoh-router tcp://<hub>:7447
+```
 
 ```bash
 # Install zenoh-bridge-ros2dds
 cargo install zenoh-bridge-ros2dds
 
-# Start the bridge
+# Prefer the zenoh-fleet member file (hub endpoint already filled)
+zenoh-bridge-ros2dds -c /path/to/<fleet>/zenoh-bridge-ros2dds-robot.json5
+
+# Or, without a generated config:
 zenoh-bridge-ros2dds
 ```
+
+Full mesh steps: [`../corebrum/ROS2-README.md`](../corebrum/ROS2-README.md).
 
 #### Topic Mapping
 
@@ -1982,10 +1999,10 @@ ROS2 Robot → zenoh-bridge-ros2dds → Zenoh Router → Corebrum Workers
 
 #### Multi-Robot Support
 
-Multiple robots can share the same Zenoh mesh:
+Multiple robots can share the same Zenoh mesh (each robot is a `zenoh-fleet` **member** connecting to the same hub):
 
 ```bash
-# Robot 1
+# Robot 1 — generated member file, or:
 zenoh-bridge-ros2dds --ros-args -p robot_id:=robot1
 
 # Robot 2

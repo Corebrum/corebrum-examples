@@ -9,13 +9,16 @@ Commands are written for a **Corebrum CLI** built or installed from a sibling ch
 | General mesh tasks (Python, JS, ROS2, sequential, Omnagi, etc.) | `task_definitions/` |
 | Cortex (identity, memory, hive, OpenClaw) | `cortex/task_definitions/` |
 
-Replace `tcp://192.168.0.145:7447` with your Zenoh router address. From the **examples repo root**, you can use relative paths like `task_definitions/python/...` instead of `../corebrum-examples/...`.
+Replace `tcp://192.168.0.145:7447` with your Zenoh router address (from `npx zenoh-fleet`, that is `tcp://<hub>:7447`). From the **examples repo root**, you can use relative paths like `task_definitions/python/...` instead of `../corebrum-examples/...`.
 
 ---
 
 ## Zenoh router
 
 ```bash
+npx zenoh-fleet                      # hub JSON5 for a laptop+robots mesh
+zenohd -c /path/to/<fleet>/zenohd.json5
+# local only:
 zenohd
 # or, with a config file:
 ~/zenohd --config router.json5

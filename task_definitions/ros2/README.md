@@ -2,6 +2,8 @@
 
 This directory contains ROS2 integration examples demonstrating Corebrum's native ROS2 message type support.
 
+Bring the Zenoh mesh up first (hub `zenohd` + Corebrum over TCP, robots as members): see [§4 Zenoh](../../README.md#4-zenoh-configuration--deployment) or [`npx zenoh-fleet`](https://github.com/agenticros/zenoh-fleet).
+
 ## 🆕 Native ROS2 Message Type Support
 
 Corebrum now provides native support for ROS2 message types with:
