@@ -7,20 +7,20 @@ This directory contains examples demonstrating Corebrum as an **AGI Operating Sy
 ```bash
 # 1. Start infrastructure (in separate terminals)
 zenohd                                    # Terminal 1
-corebrum cmos                             # Terminal 2 (or: corebrum daemon)
+cortex cmos                             # Terminal 2 (or: cortex daemon)
 ollama serve                              # Terminal 3
 ollama pull qwen2.5vl:3b                  # Install model
 
 # 2. Create identity and submit agent
-IDENTITY_ID=$(corebrum identity create --name "AGI Agent" | grep -o '[a-f0-9-]\{36\}')
-corebrum identity enable $IDENTITY_ID memory
-corebrum submit --file task_definitions/agi/autonomous_mission_agent.yaml --identity $IDENTITY_ID
+IDENTITY_ID=$(cortex identity create --name "AGI Agent" | grep -o '[a-f0-9-]\{36\}')
+cortex identity enable $IDENTITY_ID memory
+cortex submit --file task_definitions/agi/autonomous_mission_agent.yaml --identity $IDENTITY_ID
 
 # 3. Send a mission
 zenoh put -k agi/missions/goals -v '{"mission_type": "research", "topic": "AI", "depth": "basic"}' --encoder json
 
 # Watch it work!
-corebrum logs <agent-task-id>
+cortex logs <agent-task-id>
 ```
 
 **Or use the automated demo script:**
@@ -128,10 +128,10 @@ Python functions for creating task definitions:
 2. **Corebrum Daemon**: With workers available
    ```bash
    # Option 1: Direct daemon
-   corebrum daemon --worker-count 4
+   cortex daemon --worker-count 4
    
    # Option 2: Use CMOS (recommended)
-   corebrum cmos
+   cortex cmos
    # (CMOS will prompt to launch daemon)
    ```
 
@@ -147,10 +147,10 @@ Python functions for creating task definitions:
 4. **Identity Created**: With memory feature enabled
    ```bash
    # Create identity
-   IDENTITY_ID=$(corebrum identity create --name "AGI Mission Agent" | grep -o '[a-f0-9-]\{36\}')
+   IDENTITY_ID=$(cortex identity create --name "AGI Mission Agent" | grep -o '[a-f0-9-]\{36\}')
    
    # Enable memory feature
-   corebrum identity enable $IDENTITY_ID memory
+   cortex identity enable $IDENTITY_ID memory
    
    # Save for later use
    echo "Identity ID: $IDENTITY_ID"
@@ -183,9 +183,9 @@ This script will:
 zenohd
 
 # Terminal 2: Corebrum daemon (or use CMOS)
-corebrum daemon --worker-count 4
+cortex daemon --worker-count 4
 # OR use CMOS:
-# corebrum cmos
+# cortex cmos
 # (CMOS will prompt to launch daemon)
 
 # Terminal 3: Ollama (if not already running)
@@ -201,15 +201,15 @@ ollama pull qwen2.5vl:3b
 #### 3. Create Identity
 
 ```bash
-IDENTITY_ID=$(corebrum identity create --name "AGI Mission Agent" | grep -o '[a-f0-9-]\{36\}')
-corebrum identity enable $IDENTITY_ID memory
+IDENTITY_ID=$(cortex identity create --name "AGI Mission Agent" | grep -o '[a-f0-9-]\{36\}')
+cortex identity enable $IDENTITY_ID memory
 echo "Identity ID: $IDENTITY_ID"
 ```
 
 #### 4. Submit AGI Agent
 
 ```bash
-corebrum submit --file task_definitions/agi/autonomous_mission_agent.yaml \
+cortex submit --file task_definitions/agi/autonomous_mission_agent.yaml \
   --identity $IDENTITY_ID
 ```
 
@@ -223,7 +223,7 @@ You should see:
 #### 5. (Optional) Submit Result Monitor
 
 ```bash
-corebrum submit --file task_definitions/agi/mission_result_monitor.yaml \
+cortex submit --file task_definitions/agi/mission_result_monitor.yaml \
   --identity $IDENTITY_ID
 ```
 
@@ -265,23 +265,23 @@ zenoh subscribe -k agi/missions/*/results
 
 ```bash
 # Get the agent task ID from the submit output, then:
-corebrum logs <agent-task-id>
+cortex logs <agent-task-id>
 
 # Or check all running streams:
-corebrum streams
+cortex streams
 ```
 
 ### 8. Check Task Execution
 
 ```bash
 # List all jobs
-corebrum jobs
+cortex jobs
 
 # Check specific task status
-corebrum status <task-id>
+cortex status <task-id>
 
 # Check task logs (to see if there were errors)
-corebrum logs <task-id>
+cortex logs <task-id>
 ```
 
 ### 9. View Task Results
@@ -292,19 +292,19 @@ There are several ways to view results from AGI mission tasks:
 
 ```bash
 # Get results for a specific task ID (from agent logs)
-corebrum results <task-id>
+cortex results <task-id>
 
 # Example:
-corebrum results 91c863a4-3321-4c7c-a3d6-8673126c998a
+cortex results 91c863a4-3321-4c7c-a3d6-8673126c998a
 
 # If result not found, check status first:
-corebrum status <task-id>
-corebrum logs <task-id>
+cortex status <task-id>
+cortex logs <task-id>
 ```
 
-**Note**: If `corebrum results` shows "Task result not found", the task may:
-- Still be running (check with `corebrum status`)
-- Have failed (check with `corebrum logs`)
+**Note**: If `cortex results` shows "Task result not found", the task may:
+- Still be running (check with `cortex status`)
+- Have failed (check with `cortex logs`)
 - Not have published results yet (wait a few seconds and try again)
 
 #### Method 2: Subscribe to Zenoh Result Topics
@@ -340,13 +340,13 @@ The AGI agent logs show all submitted task IDs. Use these IDs to check results:
 
 ```bash
 # Get agent task ID first
-corebrum streams
+cortex streams
 
 # Then check agent logs
-corebrum logs <agent-task-id> | grep "Submitted task"
+cortex logs <agent-task-id> | grep "Submitted task"
 
 # Copy a task ID and check its result
-corebrum results <task-id-from-logs>
+cortex results <task-id-from-logs>
 ```
 
 ## Common Commands Reference
@@ -368,10 +368,10 @@ zenoh put -k agi/missions/goals -v '{"mission_type": "computation", "objective":
 
 ```bash
 # Watch agent logs
-corebrum logs <agent-task-id>
+cortex logs <agent-task-id>
 
 # Check running tasks
-corebrum jobs
+cortex jobs
 
 # Watch mission status
 zenoh subscribe -k agi/missions/*/status
@@ -567,10 +567,10 @@ If tasks show "pending" status and never get picked up:
 
 ```bash
 # Check network status (shows available workers)
-corebrum netstat
+cortex netstat
 
 # Check if daemon is running
-corebrum daemon --status
+cortex daemon --status
 
 # Or check via API (if web UI is running)
 curl http://localhost:8080/api/v1/workers
@@ -579,7 +579,7 @@ curl http://localhost:8080/api/v1/workers
 **Solution**: If no workers are shown, start a worker:
 ```bash
 # Start Corebrum daemon (which includes workers)
-corebrum daemon --zenoh-router tcp://127.0.0.1:7447
+cortex daemon --zenoh-router tcp://127.0.0.1:7447
 ```
 
 #### 2. Check Task Definition Format
@@ -588,10 +588,10 @@ Tasks might be pending if the task definition has errors. Check the agent logs:
 
 ```bash
 # Get agent task ID
-corebrum streams
+cortex streams
 
 # Check agent logs for errors
-corebrum logs <agent-task-id> | grep -i error
+cortex logs <agent-task-id> | grep -i error
 ```
 
 #### 3. Verify Zenoh Connection
@@ -611,7 +611,7 @@ The scheduler should be running as part of the daemon. Verify:
 
 ```bash
 # Check daemon logs
-corebrum daemon --status
+cortex daemon --status
 
 # Or check if tasks are being announced
 zenoh subscribe -k comp/queues/user_tasks/announce
@@ -623,15 +623,15 @@ If workers aren't picking up tasks, try restarting:
 
 ```bash
 # Stop daemon
-pkill -f "corebrum daemon"
+pkill -f "cortex daemon"
 
 # Start fresh
-corebrum daemon --zenoh-router tcp://127.0.0.1:7447
+cortex daemon --zenoh-router tcp://127.0.0.1:7447
 ```
 
 ### Tasks Complete But No Results
 
-If tasks show "completed" but `corebrum results` shows "not found":
+If tasks show "completed" but `cortex results` shows "not found":
 
 1. **Check Zenoh topics directly** - Results are published to Zenoh:
    ```bash
@@ -640,7 +640,7 @@ If tasks show "completed" but `corebrum results` shows "not found":
 
 2. **Check Result Monitor logs** - The monitor should receive results:
    ```bash
-   corebrum logs <monitor-task-id>
+   cortex logs <monitor-task-id>
    ```
 
 3. **Wait a few seconds** - Results may take time to propagate
@@ -655,34 +655,34 @@ If you see `IndentationError: unexpected indent` when submitting the agent, this
 1. Update Corebrum to the latest version
 2. Rebuild Corebrum: `cargo build --release`
 3. Restart the daemon
-4. Check Corebrum logs for more details: `corebrum logs <task-id>`
+4. Check Corebrum logs for more details: `cortex logs <task-id>`
 
 ### Agent Not Receiving Missions
 
 - Check Zenoh connectivity: `zenoh info`
 - Verify topic name: `zenoh subscribe -k agi/missions/goals`
-- Check agent is running: `corebrum streams`
+- Check agent is running: `cortex streams`
 
 ### LLM Planning Fails or Times Out
 
 - Verify Ollama is running: `curl http://localhost:11434/api/tags`
 - Check model is available: `ollama list`
 - Install Qwen model: `ollama pull qwen2.5vl:3b`
-- Review agent logs: `corebrum logs <agent-task-id>`
+- Review agent logs: `cortex logs <agent-task-id>`
 - **Note**: If LLM times out, the agent will use a fallback plan (this is expected behavior)
 
 ### Tasks Not Executing
 
-- Check workers are available: `corebrum netstat`
+- Check workers are available: `cortex netstat`
 - Verify task format is valid
 - Check worker capabilities match task requirements
 
 ### Results Not Appearing
 
-- Verify result monitor is running: `corebrum streams`
+- Verify result monitor is running: `cortex streams`
 - Check result topics: `zenoh subscribe -k comp/tasks/*/result`
-- Review monitor logs: `corebrum logs <monitor-task-id>`
-- Check if tasks completed: `corebrum jobs`
+- Review monitor logs: `cortex logs <monitor-task-id>`
+- Check if tasks completed: `cortex jobs`
 
 ## Best Practices
 

@@ -8,7 +8,7 @@ task_definition:
   outputs:
     - name: "result"
       type: "zenoh"
-      key: "corebrum/examples/docker/result"
+      key: "cortex/examples/docker/result"
   compute_logic:
     type: "docker"
     language: "python"

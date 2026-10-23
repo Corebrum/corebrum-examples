@@ -13,32 +13,32 @@ NC='\033[0m' # No Color
 API_URL="http://localhost:6502"
 ZENOH_ROUTER="${ZENOH_ROUTER:-tcp://127.0.0.1:7447}"
 
-# Find corebrum binary
+# Find cortex binary
 # Get the script's directory to resolve relative paths correctly
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-if command -v corebrum > /dev/null 2>&1; then
-    COREBRUM_CMD="corebrum"
-elif [ -f "$PROJECT_ROOT/../corebrum/target/release/corebrum" ]; then
-    COREBRUM_CMD="$PROJECT_ROOT/../corebrum/target/release/corebrum"
-elif [ -f "$PROJECT_ROOT/../corebrum/target/debug/corebrum" ]; then
-    COREBRUM_CMD="$PROJECT_ROOT/../corebrum/target/debug/corebrum"
-elif [ -f "$SCRIPT_DIR/../../corebrum/target/release/corebrum" ]; then
-    COREBRUM_CMD="$SCRIPT_DIR/../../corebrum/target/release/corebrum"
-elif [ -f "$SCRIPT_DIR/../../corebrum/target/debug/corebrum" ]; then
-    COREBRUM_CMD="$SCRIPT_DIR/../../corebrum/target/debug/corebrum"
-elif [ -f "../corebrum/target/release/corebrum" ]; then
-    COREBRUM_CMD="../corebrum/target/release/corebrum"
-elif [ -f "../corebrum/target/debug/corebrum" ]; then
-    COREBRUM_CMD="../corebrum/target/debug/corebrum"
-elif [ -f "./corebrum" ]; then
-    COREBRUM_CMD="./corebrum"
+if command -v cortex > /dev/null 2>&1; then
+    COREBRUM_CMD="cortex"
+elif [ -f "$PROJECT_ROOT/../corebrum-cortex/target/release/cortex" ]; then
+    COREBRUM_CMD="$PROJECT_ROOT/../corebrum-cortex/target/release/cortex"
+elif [ -f "$PROJECT_ROOT/../corebrum-cortex/target/debug/cortex" ]; then
+    COREBRUM_CMD="$PROJECT_ROOT/../corebrum-cortex/target/debug/cortex"
+elif [ -f "$SCRIPT_DIR/../../corebrum-cortex/target/release/cortex" ]; then
+    COREBRUM_CMD="$SCRIPT_DIR/../../corebrum-cortex/target/release/cortex"
+elif [ -f "$SCRIPT_DIR/../../corebrum-cortex/target/debug/cortex" ]; then
+    COREBRUM_CMD="$SCRIPT_DIR/../../corebrum-cortex/target/debug/cortex"
+elif [ -f "../corebrum-cortex/target/release/cortex" ]; then
+    COREBRUM_CMD="../corebrum-cortex/target/release/cortex"
+elif [ -f "../corebrum-cortex/target/debug/cortex" ]; then
+    COREBRUM_CMD="../corebrum-cortex/target/debug/cortex"
+elif [ -f "./cortex" ]; then
+    COREBRUM_CMD="./cortex"
 else
-    echo -e "${YELLOW}⚠️  Warning: corebrum command not found in PATH or common locations${NC}"
-    echo "   Attempting to use 'corebrum' from PATH anyway..."
-    echo "   If this fails, ensure corebrum is in your PATH or set COREBRUM_CMD environment variable"
-    COREBRUM_CMD="corebrum"
+    echo -e "${YELLOW}⚠️  Warning: cortex command not found in PATH or common locations${NC}"
+    echo "   Attempting to use 'cortex' from PATH anyway..."
+    echo "   If this fails, ensure cortex is in your PATH or set COREBRUM_CMD environment variable"
+    COREBRUM_CMD="cortex"
 fi
 
 # Allow override via environment variable
@@ -73,7 +73,7 @@ echo "✅ Zenoh router is accessible"
 # Try multiple methods to detect the daemon (works with both direct daemon and CMOS)
 DAEMON_RUNNING=false
 
-# Method 1: Check if corebrum CLI commands work (most reliable)
+# Method 1: Check if cortex CLI commands work (most reliable)
 # Try jobs first - this works if daemon is running (even if no jobs exist)
 if [ "$USE_TIMEOUT" = true ]; then
     if timeout 2 $COREBRUM_CMD jobs 2>/dev/null > /dev/null 2>&1; then
@@ -247,7 +247,7 @@ fi
 echo "   Command: $COREBRUM_CMD submit $AGENT_YAML --identity $IDENTITY_ID"
 echo ""
 
-# Try to submit (corebrum submit takes file as positional argument, not --file)
+# Try to submit (cortex submit takes file as positional argument, not --file)
 if [ "$USE_TIMEOUT" = true ]; then
     SUBMIT_OUTPUT=$(timeout 10 $COREBRUM_CMD submit \
       "$AGENT_YAML" \

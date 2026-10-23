@@ -19,35 +19,35 @@ Corebrum CLI Overview
 
 All CLI commands start with:
 
-corebrum
+cortex
 
 Task Execution
 
 Submit and control tasks:
 
-corebrum submit --file <task.yaml> --input '<json>'
-corebrum submit-and-wait --file <task.yaml> --input '<json>'
-corebrum status
-corebrum results
-corebrum logs
-corebrum cancel
+cortex submit --file <task.yaml> --input '<json>'
+cortex submit-and-wait --file <task.yaml> --input '<json>'
+cortex status
+cortex results
+cortex logs
+cortex cancel
 
 Network and Workers
 
-corebrum netstat
-corebrum jobs
-corebrum ping
+cortex netstat
+cortex jobs
+cortex ping
 
 CLI Helpers
 
-corebrum help
-corebrum --version
+cortex help
+cortex --version
 
 CMOS (Interactive Shell)
 
 Launch the interactive Corebrum shell:
 
-corebrum cmos
+cortex cmos
 
 ⸻Task Definitions Format
 
@@ -85,23 +85,23 @@ Running Examples
 
 Submit a Task (Non-Blocking)
 
-corebrum submit \
+cortex submit \
   --file task_definitions/python/factorial_task.yaml \
   --input '{"number": 10}'
 
 Submit and Wait (Blocking)
 
-corebrum submit-and-wait \
+cortex submit-and-wait \
   --file task_definitions/python/factorial_task.yaml \
   --input '{"number": 10}'
 
 Get Results
 
-corebrum results --format json
+cortex results --format json
 
 Watch Status
 
-corebrum status --watch
+cortex status --watch
 
 ⸻Typical Workflow
 
@@ -110,7 +110,7 @@ Start Local Mesh
 Ensure the local mesh is running (Zenoh router and Corebrum daemon), then submit tasks.
 
 zenohd
-corebrum daemon --zenoh-router tcp://127.0.0.1:7447
+cortex daemon --zenoh-router tcp://127.0.0.1:7447
 
 ⸻Goals for Claude Code
 
@@ -137,7 +137,7 @@ Completion Criteria
 A Corebrum task is complete when:
 
 - CLI exits with code 0
-- corebrum results returns success
+- cortex results returns success
 - Output values match expected schema
 ⸻
 Claude should behave like a disciplined Corebrum developer — not a speculative code generator.

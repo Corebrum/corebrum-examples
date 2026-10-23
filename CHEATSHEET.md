@@ -1,6 +1,6 @@
 # Corebrum demo cheat sheet
 
-Commands are written for a **Corebrum CLI** built or installed from a sibling checkout (`../corebrum`), with example task files in this repo (`../corebrum-examples/…`).
+Commands are written for a **Corebrum CLI** built or installed from a sibling checkout (`../cortex`), with example task files in this repo (`../corebrum-examples/…`).
 
 **Path layout after the core vs. cortex split:**
 
@@ -24,7 +24,7 @@ zenohd
 ~/zenohd --config router.json5
 ```
 
-## Daemon + CLI (from `../corebrum`)
+## Daemon + CLI (from `../cortex`)
 
 ```bash
 cargo run -- --zenoh-router tcp://192.168.0.145:7447 daemon 1
@@ -40,10 +40,10 @@ cargo run -- --zenoh-router tcp://192.168.0.145:7447 results <task_id>
 
 ```bash
 cargo run -- cmos
-./corebrum cmos
+./cortex cmos
 ```
 
-Inside CMOS, paths are relative to your current working directory (often the `corebrum` tree). Examples:
+Inside CMOS, paths are relative to your current working directory (often the `cortex` tree). Examples:
 
 ```text
 submit ../corebrum-examples/task_definitions/python/factorial_from_url.yaml --input '{"number": 8}'
@@ -57,45 +57,45 @@ submit ../corebrum-examples/task_definitions/python/factorial_stdin_stdout.yaml 
 ### Submit from URL (e.g. GitHub Gist)
 
 ```bash
-corebrum submit --file https://gist.github.com/chrismatthieu/e06cdd5c6c3787d7e68e2c6977d81e9e --input '{"number": 8}'
+cortex submit --file https://gist.github.com/chrismatthieu/e06cdd5c6c3787d7e68e2c6977d81e9e --input '{"number": 8}'
 # shorthand (if your CLI supports URL-as-file):
 submit https://gist.github.com/chrismatthieu/e06cdd5c6c3787d7e68e2c6977d81e9e --input '{"number": 8}'
 
-corebrum submit --file https://gist.github.com/chrismatthieu/e06cdd5c6c3787d7e68e2c6977d81e9e \
+cortex submit --file https://gist.github.com/chrismatthieu/e06cdd5c6c3787d7e68e2c6977d81e9e \
   --input '{"number": 8}' --capability python
 
-corebrum submit-and-wait --file https://gist.github.com/chrismatthieu/e06cdd5c6c3787d7e68e2c6977d81e9e \
+cortex submit-and-wait --file https://gist.github.com/chrismatthieu/e06cdd5c6c3787d7e68e2c6977d81e9e \
   --input '{"number": 8}' --capability python
 ```
 
 ### Raw script URL
 
 ```bash
-corebrum submit --file https://raw.githubusercontent.com/user/repo/main/script.py \
+cortex submit --file https://raw.githubusercontent.com/user/repo/main/script.py \
   --input '{"data": "value"}' --capability python
 ```
 
 ### Local YAML examples
 
 ```bash
-corebrum submit --file ../corebrum-examples/task_definitions/ros2/ros2_message_type_demo.yaml
+cortex submit --file ../corebrum-examples/task_definitions/ros2/ros2_message_type_demo.yaml
 
 # From this repo’s root:
-corebrum submit --file ../corebrum-examples/task_definitions/python/pi_calculation.yaml --input '{"decimal_places": 10}'
+cortex submit --file ../corebrum-examples/task_definitions/python/pi_calculation.yaml --input '{"decimal_places": 10}'
 ```
 
 ## JavaScript
 
 ```bash
-corebrum submit --file ../corebrum-examples/task_definitions/javascript/factorial_from_url.yaml --input '{"number": 8}'
-corebrum submit --file ../corebrum-examples/task_definitions/javascript/pi_calculation.yaml --input '{"decimal_places": 10}'
+cortex submit --file ../corebrum-examples/task_definitions/javascript/factorial_from_url.yaml --input '{"number": 8}'
+cortex submit --file ../corebrum-examples/task_definitions/javascript/pi_calculation.yaml --input '{"decimal_places": 10}'
 ```
 
 ## Status and results
 
 ```bash
-corebrum status
-corebrum results <task-id>
+cortex status
+cortex results <task-id>
 ```
 
 ## Sequential pipelines
@@ -111,11 +111,11 @@ corebrum results <task-id>
 **CLI:**
 
 ```bash
-corebrum submit --file ../corebrum-examples/task_definitions/sequential/sequential_pipeline.yaml
+cortex submit --file ../corebrum-examples/task_definitions/sequential/sequential_pipeline.yaml
 ```
 
 ```bash
-corebrum results <task-id> --chain
+cortex results <task-id> --chain
 ```
 
 ## ROS2 + CMOS
@@ -145,12 +145,12 @@ zenoh --mode client --connect tcp://192.168.0.145:7447 put -k 'rt/cmd_vel' \
   -v '{"linear": {"x": 0.0, "y": 0.0, "z": 0.0}, "angular": {"x": 0.0, "y": 0.0, "z": 0.5}}'
 ```
 
-**corebrum publish:**
+**cortex publish:**
 
 ```bash
-corebrum publish rt/cmd_vel '{"linear":{"x":0,"y":0,"z":0},"angular":{"x":0,"y":0,"z":0}}'
-corebrum publish rt/cmd_vel '{"linear":{"x":0.5,"y":0,"z":0},"angular":{"x":0,"y":0,"z":0}}'
-corebrum publish rt/cmd_vel '{"linear":{"x":0,"y":0,"z":0},"angular":{"x":0,"y":0,"z":0.5}}'
+cortex publish rt/cmd_vel '{"linear":{"x":0,"y":0,"z":0},"angular":{"x":0,"y":0,"z":0}}'
+cortex publish rt/cmd_vel '{"linear":{"x":0.5,"y":0,"z":0},"angular":{"x":0,"y":0,"z":0}}'
+cortex publish rt/cmd_vel '{"linear":{"x":0,"y":0,"z":0},"angular":{"x":0,"y":0,"z":0.5}}'
 ```
 
 ## Streams testing
@@ -159,24 +159,24 @@ corebrum publish rt/cmd_vel '{"linear":{"x":0,"y":0,"z":0},"angular":{"x":0,"y":
 # Use tcp:// (not tcp/) for Zenoh router URLs
 submit ../corebrum-examples/task_definitions/ros2/person_follow_simple.yaml --zenoh-router tcp://192.168.0.145:7447
 
-cargo run --bin corebrum -- streams --zenoh-router tcp://192.168.0.145:7447
-./corebrum streams --zenoh-router tcp://192.168.0.145:7447
+cargo run --bin cortex -- streams --zenoh-router tcp://192.168.0.145:7447
+./cortex streams --zenoh-router tcp://192.168.0.145:7447
 
-cargo run --bin corebrum -- cancel <task_uuid> --zenoh-router tcp://192.168.0.145:7447
-./corebrum cancel <task_uuid> --zenoh-router tcp://192.168.0.145:7447
+cargo run --bin cortex -- cancel <task_uuid> --zenoh-router tcp://192.168.0.145:7447
+./cortex cancel <task_uuid> --zenoh-router tcp://192.168.0.145:7447
 ```
 
 ## Network topology
 
 ```bash
-./corebrum --zenoh-router tcp://192.168.0.145:7447 network
+./cortex --zenoh-router tcp://192.168.0.145:7447 network
 ```
 
 ## REST API
 
 ```bash
 cargo run -- web
-./corebrum web
+./cortex web
 ```
 
 Example URLs (replace task id):
@@ -195,16 +195,16 @@ Example URLs (replace task id):
 Workers need `python` and `omnagi` capabilities. Example task:
 
 ```bash
-./corebrum submit ../corebrum-examples/task_definitions/omnagi/qwen_llm_streaming.yaml
+./cortex submit ../corebrum-examples/task_definitions/omnagi/qwen_llm_streaming.yaml
 ```
 
 ## Cortex: task/stream memory and identity
 
 ```bash
-corebrum identity enable <key_id> memory
-corebrum identity enable <key_id> hive
-corebrum identity enable <key_id> ancestor_access
-corebrum identity disable <key_id> memory
+cortex identity enable <key_id> memory
+cortex identity enable <key_id> hive
+cortex identity enable <key_id> ancestor_access
+cortex identity disable <key_id> memory
 ```
 
 Example:
@@ -229,7 +229,7 @@ submit ../corebrum-examples/cortex/task_definitions/identity/memory_persistence.
 
 ```bash
 open-claw bridge-start --identity-id 08585eb1-0aa1-42b6-9792-de23ce452e3a
-corebrum submit --file ../corebrum-examples/cortex/task_definitions/openclaw/openclaw-test.json
+cortex submit --file ../corebrum-examples/cortex/task_definitions/openclaw/openclaw-test.json
 ```
 
 *(OpenClaw task JSON is under `cortex/task_definitions/openclaw/`, not `task_definitions/openclaw/`.)*

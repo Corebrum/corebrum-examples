@@ -15,7 +15,7 @@ Demonstrates how to execute code from a Git repository.
 
 **Usage:**
 ```bash
-corebrum submit --file task_definitions/general/git_repo_task.json
+cortex submit --file task_definitions/general/git_repo_task.json
 ```
 
 ### 2. Mixed Sources Demo (`mixed_sources_demo.yaml`)
@@ -29,7 +29,7 @@ Shows how to use multiple external code sources in a single task.
 
 **Usage:**
 ```bash
-corebrum submit --file task_definitions/general/mixed_sources_demo.yaml
+cortex submit --file task_definitions/general/mixed_sources_demo.yaml
 ```
 
 ### 3. Multi-Dependency Task (`multi_dependency_task.yaml`)
@@ -43,7 +43,7 @@ Example of a task with multiple dependencies and complex input/output handling.
 
 **Usage:**
 ```bash
-corebrum submit --file task_definitions/general/multi_dependency_task.yaml
+cortex submit --file task_definitions/general/multi_dependency_task.yaml
 ```
 
 ### 4. Simple Test (`simple_test.yaml`)
@@ -57,7 +57,7 @@ A basic test task for verifying Corebrum functionality.
 
 **Usage:**
 ```bash
-corebrum submit --file task_definitions/general/simple_test.yaml
+cortex submit --file task_definitions/general/simple_test.yaml
 ```
 
 ### 5. Very Simple Test (`very_simple_test.yaml`)
@@ -71,7 +71,7 @@ The most basic possible task definition.
 
 **Usage:**
 ```bash
-corebrum submit --file task_definitions/general/very_simple_test.yaml
+cortex submit --file task_definitions/general/very_simple_test.yaml
 ```
 
 ## Key Features Demonstrated

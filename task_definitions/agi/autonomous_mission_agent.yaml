@@ -411,10 +411,10 @@ compute_logic:
                 # Create job
                 job = create_job_from_task_def(task_def, task_spec.get("inputs", {}))
                 
-                # Submit via Zenoh using the same format as corebrum submit command
-                # The scheduler listens to corebrum/tasks/{task_id}/submit, not comp/queues/user_tasks/announce
+                # Submit via Zenoh using the same format as cortex submit command
+                # The scheduler listens to cortex/tasks/{task_id}/submit, not comp/queues/user_tasks/announce
                 task_id = job.get("task_id")
-                submit_topic = f"corebrum/tasks/{task_id}/submit"
+                submit_topic = f"cortex/tasks/{task_id}/submit"
                 
                 # Format the submission to match what the scheduler expects
                 # The scheduler expects: {task_definition, user_inputs, timestamp, identity_id?}

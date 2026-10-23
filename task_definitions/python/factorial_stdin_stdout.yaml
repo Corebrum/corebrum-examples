@@ -8,7 +8,7 @@ task_definition:
   outputs:
     - name: "result"
       type: "zenoh"
-      key: "corebrum/examples/factorial/result"
+      key: "cortex/examples/factorial/result"
   compute_logic:
     type: "expression"
     language: "python"

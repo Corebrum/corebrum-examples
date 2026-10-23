@@ -6,7 +6,7 @@ This directory contains example scripts demonstrating how to orchestrate all thr
 
 ### 1. `mesh_orchestrator.sh` - Standalone CLI Orchestration
 
-A bash script that uses the `corebrum` CLI to orchestrate workflows. Can be run from any shell environment.
+A bash script that uses the `cortex` CLI to orchestrate workflows. Can be run from any shell environment.
 
 **Features:**
 - Parallel task submission and waiting
@@ -28,7 +28,7 @@ ZENOH_ROUTER=tcp://192.168.1.100:7447 ./mesh_orchestrator.sh
 ```
 
 **Requirements:**
-- `corebrum` CLI installed and in PATH
+- `cortex` CLI installed and in PATH
 - `jq` for JSON parsing
 - Zenoh router running
 - Corebrum daemon running
@@ -46,7 +46,7 @@ A script designed to run inside the CMOS shell environment, using CMOS-native co
 **Usage:**
 ```bash
 # Enter CMOS shell
-corebrum cmos
+cortex cmos
 
 # Run the script
 CMOS[user@local] > ./cmos_orchestrator.sh
@@ -184,19 +184,19 @@ fi
 ## Troubleshooting
 
 **Tasks not submitting:**
-- Check Zenoh router is running: `corebrum netstat`
+- Check Zenoh router is running: `cortex netstat`
 - Verify task definition files exist and are valid YAML/JSON
 - Check worker capabilities match task requirements
 
 **Tasks timing out:**
 - Increase `MAX_WAIT_TIME` for long-running tasks
-- Check task logs: `corebrum logs <task-id>`
-- Verify workers are available: `corebrum netstat`
+- Check task logs: `cortex logs <task-id>`
+- Verify workers are available: `cortex netstat`
 
 **Results not extracting:**
 - Ensure `jq` is installed: `which jq`
 - Verify result JSON structure matches expected paths
-- Check task completed successfully: `corebrum status <task-id>`
+- Check task completed successfully: `cortex status <task-id>`
 
 ## Next Steps
 
@@ -204,7 +204,7 @@ fi
 - Add workflow state persistence
 - Implement retry logic and error recovery
 - Add workflow visualization and monitoring
-- Create a `corebrum workflow` command for native workflow support
+- Create a `cortex workflow` command for native workflow support
 
 ## See Also
 

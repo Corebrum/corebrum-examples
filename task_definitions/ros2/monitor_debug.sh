@@ -20,12 +20,12 @@ echo ""
 
 # Check zenoh topics
 echo "🌐 Zenoh Topics:"
-echo "Running: ./../../../corebrum/target/debug/corebrum topics"
-./../../../corebrum/target/debug/corebrum topics
+echo "Running: ./../../../corebrum-cortex/target/debug/cortex topics"
+./../../../corebrum-cortex/target/debug/cortex topics
 echo ""
 
 # Monitor velocity commands
 echo "🚗 Monitoring velocity commands (rt/cmd_vel):"
 echo "Press Ctrl+C to stop monitoring"
 echo ""
-./../../../corebrum/target/debug/corebrum subscribe rt/cmd_vel
+./../../../corebrum-cortex/target/debug/cortex subscribe rt/cmd_vel

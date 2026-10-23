@@ -15,7 +15,7 @@ The easiest way to test Omnagi's LLM integration is using local Qwen models via 
 
 2. **Start Corebrum (in another terminal):**
    ```bash
-   corebrum daemon --worker-count 2
+   cortex daemon --worker-count 2
    ```
 
 3. **Start Ollama (in another terminal):**
@@ -101,7 +101,7 @@ This script will:
 
 ### "Corebrum API error" or Task Hangs
 
-- Ensure Corebrum daemon is running: `corebrum daemon --worker-count 2`
+- Ensure Corebrum daemon is running: `cortex daemon --worker-count 2`
 - Check Corebrum REST API: `curl http://localhost:6502/api/jobs`
 - Verify workers are available
 

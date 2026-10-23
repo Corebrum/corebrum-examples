@@ -6,12 +6,12 @@ Examples demonstrating Corebrum's hive memory sharing system, where multiple rob
 
 1. **Start Corebrum Web Server**:
    ```bash
-   corebrum web
+   cortex web
    ```
 
 2. **Start Corebrum Daemon** (with requests capability):
    ```bash
-   corebrum daemon --capabilities "python,requests"
+   cortex daemon --capabilities "python,requests"
    ```
 
 3. **Create Identities** (if you don't have any):
@@ -52,7 +52,7 @@ curl -X PUT "http://localhost:6502/api/hives/HIVE_ID/members/KEY_ID_2"
 **Usage:**
 ```bash
 # Robot 1 stores knowledge in the hive
-corebrum submit-and-wait \
+cortex submit-and-wait \
   --file cortex/task_definitions/hive/hive_shared_knowledge.yaml \
   --input '{
     "hive_id": "YOUR_HIVE_ID",
@@ -62,7 +62,7 @@ corebrum submit-and-wait \
   }'
 
 # Robot 2 stores different knowledge
-corebrum submit-and-wait \
+cortex submit-and-wait \
   --file cortex/task_definitions/hive/hive_shared_knowledge.yaml \
   --input '{
     "hive_id": "YOUR_HIVE_ID",
@@ -94,7 +94,7 @@ Demonstrates collaborative learning where robots share insights and learn from e
 **Usage:**
 ```bash
 # Robot 1 shares an insight
-corebrum submit-and-wait \
+cortex submit-and-wait \
   --file cortex/task_definitions/hive/hive_collaborative_learning.yaml \
   --input '{
     "hive_id": "YOUR_HIVE_ID",
@@ -104,7 +104,7 @@ corebrum submit-and-wait \
   }'
 
 # Robot 2 shares a different insight
-corebrum submit-and-wait \
+cortex submit-and-wait \
   --file cortex/task_definitions/hive/hive_collaborative_learning.yaml \
   --input '{
     "hive_id": "YOUR_HIVE_ID",
@@ -114,7 +114,7 @@ corebrum submit-and-wait \
   }'
 
 # Robot 1 runs again - now sees all shared insights
-corebrum submit-and-wait \
+cortex submit-and-wait \
   --file cortex/task_definitions/hive/hive_collaborative_learning.yaml \
   --input '{
     "hive_id": "YOUR_HIVE_ID",
@@ -136,22 +136,22 @@ You can also manage hives using the CLI:
 
 ```bash
 # Create a hive
-corebrum hive create "Research Team" \
+cortex hive create "Research Team" \
   --description "Shared knowledge base" \
   --key-id YOUR_KEY_ID
 
 # List hives
-corebrum hive list --key-id YOUR_KEY_ID
+cortex hive list --key-id YOUR_KEY_ID
 
 # Join a hive
-corebrum hive join HIVE_ID --key-id YOUR_KEY_ID
+cortex hive join HIVE_ID --key-id YOUR_KEY_ID
 
 # Store memory in a hive
-corebrum hive memory put HIVE_ID "fact_1" '{"value": "The sky is blue"}' \
+cortex hive memory put HIVE_ID "fact_1" '{"value": "The sky is blue"}' \
   --key-id YOUR_KEY_ID
 
 # Query hive memories
-corebrum hive memory query HIVE_ID --key-id YOUR_KEY_ID
+cortex hive memory query HIVE_ID --key-id YOUR_KEY_ID
 ```
 
 ## Memory Access Patterns

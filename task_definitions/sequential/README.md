@@ -25,7 +25,7 @@ A complete AI/ML pipeline that processes data through multiple stages.
 
 **Usage:**
 ```bash
-corebrum submit --file task_definitions/sequential/sequential_ai_pipeline.yaml
+cortex submit --file task_definitions/sequential/sequential_ai_pipeline.yaml
 ```
 
 ### 2. Sequential Data Transform (`sequential_data_transform.yaml`)
@@ -40,7 +40,7 @@ Transforms data through multiple processing stages.
 
 **Usage:**
 ```bash
-corebrum submit --file task_definitions/sequential/sequential_data_transform.yaml
+cortex submit --file task_definitions/sequential/sequential_data_transform.yaml
 ```
 
 ### 3. Sequential Pipeline (`sequential_pipeline.yaml`)
@@ -55,7 +55,7 @@ A basic example of chaining simple tasks together.
 
 **Usage:**
 ```bash
-corebrum submit --file task_definitions/sequential/sequential_pipeline.yaml
+cortex submit --file task_definitions/sequential/sequential_pipeline.yaml
 ```
 
 ### 4. Sequential STDIN/STDOUT (`sequential_stdin_stdout.yaml`)
@@ -64,7 +64,7 @@ A minimal sequential example that makes the STDIN/STDOUT model explicit for one-
 
 **Usage:**
 ```bash
-corebrum submit --file task_definitions/sequential/sequential_stdin_stdout.yaml --input '{"seed": 5}'
+cortex submit --file task_definitions/sequential/sequential_stdin_stdout.yaml --input '{"seed": 5}'
 ```
 Expected behavior: step 1 generates `[1..seed]`, step 2 squares them, step 3 aggregates to a final JSON result. Each step emits exactly one JSON object to STDOUT.
 

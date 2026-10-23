@@ -24,7 +24,7 @@ Computes factorial using a WebAssembly module.
 
 **Usage:**
 ```bash
-corebrum submit --file task_definitions/wasm/factorial_wasm.yaml --input '{"number": 6}'
+cortex submit --file task_definitions/wasm/factorial_wasm.yaml --input '{"number": 6}'
 ```
 
 ### 2. Factorial WASM from URL (`factorial_wasm_url.yaml`)
@@ -38,7 +38,7 @@ Loads a WASM module from a remote URL and executes it.
 
 **Usage:**
 ```bash
-corebrum submit --file task_definitions/wasm/factorial_wasm_url.yaml --input '{"number": 6}'
+cortex submit --file task_definitions/wasm/factorial_wasm_url.yaml --input '{"number": 6}'
 ```
 
 ## WASM Task Configuration

@@ -16,9 +16,9 @@ compute_logic:
     session = zenoh.open()
     
     # Generate storage key if not provided
-    storage_key = key if key else f"corebrum/storage/results/{uuid.uuid4()}"
-    if not storage_key.startswith("corebrum/storage/"):
-        storage_key = f"corebrum/storage/results/{storage_key}"
+    storage_key = key if key else f"cortex/storage/results/{uuid.uuid4()}"
+    if not storage_key.startswith("cortex/storage/"):
+        storage_key = f"cortex/storage/results/{storage_key}"
     
     # Store data in persistent storage
     data_json = json.dumps(data)

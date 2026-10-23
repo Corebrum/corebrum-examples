@@ -76,8 +76,8 @@ if echo "$LOCAL_RESPONSE" | jq -e '.error' > /dev/null 2>&1; then
     echo "❌ Error: $(echo "$LOCAL_RESPONSE" | jq -r '.error')"
     echo ""
     echo "💡 Troubleshooting:"
-    echo "  - Make sure Corebrum web server is running: cargo run --bin corebrum -- web"
-    echo "  - Make sure Corebrum workers are running: corebrum daemon --worker-count 2"
+    echo "  - Make sure Corebrum web server is running: cargo run --bin cortex -- web"
+    echo "  - Make sure Corebrum workers are running: cortex daemon --worker-count 2"
     echo "  - Make sure Ollama is running: ollama serve"
     echo "  - Check available models: ollama list"
 else

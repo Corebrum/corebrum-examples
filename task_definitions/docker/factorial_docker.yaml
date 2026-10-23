@@ -8,7 +8,7 @@ task_definition:
   outputs:
     - name: "result"
       type: "zenoh"
-      key: "corebrum/examples/docker/factorial"
+      key: "cortex/examples/docker/factorial"
   validation: []
   metadata: {}
   

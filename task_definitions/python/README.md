@@ -24,7 +24,7 @@ A simple factorial calculation using embedded Python code.
 
 **Usage:**
 ```bash
-corebrum submit --file task_definitions/python/factorial_task.yaml
+cortex submit --file task_definitions/python/factorial_task.yaml
 ```
 
 ### 2. Factorial from URL (`factorial_from_url.yaml`)
@@ -38,7 +38,7 @@ Loads Python code from a remote URL and executes it.
 
 **Usage:**
 ```bash
-corebrum submit --file task_definitions/python/factorial_from_url.yaml
+cortex submit --file task_definitions/python/factorial_from_url.yaml
 ```
 
 ### 3. Fibonacci Task (`fibonacci_task.json`)
@@ -52,7 +52,7 @@ Computes Fibonacci numbers using a JSON task definition.
 
 **Usage:**
 ```bash
-corebrum submit --file task_definitions/python/fibonacci_task.json
+cortex submit --file task_definitions/python/fibonacci_task.json
 ```
 
 ### 4. Fibonacci from Gist (`fibonacci_from_gist.json`)
@@ -66,7 +66,7 @@ Loads Fibonacci computation code from a GitHub Gist.
 
 **Usage:**
 ```bash
-corebrum submit --file task_definitions/python/fibonacci_from_gist.json
+cortex submit --file task_definitions/python/fibonacci_from_gist.json
 ```
 
 ### 5. Python with Dependencies (`python_with_dependencies.yaml`)
@@ -80,7 +80,7 @@ Shows how to handle Python package dependencies in tasks.
 
 **Usage:**
 ```bash
-corebrum submit --file task_definitions/python/python_with_dependencies.yaml
+cortex submit --file task_definitions/python/python_with_dependencies.yaml
 ```
 
 ## Python Task Configuration
@@ -198,11 +198,11 @@ Corebrum workers automatically install missing Python packages before executing 
 ```bash
 # Disable auto-install (if you want to pre-install packages manually)
 export COREBRUM_AUTO_INSTALL_DEPS=false
-corebrum daemon
+cortex daemon
 
 # Enable auto-install explicitly (default)
 export COREBRUM_AUTO_INSTALL_DEPS=true
-corebrum daemon
+cortex daemon
 ```
 
 **Example with dependencies:**

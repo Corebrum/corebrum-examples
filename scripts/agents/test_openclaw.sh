@@ -3,7 +3,7 @@
 #
 # Prerequisites:
 #   - Zenoh router reachable (Corebrum default)
-#   - corebrum web:  corebrum web   (or your deployment on COREBRUM_URL)
+#   - cortex web:  cortex web   (or your deployment on COREBRUM_URL)
 #   - Workspace path exists or will be created by you before sync
 #
 # Environment:
@@ -98,4 +98,4 @@ echo
 echo
 
 echo "OK: OpenClaw hub API checks finished."
-echo "Next: start OpenClaw Gateway, then  corebrum integration bridge --identity-id $IDENTITY_ID  (or CMOS integration bridge-start)."
+echo "Next: start OpenClaw Gateway, then  cortex integration bridge --identity-id $IDENTITY_ID  (or CMOS integration bridge-start)."

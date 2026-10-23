@@ -8,7 +8,7 @@ task_definition:
   outputs:
     - name: "result"
       type: "zenoh"
-      key: "corebrum/examples/javascript_deps/result"
+      key: "cortex/examples/javascript_deps/result"
   validation: []
   metadata: {}
   dependencies: ["javascript"]

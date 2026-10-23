@@ -24,7 +24,7 @@ wait_for_task() {
     local attempts=0
     
     while [ $attempts -lt $max_attempts ]; do
-        local status=$(corebrum status "$task_id" --zenoh-router "$ZENOH_ROUTER" 2>/dev/null | grep -o '"state": "[^"]*"' | cut -d'"' -f4)
+        local status=$(cortex status "$task_id" --zenoh-router "$ZENOH_ROUTER" 2>/dev/null | grep -o '"state": "[^"]*"' | cut -d'"' -f4)
         
         case "$status" in
             "COMPLETED")
@@ -45,7 +45,7 @@ wait_for_task() {
 # Helper: Get task result as JSON
 get_task_result() {
     local task_id=$1
-    corebrum results "$task_id" --format json --zenoh-router "$ZENOH_ROUTER" 2>/dev/null
+    cortex results "$task_id" --format json --zenoh-router "$ZENOH_ROUTER" 2>/dev/null
 }
 
 # Extract numeric value from result
@@ -78,7 +78,7 @@ submit_task() {
     local task_file=$1
     local input=$2
     
-    corebrum submit "$task_file" \
+    cortex submit "$task_file" \
         --input "$input" \
         --zenoh-router "$ZENOH_ROUTER" 2>/dev/null | grep -o '[a-f0-9-]\{36\}' | head -1
 }

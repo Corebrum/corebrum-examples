@@ -36,7 +36,7 @@ integration register --gateway-url ws://127.0.0.1:18789 --workspace-path ~/.open
 
 **Via CLI:**
 ```bash
-corebrum integration register --gateway-url ws://127.0.0.1:18789 --workspace-path ~/.openclaw/workspace
+cortex integration register --gateway-url ws://127.0.0.1:18789 --workspace-path ~/.openclaw/workspace
 ```
 
 **Via API:**
@@ -59,7 +59,7 @@ integration bridge-start --identity-id <identity-id>
 
 **Via CLI:**
 ```bash
-corebrum integration bridge --identity-id <identity-id>
+cortex integration bridge --identity-id <identity-id>
 ```
 
 ### 3. Sync Memory
@@ -71,7 +71,7 @@ integration sync-memory --identity-id <identity-id> --workspace-path ~/.openclaw
 
 **Via CLI:**
 ```bash
-corebrum integration sync-memory --identity-id <identity-id> --workspace-path ~/.openclaw/workspace
+cortex integration sync-memory --identity-id <identity-id> --workspace-path ~/.openclaw/workspace
 ```
 
 ## Examples
@@ -88,7 +88,7 @@ A simple test task that verifies OpenClaw integration is working.
 **Usage:**
 ```bash
 # Via CLI
-corebrum submit --file cortex/task_definitions/openclaw/openclaw-test.json
+cortex submit --file cortex/task_definitions/openclaw/openclaw-test.json
 
 # Via API
 curl -X POST http://localhost:6502/api/submit \
@@ -111,7 +111,7 @@ A task that uses OpenClaw workspace memory context.
 
 **Usage:**
 ```bash
-corebrum submit --file cortex/task_definitions/openclaw/openclaw-memory-task.json
+cortex submit --file cortex/task_definitions/openclaw/openclaw-memory-task.json
 ```
 
 ### 3. OpenClaw Hive Task (`openclaw-hive-task.json`)
@@ -125,7 +125,7 @@ A task that leverages shared hive memory across OpenClaw instances.
 
 **Usage:**
 ```bash
-corebrum submit --file cortex/task_definitions/openclaw/openclaw-hive-task.json
+cortex submit --file cortex/task_definitions/openclaw/openclaw-hive-task.json
 ```
 
 ### 4. Browser Automation (`openclaw-browser-example.json`)
@@ -140,7 +140,7 @@ Basic browser automation using Playwright.
 
 **Usage:**
 ```bash
-corebrum submit --file cortex/task_definitions/openclaw/openclaw-browser-example.json
+cortex submit --file cortex/task_definitions/openclaw/openclaw-browser-example.json
 ```
 
 **Dependencies:** Playwright will be automatically installed by Corebrum workers
@@ -157,7 +157,7 @@ Advanced web scraping example extracting structured data from web pages.
 
 **Usage:**
 ```bash
-corebrum submit --file cortex/task_definitions/openclaw/openclaw-browser-scraping.json
+cortex submit --file cortex/task_definitions/openclaw/openclaw-browser-scraping.json
 ```
 
 ### 6. Browser Interaction (`openclaw-browser-interaction.json`)
@@ -172,7 +172,7 @@ Browser interaction example - clicking, form filling, navigation.
 
 **Usage:**
 ```bash
-corebrum submit --file cortex/task_definitions/openclaw/openclaw-browser-interaction.json
+cortex submit --file cortex/task_definitions/openclaw/openclaw-browser-interaction.json
 ```
 
 ### 7. Browser with Auto-Install (`openclaw-browser-with-install.json`)
@@ -187,7 +187,7 @@ Browser automation that automatically installs Playwright browser binaries if ne
 
 **Usage:**
 ```bash
-corebrum submit --file cortex/task_definitions/openclaw/openclaw-browser-with-install.json
+cortex submit --file cortex/task_definitions/openclaw/openclaw-browser-with-install.json
 ```
 
 **Note**: This example includes installation logic, but OpenClaw bridge workers should already have browsers installed.
@@ -382,29 +382,29 @@ integration status
 
 ### Register
 ```bash
-corebrum integration register [--gateway-url URL] [--workspace-path PATH] [--user-id ID]
+cortex integration register [--gateway-url URL] [--workspace-path PATH] [--user-id ID]
 ```
 
 ### Sync Memory
 ```bash
-corebrum integration sync-memory --identity-id ID --workspace-path PATH
+cortex integration sync-memory --identity-id ID --workspace-path PATH
 ```
 
 ### Bridge
 ```bash
-corebrum integration bridge --identity-id ID [--gateway-url URL]
+cortex integration bridge --identity-id ID [--gateway-url URL]
 ```
 
 ### Status
 ```bash
-corebrum integration status
+cortex integration status
 ```
 
 ## Troubleshooting
 
 ### Bridge Not Appearing
 
-- Check bridge is running: `ps aux | grep "corebrum integration bridge"`
+- Check bridge is running: `ps aux | grep "cortex integration bridge"`
 - Verify Zenoh router is accessible
 - Check bridge logs for errors
 

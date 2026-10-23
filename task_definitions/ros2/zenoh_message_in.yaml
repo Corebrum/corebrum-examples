@@ -5,11 +5,11 @@ task_definition:
   inputs:
     - name: "msg"
       type: "zenoh"
-      key: "corebrum/examples/ros2/in"
+      key: "cortex/examples/ros2/in"
   outputs:
     - name: "result"
       type: "zenoh"
-      key: "corebrum/examples/ros2/in_result"
+      key: "cortex/examples/ros2/in_result"
   compute_logic:
     type: "expression"
     language: "python"

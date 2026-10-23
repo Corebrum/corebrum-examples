@@ -99,7 +99,7 @@ The OpenClaw hub API smoke script still lives at [`scripts/agents/test_openclaw.
 ### Basic Usage
 ```bash
 # Submit a task definition
-corebrum submit --file task_definitions/ros2/object_detection.yaml
+cortex submit --file task_definitions/ros2/object_detection.yaml
 
 # Monitor task execution
 streams
@@ -123,7 +123,7 @@ task_definition:
   outputs:
     - name: "result"
       type: "zenoh"
-      key: "corebrum/examples/example/result"
+      key: "cortex/examples/example/result"
   compute_logic:
     type: "expression"
     language: "python"
@@ -260,7 +260,7 @@ netstat
 - **Code comments**: Examples include inline documentation
 
 ### Getting Help
-- **CLI help**: Use `corebrum --help` for command-line help
+- **CLI help**: Use `cortex --help` for command-line help
 - **Mesh commands**: Use `help <command>` in CMOS for detailed help
 - **Examples**: Study existing examples for patterns and best practices
 

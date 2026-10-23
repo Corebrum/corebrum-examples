@@ -17,7 +17,7 @@ echo ""
 # Check if Corebrum is running
 if ! curl -s "$API_URL/api/identity" > /dev/null 2>&1; then
     echo "❌ Error: Corebrum service is not running on $API_URL"
-    echo "   Start it with: cargo run --bin corebrum -- web"
+    echo "   Start it with: cargo run --bin cortex -- web"
     exit 1
 fi
 echo "✅ Corebrum service is running"

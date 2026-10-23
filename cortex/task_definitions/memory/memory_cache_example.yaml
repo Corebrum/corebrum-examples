@@ -25,7 +25,7 @@ compute_logic:
     
     config = zenoh.Config()
     session = zenoh.open(config)
-    memory_key = f"corebrum/memory/cache/computation/{n}"
+    memory_key = f"cortex/memory/cache/computation/{n}"
     print(f"DEBUG: memory_key = {memory_key}", file=sys.stderr)
     
     # Check memory cache first (ephemeral, very fast)

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Smoke-test Corebrum agent integration hub (requires `corebrum web` or packaged server).
+# Smoke-test Corebrum agent integration hub (requires `cortex web` or packaged server).
 # Usage: COREBRUM_URL=http://127.0.0.1:6502 ./smoke_hub_api.sh
 
 set -euo pipefail

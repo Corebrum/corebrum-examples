@@ -30,7 +30,7 @@ Welcome to the Corebrum Getting Started Developer Guide! This comprehensive guid
 
 **Example layout:** General mesh task definitions are under [`task_definitions/`](task_definitions/). Bundles that require **Corebrum Cortex** (identity, memory, hive, OpenClaw) are under [`cortex/task_definitions/`](cortex/task_definitions/) — start at [`cortex/README.md`](cortex/README.md).
 
-**Hands-on commands** (Zenoh, daemon, CMOS, ROS2, streams, REST, Cortex paths from a sibling `corebrum` checkout): [`CHEATSHEET.md`](CHEATSHEET.md).
+**Hands-on commands** (Zenoh, daemon, CMOS, ROS2, streams, REST, Cortex paths from a sibling `corebrum-cortex` checkout): [`CHEATSHEET.md`](CHEATSHEET.md).
 
 ---
 
@@ -119,13 +119,13 @@ graph TB
 
 ```bash
 # Add Corebrum APT repository
-echo "deb [trusted=yes] https://corebrum.github.io/corebrum/apt-repo/ stable main" | sudo tee /etc/apt/sources.list.d/corebrum.list
+echo "deb [trusted=yes] https://corebrum.github.io/corebrum-cortex/apt-repo/ stable main" | sudo tee /etc/apt/sources.list.d/cortex.list
 
 # Update package list
 sudo apt update
 
 # Install Corebrum
-sudo apt install corebrum
+sudo apt install cortex
 ```
 
 #### Method 2: Homebrew (macOS)
@@ -135,7 +135,7 @@ sudo apt install corebrum
 brew tap corebrum/corebrum
 
 # Install Corebrum
-brew install corebrum
+brew install cortex
 ```
 
 #### Method 3: Windows (Direct Download)
@@ -145,13 +145,13 @@ brew install corebrum
 # Direct download: https://corebrum-releases.s3.amazonaws.com/releases/v0.2.112/corebrum-x86_64-pc-windows-msvc.zip
 
 # Extract the zip file
-# Add corebrum.exe to your PATH environment variable
+# Add cortex.exe to your PATH environment variable
 ```
 
 **Windows Installation Steps:**
-1. Download the corebrum-x86_64-pc-windows-msvc.zip file from: https://github.com/Corebrum/corebrum/releases 
+1. Download the corebrum-x86_64-pc-windows-msvc.zip file from: https://github.com/Corebrum/corebrum-cortex/releases 
 2. Extract the zip file to a directory (e.g., `C:\Program Files\Corebrum`)
-3. Add the directory containing `corebrum.exe` to your PATH:
+3. Add the directory containing `cortex.exe` to your PATH:
    - Open System Properties → Environment Variables
    - Edit the `Path` variable in User or System variables
    - Add the directory path (e.g., `C:\Program Files\Corebrum`)
@@ -161,8 +161,8 @@ brew install corebrum
 
 ```bash
 # Clone the repository
-git clone https://github.com/corebrum/corebrum.git
-cd corebrum
+git clone https://github.com/Corebrum/corebrum-cortex.git
+cd corebrum-cortex
 
 # Build Corebrum
 cargo build --release
@@ -212,13 +212,13 @@ result = process_data([{"x": 1, "y": 2}, {"x": 3, "y": 4}])
 
 ```bash
 # Check Corebrum version
-corebrum --version
+cortex --version
 
 # View help
-corebrum --help
+cortex --help
 
 # List available commands
-corebrum help
+cortex help
 ```
 
 ### Initial Configuration
@@ -228,7 +228,7 @@ Corebrum uses sensible defaults and typically requires no initial configuration.
 You can override the Zenoh router endpoint using the `--zenoh-router` flag:
 
 ```bash
-corebrum daemon --zenoh-router tcp://your-router:7447
+cortex daemon --zenoh-router tcp://your-router:7447
 ```
 
 ---
@@ -253,7 +253,7 @@ corebrum daemon --zenoh-router tcp://your-router:7447
 3. **Ask Claude to build a Corebrum app:**
    At the Claude Code prompt, describe what you want to build. For example:
    ```
-   help me build and run a corebrum app that calculates pi out to 5 decimals
+   help me build and run a cortex app that calculates pi out to 5 decimals
    ```
 
 4. **Approve Claude's actions:**
@@ -267,13 +267,13 @@ corebrum daemon --zenoh-router tcp://your-router:7447
 
 **Initial Request:**
 ```
-help me build and run a corebrum app that calculates pi out to 5 decimals
+help me build and run a cortex app that calculates pi out to 5 decimals
 ```
 
 Claude will:
 - Create a task definition file (e.g., `task_definitions/python/pi_calculation.yaml`)
 - Write Python code to calculate π using a method like the Leibniz formula or Monte Carlo
-- Submit the task using `corebrum submit`
+- Submit the task using `cortex submit`
 - Wait for completion and display results
 
 **Iterative Refinement:**
@@ -394,7 +394,7 @@ Simple file-based storage for development:
 
 ```bash
 # Start zenohd with filesystem backend
-zenohd --config /path/to/corebrum/docs/zenoh_configs/zenohd-filesystem.json5
+zenohd --config /path/to/corebrum-cortex/docs/zenoh_configs/zenohd-filesystem.json5
 ```
 
 #### RocksDB Backend
@@ -403,7 +403,7 @@ High-performance key-value storage for production:
 
 ```bash
 # Start zenohd with RocksDB backend
-zenohd --config /path/to/corebrum/docs/zenoh_configs/zenohd-rocksdb.json5
+zenohd --config /path/to/corebrum-cortex/docs/zenoh_configs/zenohd-rocksdb.json5
 ```
 
 #### InfluxDB Backend
@@ -415,7 +415,7 @@ Time-series database for metrics and temporal data:
 influxd
 
 # Then start zenohd with InfluxDB backend
-zenohd --config /path/to/corebrum/docs/zenoh_configs/zenohd-influxdb.json5
+zenohd --config /path/to/corebrum-cortex/docs/zenoh_configs/zenohd-influxdb.json5
 ```
 
 #### Multi-Backend Configuration
@@ -423,14 +423,14 @@ zenohd --config /path/to/corebrum/docs/zenoh_configs/zenohd-influxdb.json5
 Use different backends for different data types:
 
 ```bash
-zenohd --config /path/to/corebrum/docs/zenoh_configs/zenohd-multi-backend.json5
+zenohd --config /path/to/corebrum-cortex/docs/zenoh_configs/zenohd-multi-backend.json5
 ```
 
 **Key Expression Mapping:**
-- `corebrum/storage/**` → Filesystem backend
-- `corebrum/cache/**` → RocksDB backend
-- `corebrum/metrics/**` → InfluxDB backend
-- `corebrum/memory/**` → In-memory (ephemeral)
+- `cortex/storage/**` → Filesystem backend
+- `cortex/cache/**` → RocksDB backend
+- `cortex/metrics/**` → InfluxDB backend
+- `cortex/memory/**` → In-memory (ephemeral)
 
 ### Network Configuration
 
@@ -449,10 +449,10 @@ For a laptop/edge hub plus workers and robots, generate matching JSON5 instead o
 ```bash
 npx zenoh-fleet                      # wizard (same CLI as @agenticros/zenoh-fleet)
 zenohd -c /path/to/<fleet>/zenohd.json5
-corebrum daemon --zenoh-router tcp://<hub>:7447
+cortex daemon --zenoh-router tcp://<hub>:7447
 ```
 
-Corebrum joins over **native TCP** (`tcp://<hub>:7447`), not AgenticROS's WebSocket endpoint (`ws://…:10000`). Full CLI: [zenoh-fleet](https://github.com/agenticros/zenoh-fleet). ROS2 mesh steps: [`../corebrum/ROS2-README.md`](../corebrum/ROS2-README.md).
+Corebrum joins over **native TCP** (`tcp://<hub>:7447`), not AgenticROS's WebSocket endpoint (`ws://…:10000`). Full CLI: [zenoh-fleet](https://github.com/agenticros/zenoh-fleet). ROS2 mesh steps: [`../corebrum-cortex/ROS2-README.md`](../corebrum-cortex/ROS2-README.md).
 
 To listen on all interfaces without a generated file:
 
@@ -476,10 +476,10 @@ zenoh pub -k test/topic "Hello, Zenoh!"
 ### Troubleshooting
 
 - **Router not starting**: Check if port 7447 is available
-- **Connection refused**: Verify router is running and accessible. For a laptop+robots mesh, run `npx zenoh-fleet` then `corebrum daemon --zenoh-router tcp://<hub>:7447`. From another machine: `nc -zv <hub> 7447`.
+- **Connection refused**: Verify router is running and accessible. For a laptop+robots mesh, run `npx zenoh-fleet` then `cortex daemon --zenoh-router tcp://<hub>:7447`. From another machine: `nc -zv <hub> 7447`.
 - **Storage errors**: Ensure storage directories exist and are writable
 
-For fleet topology configs, see [zenoh-fleet](https://github.com/agenticros/zenoh-fleet). For storage backend JSON5, see: [`../corebrum/docs/zenoh_configs/`](../corebrum/docs/zenoh_configs/)
+For fleet topology configs, see [zenoh-fleet](https://github.com/agenticros/zenoh-fleet). For storage backend JSON5, see: [`../corebrum-cortex/docs/zenoh_configs/`](../corebrum-cortex/docs/zenoh_configs/)
 
 ---
 
@@ -491,16 +491,16 @@ The Corebrum daemon manages workers that execute tasks:
 
 ```bash
 # Start daemon with default settings (4 workers)
-corebrum daemon
+cortex daemon
 
 # Start with custom worker count
-corebrum daemon --worker-count 8
+cortex daemon --worker-count 8
 
 # Start with specific Zenoh router
-corebrum daemon --zenoh-router tcp://192.168.1.100:7447
+cortex daemon --zenoh-router tcp://192.168.1.100:7447
 
 # Start with custom timeout
-corebrum daemon --default-timeout 600
+cortex daemon --default-timeout 600
 ```
 
 ### Worker Configuration
@@ -511,13 +511,13 @@ Workers can be configured with specific capabilities (languages/runtimes):
 
 ```bash
 # Start workers with Python capability
-corebrum daemon --capabilities python
+cortex daemon --capabilities python
 
 # Multiple capabilities
-corebrum daemon --capabilities "python,javascript,docker"
+cortex daemon --capabilities "python,javascript,docker"
 
 # Different capabilities per worker (comma-separated lists)
-corebrum daemon --capabilities "python,python,python,docker"
+cortex daemon --capabilities "python,python,python,docker"
 ```
 
 #### Resource Management
@@ -535,23 +535,23 @@ The daemon automatically connects to the Zenoh router. By default, it connects t
 To connect to a different router:
 
 ```bash
-corebrum daemon --zenoh-router tcp://router-ip:7447
+cortex daemon --zenoh-router tcp://router-ip:7447
 ```
 
 ### Monitoring Daemon Status
 
 ```bash
 # Check network status
-corebrum netstat
+cortex netstat
 
 # Check compute capacity
-corebrum compute-stats
+cortex compute-stats
 
 # List active jobs
-corebrum jobs
+cortex jobs
 
 # Ping a specific worker
-corebrum ping <worker-id>
+cortex ping <worker-id>
 ```
 
 ### Worker Lifecycle
@@ -574,16 +574,16 @@ The Corebrum CLI provides command-line access to all Corebrum functionality.
 
 ```bash
 # Submit from file
-corebrum submit --file task_definitions/python/factorial_task.yaml
+cortex submit --file task_definitions/python/factorial_task.yaml
 
 # Submit with inputs
-corebrum submit --file task.yaml --input '{"number": 10}'
+cortex submit --file task.yaml --input '{"number": 10}'
 
 # Submit from URL
-corebrum submit --file https://example.com/task.yaml --input '{"data": "value"}' --capability python
+cortex submit --file https://example.com/task.yaml --input '{"data": "value"}' --capability python
 
 # Submit with identity
-corebrum submit --file task.yaml --identity <key-id>
+cortex submit --file task.yaml --identity <key-id>
 ```
 
 #### Submit and Wait
@@ -591,7 +591,7 @@ corebrum submit --file task.yaml --identity <key-id>
 Wait for task completion before returning:
 
 ```bash
-corebrum submit-and-wait --file task.yaml --input '{"number": 5}'
+cortex submit-and-wait --file task.yaml --input '{"number": 5}'
 ```
 
 ### Task Management
@@ -600,44 +600,44 @@ corebrum submit-and-wait --file task.yaml --input '{"number": 5}'
 
 ```bash
 # Check task status
-corebrum status <task-id>
+cortex status <task-id>
 
 # Watch status changes
-corebrum status <task-id> --watch
+cortex status <task-id> --watch
 ```
 
 #### List Jobs
 
 ```bash
 # List all jobs
-corebrum jobs
+cortex jobs
 ```
 
 #### Get Logs
 
 ```bash
 # Get task logs
-corebrum logs <task-id>
+cortex logs <task-id>
 ```
 
 #### Get Results
 
 ```bash
 # Get results as JSON
-corebrum results <task-id>
+cortex results <task-id>
 
 # Get results as YAML
-corebrum results <task-id> --format yaml
+cortex results <task-id> --format yaml
 
 # Save results to file
-corebrum results <task-id> --output results.json
+cortex results <task-id> --output results.json
 ```
 
 #### Cancel Task
 
 ```bash
 # Cancel a running task
-corebrum cancel <task-id>
+cortex cancel <task-id>
 ```
 
 ### Network Operations
@@ -646,157 +646,157 @@ corebrum cancel <task-id>
 
 ```bash
 # Show network topology and workers
-corebrum netstat
+cortex netstat
 ```
 
 #### Ping Worker
 
 ```bash
 # Ping a specific worker
-corebrum ping <worker-id>
+cortex ping <worker-id>
 ```
 
 #### Mesh Topics
 
 ```bash
 # List all topics
-corebrum topics
+cortex topics
 
 # Filter ROS2 topics
-corebrum topics ros2
+cortex topics ros2
 
 # Filter Corebrum topics
-corebrum topics corebrum
+cortex topics cortex
 ```
 
 #### Mesh Streams
 
 ```bash
 # List active streaming tasks
-corebrum streams
+cortex streams
 ```
 
 #### Publish Message
 
 ```bash
 # Publish to a topic
-corebrum publish <topic> '{"message": "data"}'
+cortex publish <topic> '{"message": "data"}'
 ```
 
 #### Subscribe to Topic
 
 ```bash
 # Subscribe and display messages
-corebrum subscribe <topic>
+cortex subscribe <topic>
 ```
 
 #### Network Topology
 
 ```bash
 # Show network topology
-corebrum network
+cortex network
 ```
 
 ### Storage Operations
 
 ```bash
 # Put data in storage
-corebrum storage put <key> '{"data": "value"}'
+cortex storage put <key> '{"data": "value"}'
 
 # Get data from storage
-corebrum storage get <key>
+cortex storage get <key>
 
 # Query storage
-corebrum storage query <prefix>
+cortex storage query <prefix>
 
 # Delete from storage
-corebrum storage delete <key>
+cortex storage delete <key>
 ```
 
 ### Memory Operations
 
 ```bash
 # Put data in memory
-corebrum memory put <key> '{"data": "value"}'
+cortex memory put <key> '{"data": "value"}'
 
 # Get data from memory
-corebrum memory get <key>
+cortex memory get <key>
 
 # Query memory
-corebrum memory query <prefix>
+cortex memory query <prefix>
 
 # Delete from memory
-corebrum memory delete <key>
+cortex memory delete <key>
 ```
 
 ### Identity Management
 
 ```bash
 # Create identity
-corebrum identity create --name "My Robot"
+cortex identity create --name "My Robot"
 
 # List identities
-corebrum identity list
+cortex identity list
 
 # Show identity details
-corebrum identity show <key-id>
+cortex identity show <key-id>
 
 # Set default identity
-corebrum identity set <key-id>
+cortex identity set <key-id>
 
 # Enable feature
-corebrum identity enable <key-id> memory
+cortex identity enable <key-id> memory
 
 # Disable feature
-corebrum identity disable <key-id> memory
+cortex identity disable <key-id> memory
 ```
 
 ### Hive Operations
 
 ```bash
 # Create hive
-corebrum hive create "Research Team" --description "Shared knowledge" --key-id <key-id>
+cortex hive create "Research Team" --description "Shared knowledge" --key-id <key-id>
 
 # List hives
-corebrum hive list --key-id <key-id>
+cortex hive list --key-id <key-id>
 
 # Join hive
-corebrum hive join <hive-id> --key-id <key-id>
+cortex hive join <hive-id> --key-id <key-id>
 
 # Put memory in hive
-corebrum hive memory put <hive-id> <key> '{"value": "data"}' --key-id <key-id>
+cortex hive memory put <hive-id> <key> '{"value": "data"}' --key-id <key-id>
 
 # Query hive memory
-corebrum hive memory query <hive-id> --key-id <key-id>
+cortex hive memory query <hive-id> --key-id <key-id>
 ```
 
 ### Authentication
 
 ```bash
 # Login
-corebrum auth login
+cortex auth login
 
 # Logout
-corebrum auth logout
+cortex auth logout
 
 # Check auth status
-corebrum auth status
+cortex auth status
 ```
 
 ### License Operations
 
 ```bash
 # Sync licenses
-corebrum license sync
+cortex license sync
 
 # Check license status
-corebrum license status <key-id>
+cortex license status <key-id>
 
 # List licenses
-corebrum license list
+cortex license list
 ```
 
-For complete CLI documentation, see: [`../corebrum/src/cli/commands/`](../corebrum/src/cli/commands/)
+For complete CLI documentation, see: [`../corebrum-cortex/src/cli/commands/`](../corebrum-cortex/src/cli/commands/)
 
 ---
 
@@ -808,16 +808,16 @@ CMOS (Corebrum Mesh Operating System) is an interactive shell that provides a un
 
 ```bash
 # Start CMOS with default settings
-corebrum cmos
+cortex cmos
 
 # Start with custom Zenoh router
-corebrum cmos --zenoh-router tcp://192.168.1.100:7447
+cortex cmos --zenoh-router tcp://192.168.1.100:7447
 
 # Start with VFS mount point
-corebrum cmos --mount-point /mnt/corebrum
+cortex cmos --mount-point /mnt/corebrum
 
 # Start without FUSE filesystem
-corebrum cmos --no-fuse
+cortex cmos --no-fuse
 ```
 
 ### Available Commands
@@ -854,7 +854,7 @@ ls memory/
 ### Example CMOS Session
 
 ```bash
-$ corebrum cmos
+$ cortex cmos
 CMOS[user@local] > submit --file task.yaml --input '{"number": 10}'
 ✅ Task submitted: abc123-def456-789
 
@@ -870,7 +870,7 @@ CMOS[user@local] > results abc123-def456-789
 CMOS[user@local] > exit
 ```
 
-For detailed CMOS documentation, see: [`../corebrum/src/shell/`](../corebrum/src/shell/)
+For detailed CMOS documentation, see: [`../corebrum-cortex/src/shell/`](../corebrum-cortex/src/shell/)
 
 ---
 
@@ -882,10 +882,10 @@ The Corebrum REST API provides programmatic access to all Corebrum functionality
 
 ```bash
 # Start web server on default port (6502)
-corebrum web
+cortex web
 
 # Start on custom host and port
-corebrum web --host 0.0.0.0 --port 8080
+cortex web --host 0.0.0.0 --port 8080
 ```
 
 The API server runs on `http://localhost:6502` by default.
@@ -1031,7 +1031,7 @@ curl http://localhost:6502/api/storage/<key>
 #### Query Storage
 
 ```bash
-curl http://localhost:6502/api/storage?prefix=corebrum/storage/
+curl http://localhost:6502/api/storage?prefix=cortex/storage/
 ```
 
 #### Delete Data
@@ -1194,7 +1194,7 @@ When the server is running, access interactive API documentation:
 http://localhost:6502/api/docs
 ```
 
-For complete API reference, see: [`../corebrum/src/web/routes.rs`](../corebrum/src/web/routes.rs)
+For complete API reference, see: [`../corebrum-cortex/src/web/routes.rs`](../corebrum-cortex/src/web/routes.rs)
 
 ---
 
@@ -1208,7 +1208,7 @@ The Web UI is automatically available when you start the REST API server:
 
 ```bash
 # Start web server (includes UI)
-corebrum web
+cortex web
 ```
 
 Access the UI at: `http://localhost:6502`
@@ -1269,7 +1269,7 @@ Submit tasks through the web interface:
 - **Feature Management**: Enable/disable features
 - **Set Default**: Set default identity for tasks
 
-For UI source code, see: [`../corebrum/src/web/ui/`](../corebrum/src/web/ui/)
+For UI source code, see: [`../corebrum-cortex/src/web/ui/`](../corebrum-cortex/src/web/ui/)
 
 ---
 
@@ -1469,18 +1469,18 @@ inputs:
 **Usage:**
 ```bash
 # Submit multiple parallel tasks
-corebrum submit --file task_definitions/python/factorial_task.yaml --input '{"number": 10}'
-corebrum submit --file task_definitions/python/factorial_task.yaml --input '{"number": 15}'
-corebrum submit --file task_definitions/python/factorial_task.yaml --input '{"number": 20}'
+cortex submit --file task_definitions/python/factorial_task.yaml --input '{"number": 10}'
+cortex submit --file task_definitions/python/factorial_task.yaml --input '{"number": 15}'
+cortex submit --file task_definitions/python/factorial_task.yaml --input '{"number": 20}'
 ```
 
 #### Fibonacci Sequence
 
 ```bash
 # Generate different sequence lengths in parallel
-corebrum submit --file task_definitions/python/fibonacci_task.json --input '{"terms": 20}'
-corebrum submit --file task_definitions/python/fibonacci_task.json --input '{"terms": 50}'
-corebrum submit --file task_definitions/python/fibonacci_task.json --input '{"terms": 100}'
+cortex submit --file task_definitions/python/fibonacci_task.json --input '{"terms": 20}'
+cortex submit --file task_definitions/python/fibonacci_task.json --input '{"terms": 50}'
+cortex submit --file task_definitions/python/fibonacci_task.json --input '{"terms": 100}'
 ```
 
 ### Container-Based Computing
@@ -1513,7 +1513,7 @@ requirements:
 
 **Usage:**
 ```bash
-corebrum submit --file task_definitions/docker/docker_task.yaml \
+cortex submit --file task_definitions/docker/docker_task.yaml \
   --input '{"data": [{"x": 1, "y": 2}, {"x": 3, "y": 4}]}'
 ```
 
@@ -1550,7 +1550,7 @@ cd wasm_factorial
 ./build.sh
 
 # Submit WASM task
-corebrum submit --file task_definitions/wasm/factorial_wasm.yaml --input '{"number": 25}'
+cortex submit --file task_definitions/wasm/factorial_wasm.yaml --input '{"number": 25}'
 ```
 
 ### External Code Sources
@@ -1653,14 +1653,14 @@ tasks:
 
 **Usage:**
 ```bash
-corebrum submit --file task_definitions/sequential/sequential_pipeline.yaml
+cortex submit --file task_definitions/sequential/sequential_pipeline.yaml
 ```
 
 ### Monitoring Sequential Tasks
 
 ```bash
 # View results for entire chain
-corebrum cmos
+cortex cmos
 CMOS[user@local] > results <parent-task-id> --chain
 
 # View logs for entire chain
@@ -1741,7 +1741,7 @@ stream_config:
 
 **Example: Battery Monitor**
 ```bash
-corebrum submit --file task_definitions/ros2/battery_monitor.yaml
+cortex submit --file task_definitions/ros2/battery_monitor.yaml
 ```
 
 ### Rate-Limited Processing
@@ -1774,7 +1774,7 @@ MCP is a standardized protocol for AI systems (LLMs) to interact with external t
 
 The main Corebrum repo ships **`contrib/corebrum-mcp`**: a stdio MCP server that calls the REST API (`/api/submit`, `/api/jobs`, `/api/v1/integration/register-worker`, …). Use it with Claude Code / Desktop / Dispatch. See that package’s `README.md` for `COREBRUM_URL` and Claude config snippets.
 
-**Smoke script:** [`scripts/integration/smoke_hub_api.sh`](./scripts/integration/smoke_hub_api.sh) — quick `curl` checks against a running `corebrum web` instance.
+**Smoke script:** [`scripts/integration/smoke_hub_api.sh`](./scripts/integration/smoke_hub_api.sh) — quick `curl` checks against a running `cortex web` instance.
 
 **Per-agent scripts:** [`scripts/agents/`](./scripts/agents/) — `test_openclaw.sh`, `test_claude.sh`, `test_gemini.sh`, optional `test_claude_mcp.mjs`, and `run_all_agent_tests.sh` (see [`scripts/agents/README.md`](./scripts/agents/README.md)).
 
@@ -1820,7 +1820,7 @@ source:
 
 **Usage:**
 ```bash
-corebrum submit --file task_definitions/mcp/mcp_one_shot_job.yaml \
+cortex submit --file task_definitions/mcp/mcp_one_shot_job.yaml \
   --input '{
     "mcp_server_url": "http://localhost:3000",
     "tool_name": "web_search",
@@ -1851,7 +1851,7 @@ outputs:
 **Usage:**
 ```bash
 # Submit streaming MCP job
-corebrum submit --file task_definitions/mcp/mcp_streaming_job.yaml
+cortex submit --file task_definitions/mcp/mcp_streaming_job.yaml
 
 # Publish trigger data
 zenoh pub -k mcp/trigger/data '{"tool_name": "analyze_sensor", "arguments": {"sensor_id": "temp_01", "value": 25.5}}'
@@ -1874,7 +1874,7 @@ ros2 run realsense_camera realsense_camera_node
 zenoh-bridge-ros2dds
 
 # 3. Submit MCP image analysis job
-corebrum submit --file task_definitions/mcp/mcp_ros2_image_analysis.yaml
+cortex submit --file task_definitions/mcp/mcp_ros2_image_analysis.yaml
 
 # 4. Monitor analysis results
 zenoh sub -k rt/robot1/camera/analysis
@@ -1892,7 +1892,7 @@ ros2 launch robot_bringup robot.launch.py
 zenoh-bridge-ros2dds
 
 # 3. Submit MCP sensor control job
-corebrum submit --file task_definitions/mcp/mcp_ros2_sensor_control.yaml
+cortex submit --file task_definitions/mcp/mcp_ros2_sensor_control.yaml
 
 # 4. Monitor velocity commands
 zenoh sub -k rt/robot1/cmd_vel
@@ -1969,7 +1969,7 @@ The `zenoh-bridge-ros2dds` bridges ROS2 DDS topics to Zenoh key expressions. Gen
 ```bash
 npx zenoh-fleet
 zenohd -c /path/to/<fleet>/zenohd.json5
-corebrum daemon --zenoh-router tcp://<hub>:7447
+cortex daemon --zenoh-router tcp://<hub>:7447
 ```
 
 ```bash
@@ -1983,7 +1983,7 @@ zenoh-bridge-ros2dds -c /path/to/<fleet>/zenoh-bridge-ros2dds-robot.json5
 zenoh-bridge-ros2dds
 ```
 
-Full mesh steps: [`../corebrum/ROS2-README.md`](../corebrum/ROS2-README.md).
+Full mesh steps: [`../corebrum-cortex/ROS2-README.md`](../corebrum-cortex/ROS2-README.md).
 
 #### Topic Mapping
 
@@ -2072,7 +2072,7 @@ ros2 run realsense_camera realsense_camera_node
 zenoh-bridge-ros2dds
 
 # 4. Submit person following task
-corebrum submit --file task_definitions/ros2/person_follow_simple.yaml
+cortex submit --file task_definitions/ros2/person_follow_simple.yaml
 
 # 5. Monitor velocity commands
 python3 task_definitions/ros2/monitor_twist_commands.py
@@ -2099,7 +2099,7 @@ ros2 launch robot_bringup robot.launch.py
 zenoh-bridge-ros2dds
 
 # 3. Submit sensor-based control task
-corebrum submit --file task_definitions/mcp/mcp_ros2_sensor_control.yaml
+cortex submit --file task_definitions/mcp/mcp_ros2_sensor_control.yaml
 
 # 4. Monitor velocity commands
 zenoh sub -k rt/robot1/cmd_vel
@@ -2118,7 +2118,7 @@ Real-time camera image analysis:
 
 **Usage:**
 ```bash
-corebrum submit --file task_definitions/mcp/mcp_ros2_image_analysis.yaml
+cortex submit --file task_definitions/mcp/mcp_ros2_image_analysis.yaml
 zenoh sub -k rt/robot1/camera/analysis
 ```
 
@@ -2142,7 +2142,7 @@ ros2 run realsense_camera realsense_camera_node
 zenoh-bridge-ros2dds
 
 # 3. Submit streaming image analysis task
-corebrum submit --file task_definitions/mcp/mcp_ros2_image_analysis.yaml
+cortex submit --file task_definitions/mcp/mcp_ros2_image_analysis.yaml
 
 # 4. Monitor analysis results
 zenoh sub -k rt/robot1/camera/analysis
@@ -2158,7 +2158,7 @@ ros2 launch robot_bringup robot.launch.py
 zenoh-bridge-ros2dds
 
 # 3. Submit sensor-based control task
-corebrum submit --file task_definitions/mcp/mcp_ros2_sensor_control.yaml
+cortex submit --file task_definitions/mcp/mcp_ros2_sensor_control.yaml
 
 # 4. Monitor velocity commands
 zenoh sub -k rt/robot1/cmd_vel
@@ -2176,7 +2176,7 @@ ros2 run realsense_camera realsense_camera_node
 zenoh-bridge-ros2dds
 
 # 3. Submit person following task
-corebrum submit --file task_definitions/ros2/person_follow_simple.yaml
+cortex submit --file task_definitions/ros2/person_follow_simple.yaml
 
 # 4. Monitor twist commands
 python3 task_definitions/ros2/monitor_twist_commands.py
@@ -2260,7 +2260,7 @@ cv2.imwrite('/tmp/debug_image.jpg', processed_image)
 zenoh info
 
 # Check Corebrum network
-corebrum netstat
+cortex netstat
 ```
 
 ### 14.8 Best Practices for Physical AI Robotics
@@ -2304,16 +2304,16 @@ Each robot in Corebrum has a unique, persistent identity (`key_id`) that serves 
 **Command Line:**
 ```bash
 # Create a new identity
-corebrum identity create --name "Robot Alpha"
+cortex identity create --name "Robot Alpha"
 
 # List all identities
-corebrum identity list
+cortex identity list
 
 # Set default identity
-corebrum identity set <key_id>
+cortex identity set <key_id>
 
 # Show identity details
-corebrum identity show <key_id>
+cortex identity show <key_id>
 ```
 
 **REST API:**
@@ -2339,13 +2339,13 @@ The Identity system includes feature flags that control access to advanced capab
 
 ```bash
 # Enable memory feature
-corebrum identity enable <key_id> memory
+cortex identity enable <key_id> memory
 
 # Enable hive feature
-corebrum identity enable <key_id> hive
+cortex identity enable <key_id> hive
 
 # Enable ancestor access
-corebrum identity enable <key_id> ancestor_access
+cortex identity enable <key_id> ancestor_access
 ```
 
 #### Using Identity with Tasks
@@ -2354,13 +2354,13 @@ When you submit a task with an identity context, the robot gains access to its m
 
 ```bash
 # Submit task with identity context
-corebrum submit --file task.yaml \
+cortex submit --file task.yaml \
   --input '{"data": "value"}' \
   --identity <key_id>
 
 # If default identity is set, it's used automatically
-corebrum identity set <key_id>
-corebrum submit --file task.yaml  # Uses default identity
+cortex identity set <key_id>
+cortex submit --file task.yaml  # Uses default identity
 ```
 
 For complete identity examples, see: [`cortex/task_definitions/identity/README.md`](cortex/task_definitions/identity/README.md)
@@ -2494,12 +2494,12 @@ source:
 
 ```bash
 # First execution
-corebrum submit --file task_with_identity.yaml \
+cortex submit --file task_with_identity.yaml \
   --input '{"number": 5}' \
   --identity <key_id>
 
 # Second execution - remembers previous result
-corebrum submit --file task_with_identity.yaml \
+cortex submit --file task_with_identity.yaml \
   --input '{"number": 7}' \
   --identity <key_id>
 ```
@@ -2611,17 +2611,17 @@ For complete hive examples, see: [`cortex/task_definitions/hive/README.md`](cort
 
 **Step 1: Create Identities**
 ```bash
-corebrum identity create --name "Research Bot 1"
+cortex identity create --name "Research Bot 1"
 # Returns: key_id_1 = 9f5ae164-4c3b-4c8a-9a83-fc7587b5f96a
 
-corebrum identity create --name "Research Bot 2"
+cortex identity create --name "Research Bot 2"
 # Returns: key_id_2 = 8e4bd053-3b2a-3b79-8b72-eb6479a4e85b
 ```
 
 **Step 2: Enable Features**
 ```bash
-corebrum identity enable 9f5ae164-4c3b-4c8a-9a83-fc7587b5f96a memory
-corebrum identity enable 9f5ae164-4c3b-4c8a-9a83-fc7587b5f96a hive
+cortex identity enable 9f5ae164-4c3b-4c8a-9a83-fc7587b5f96a memory
+cortex identity enable 9f5ae164-4c3b-4c8a-9a83-fc7587b5f96a hive
 ```
 
 **Step 3: Create a Hive**
@@ -2664,7 +2664,7 @@ outputs = {
 2. **Collaborative Research Teams**: Multiple robots working on the same problem
 3. **Hierarchical Robot Families**: Parent robots pass knowledge to children
 
-For comprehensive Cortex documentation, see: [`../corebrum/docs/blog/introducing-corebrum-cortex.md`](../corebrum/docs/blog/introducing-corebrum-cortex.md)
+For comprehensive Cortex documentation, see: [`../corebrum-cortex/docs/blog/introducing-corebrum-cortex.md`](../corebrum-cortex/docs/blog/introducing-corebrum-cortex.md)
 
 ---
 
@@ -2684,7 +2684,7 @@ Corebrum provides persistent storage capabilities using Zenoh storage backends.
 
 ```bash
 # CLI
-corebrum storage put "results/task1" '{"result": 42}'
+cortex storage put "results/task1" '{"result": 42}'
 
 # REST API
 curl -X PUT 'http://localhost:6502/api/storage/results/task1' \
@@ -2696,7 +2696,7 @@ curl -X PUT 'http://localhost:6502/api/storage/results/task1' \
 
 ```bash
 # CLI
-corebrum storage get "results/task1"
+cortex storage get "results/task1"
 
 # REST API
 curl 'http://localhost:6502/api/storage/results/task1'
@@ -2706,7 +2706,7 @@ curl 'http://localhost:6502/api/storage/results/task1'
 
 ```bash
 # CLI
-corebrum storage query "results/"
+cortex storage query "results/"
 
 # REST API
 curl 'http://localhost:6502/api/storage?prefix=results/'
@@ -2716,7 +2716,7 @@ curl 'http://localhost:6502/api/storage?prefix=results/'
 
 ```bash
 # CLI
-corebrum storage delete "results/task1"
+cortex storage delete "results/task1"
 
 # REST API
 curl -X DELETE 'http://localhost:6502/api/storage/results/task1'
@@ -2724,10 +2724,10 @@ curl -X DELETE 'http://localhost:6502/api/storage/results/task1'
 
 ### Key Naming Conventions
 
-- `corebrum/storage/results/{key}` - Task results
-- `corebrum/storage/cache/{category}/{key}` - Cached computations
-- `corebrum/storage/datasets/{key}` - Datasets and model data
-- `corebrum/storage/config/{key}` - Configuration data
+- `cortex/storage/results/{key}` - Task results
+- `cortex/storage/cache/{category}/{key}` - Cached computations
+- `cortex/storage/datasets/{key}` - Datasets and model data
+- `cortex/storage/config/{key}` - Configuration data
 
 ### Caching Strategies
 
@@ -2743,7 +2743,7 @@ source:
       import json
       
       session = zenoh.open()
-      cache_key = f"corebrum/storage/cache/factorial/{inputs['n']}"
+      cache_key = f"cortex/storage/cache/factorial/{inputs['n']}"
       
       # Check cache
       cached = session.get(cache_key)
@@ -2784,7 +2784,7 @@ Feature-based licensing controls access to advanced capabilities:
 CMOS provides a virtual file system for accessing mesh resources:
 
 ```bash
-corebrum cmos --mount-point /mnt/corebrum
+cortex cmos --mount-point /mnt/corebrum
 cd /mnt/corebrum
 ls tasks/
 ls storage/
@@ -2849,8 +2849,8 @@ requirements:
 ### Debugging and Troubleshooting
 
 - Use print statements for logging
-- Check task logs: `corebrum logs <task-id>`
-- Monitor network: `corebrum netstat`
+- Check task logs: `cortex logs <task-id>`
+- Monitor network: `cortex netstat`
 - Verify Zenoh connectivity: `zenoh info`
 
 ---
@@ -2861,38 +2861,38 @@ requirements:
 
 #### Task Management
 ```bash
-corebrum submit --file task.yaml --input '{"data": "value"}'
-corebrum submit-and-wait --file task.yaml
-corebrum status <task-id>
-corebrum results <task-id>
-corebrum logs <task-id>
-corebrum cancel <task-id>
+cortex submit --file task.yaml --input '{"data": "value"}'
+cortex submit-and-wait --file task.yaml
+cortex status <task-id>
+cortex results <task-id>
+cortex logs <task-id>
+cortex cancel <task-id>
 ```
 
 #### Network Operations
 ```bash
-corebrum netstat
-corebrum ping <worker-id>
-corebrum topics
-corebrum streams
-corebrum publish <topic> '{"data": "value"}'
-corebrum subscribe <topic>
+cortex netstat
+cortex ping <worker-id>
+cortex topics
+cortex streams
+cortex publish <topic> '{"data": "value"}'
+cortex subscribe <topic>
 ```
 
 #### Identity & Memory
 ```bash
-corebrum identity create --name "Robot"
-corebrum identity list
-corebrum identity set <key-id>
-corebrum memory put <key> '{"value": "data"}'
-corebrum memory get <key>
+cortex identity create --name "Robot"
+cortex identity list
+cortex identity set <key-id>
+cortex memory put <key> '{"value": "data"}'
+cortex memory get <key>
 ```
 
 #### Hive Operations
 ```bash
-corebrum hive create "Team Name" --key-id <key-id>
-corebrum hive join <hive-id> --key-id <key-id>
-corebrum hive memory put <hive-id> <key> '{"value": "data"}' --key-id <key-id>
+cortex hive create "Team Name" --key-id <key-id>
+cortex hive join <hive-id> --key-id <key-id>
+cortex hive memory put <hive-id> <key> '{"value": "data"}' --key-id <key-id>
 ```
 
 ### Common Task Patterns
@@ -2940,12 +2940,12 @@ zenohd --config zenoh-config.json5
 
 #### Corebrum Daemon
 ```bash
-corebrum daemon --worker-count 8 --zenoh-router tcp://192.168.1.100:7447
+cortex daemon --worker-count 8 --zenoh-router tcp://192.168.1.100:7447
 ```
 
 #### Web Server
 ```bash
-corebrum web --host 0.0.0.0 --port 8080
+cortex web --host 0.0.0.0 --port 8080
 ```
 
 ### Troubleshooting Guide
@@ -2956,9 +2956,9 @@ corebrum web --host 0.0.0.0 --port 8080
 - Check worker capabilities
 
 #### Tasks Not Executing
-- Verify workers are available: `corebrum netstat`
+- Verify workers are available: `cortex netstat`
 - Check task requirements match worker capabilities
-- Review task logs: `corebrum logs <task-id>`
+- Review task logs: `cortex logs <task-id>`
 
 #### Zenoh Connection Issues
 - Verify router is accessible: `zenoh info`
@@ -2971,9 +2971,9 @@ corebrum web --host 0.0.0.0 --port 8080
 
 ### Detailed Documentation
 
-- **Corebrum Project**: [`../corebrum/README.md`](../corebrum/README.md)
-- **Zenoh Configuration**: [`../corebrum/docs/zenoh_configs/`](../corebrum/docs/zenoh_configs/)
-- **Corebrum Cortex**: [`../corebrum/docs/blog/introducing-corebrum-cortex.md`](../corebrum/docs/blog/introducing-corebrum-cortex.md)
+- **Corebrum Project**: [`../corebrum-cortex/README.md`](../corebrum-cortex/README.md)
+- **Zenoh Configuration**: [`../corebrum-cortex/docs/zenoh_configs/`](../corebrum-cortex/docs/zenoh_configs/)
+- **Corebrum Cortex**: [`../corebrum-cortex/docs/blog/introducing-corebrum-cortex.md`](../corebrum-cortex/docs/blog/introducing-corebrum-cortex.md)
 
 ### Task Definition Examples
 
@@ -3072,7 +3072,7 @@ npm install corebrum
 
 **Quick Example:**
 ```javascript
-const corebrum = require('corebrum');
+const cortex = require('corebrum');
 
 // Wrap function to run on Corebrum
 const processData = corebrum.run((data) => {
@@ -3096,7 +3096,7 @@ const result = await processData([
 
 ### Community Resources
 
-- **GitHub**: [https://github.com/corebrum/corebrum](https://github.com/corebrum/corebrum)
+- **GitHub**: [https://github.com/Corebrum/corebrum-cortex](https://github.com/Corebrum/corebrum-cortex)
 - **Examples Repository**: [https://github.com/Corebrum/corebrum-examples](https://github.com/Corebrum/corebrum-examples)
 - **Python Library**: [https://github.com/Corebrum/corebrum-pip](https://github.com/Corebrum/corebrum-pip)
 - **JavaScript Library**: [https://github.com/Corebrum/corebrum-npm](https://github.com/Corebrum/corebrum-npm)

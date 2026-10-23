@@ -42,7 +42,7 @@ task_definition:
     # Example 5: JSON output (non-ROS2, for debugging)
     - name: "debug_info"
       type: "zenoh"
-      key_expr: "corebrum/robot1/debug"
+      key_expr: "cortex/robot1/debug"
       encoding: "json"  # Standard JSON encoding
   
   compute_logic:

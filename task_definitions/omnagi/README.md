@@ -71,7 +71,7 @@ Responses are published to `omnagi/llm/responses/{task_id}`:
 ### 1. Submit the Streaming Service to Corebrum
 
 ```bash
-corebrum submit \
+cortex submit \
   --file task_definitions/omnagi/qwen_llm_streaming.yaml \
   --capabilities python \
   --capabilities omnagi
@@ -105,7 +105,7 @@ Once the service is running, Omnagi's web chat UI will automatically use it for 
 The default model can be configured when submitting the task:
 
 ```bash
-corebrum submit \
+cortex submit \
   --file task_definitions/omnagi/qwen_llm_streaming.yaml \
   --inputs '{"model": "qwen2.5:7b"}' \
   --capabilities python \
@@ -132,7 +132,7 @@ The service connects to Ollama at `http://localhost:11434/api/chat` by default. 
 
 3. **Check Corebrum task status:**
    ```bash
-   corebrum status <task_id>
+   cortex status <task_id>
    ```
 
 ### Slow Responses

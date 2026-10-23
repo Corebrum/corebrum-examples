@@ -14,7 +14,7 @@ Task bundles under [`task_definitions/`](task_definitions/) assume **Corebrum Co
 From the repository root, paths are prefixed with `cortex/`:
 
 ```bash
-corebrum submit --file cortex/task_definitions/openclaw/openclaw-test.json
+cortex submit --file cortex/task_definitions/openclaw/openclaw-test.json
 ```
 
 Conceptual overview: root [`README.md`](../README.md), section **Corebrum Cortex: Identity, Memory, and Hiveminds**.

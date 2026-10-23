@@ -11,12 +11,12 @@ Examples demonstrating Corebrum's identity and memory system for tasks and strea
 
 2. **Start Corebrum Daemon**:
    ```bash
-   corebrum daemon --zenoh-router tcp://localhost:7447
+   cortex daemon --zenoh-router tcp://localhost:7447
    ```
 
 3. **Create an Identity**:
    ```bash
-   corebrum identity create --name "Test Robot"
+   cortex identity create --name "Test Robot"
    # Note the key_id from the output
    ```
 
@@ -28,10 +28,10 @@ Demonstrates a task running with identity context, accessing and storing memory.
 
 ```bash
 # Create identity first
-IDENTITY_ID=$(corebrum identity create --name "Test Robot" | grep -o '[a-f0-9-]\{36\}')
+IDENTITY_ID=$(cortex identity create --name "Test Robot" | grep -o '[a-f0-9-]\{36\}')
 
 # Submit task with identity context
-corebrum submit-and-wait --file cortex/task_definitions/identity/task_with_identity.yaml \
+cortex submit-and-wait --file cortex/task_definitions/identity/task_with_identity.yaml \
   --input '{"number": 8}' \
   --identity $IDENTITY_ID
 ```
@@ -48,17 +48,17 @@ Demonstrates a stream task running with identity context, continuously accessing
 
 ```bash
 # Create identity first
-IDENTITY_ID=$(corebrum identity create --name "Stream Robot" | grep -o '[a-f0-9-]\{36\}')
+IDENTITY_ID=$(cortex identity create --name "Stream Robot" | grep -o '[a-f0-9-]\{36\}')
 
 # Submit stream task with identity context
-corebrum submit --file cortex/task_definitions/identity/stream_with_identity.yaml \
+cortex submit --file cortex/task_definitions/identity/stream_with_identity.yaml \
   --identity $IDENTITY_ID
 
 # Monitor the stream
-corebrum streams
+cortex streams
 
 # Cancel when done
-corebrum cancel <task-id>
+cortex cancel <task-id>
 ```
 
 **Key Features:**
@@ -73,15 +73,15 @@ Demonstrates how task results persist in identity memory across multiple task ex
 
 ```bash
 # Create identity and set as default
-IDENTITY_ID=$(corebrum identity create --name "Persistent Robot" | grep -o '[a-f0-9-]\{36\}')
-corebrum identity set $IDENTITY_ID
+IDENTITY_ID=$(cortex identity create --name "Persistent Robot" | grep -o '[a-f0-9-]\{36\}')
+cortex identity set $IDENTITY_ID
 
 # First execution - stores result
-corebrum submit-and-wait --file cortex/task_definitions/identity/memory_persistence.yaml \
+cortex submit-and-wait --file cortex/task_definitions/identity/memory_persistence.yaml \
   --input '{"value": 42}'
 
 # Second execution - retrieves previous result
-corebrum submit-and-wait --file cortex/task_definitions/identity/memory_persistence.yaml \
+cortex submit-and-wait --file cortex/task_definitions/identity/memory_persistence.yaml \
   --input '{"value": 100}'
 ```
 
@@ -199,7 +199,7 @@ If a feature is not enabled, operations will fail with a clear error message.
 
 ## Best Practices
 
-1. **Set Default Identity**: Use `corebrum identity set <key_id>` to avoid passing `--identity` every time
+1. **Set Default Identity**: Use `cortex identity set <key_id>` to avoid passing `--identity` every time
 2. **Use Descriptive Memory Keys**: Use clear, hierarchical keys like `user/preferences` or `task/results`
 3. **Handle Missing Memory**: Always check if memory exists before using it
 4. **Enable Auto-Store Results**: Set `auto_store_result: true` in task metadata to automatically save results

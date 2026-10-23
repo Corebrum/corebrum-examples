@@ -24,7 +24,7 @@ A simple example of running a Python script inside a Docker container.
 
 **Usage:**
 ```bash
-corebrum submit --file task_definitions/docker/docker_task.yaml
+cortex submit --file task_definitions/docker/docker_task.yaml
 ```
 
 ### 2. Docker with Dependencies (`docker_with_dependencies.yaml`)
@@ -38,7 +38,7 @@ Shows how to handle task dependencies when using Docker containers.
 
 **Usage:**
 ```bash
-corebrum submit --file task_definitions/docker/docker_with_dependencies.yaml
+cortex submit --file task_definitions/docker/docker_with_dependencies.yaml
 ```
 
 ### 3. Factorial Docker (`factorial_docker.yaml`)
@@ -52,7 +52,7 @@ Computes factorial using a Docker container with specific Python dependencies.
 
 **Usage:**
 ```bash
-corebrum submit --file task_definitions/docker/factorial_docker.yaml
+cortex submit --file task_definitions/docker/factorial_docker.yaml
 ```
 
 ## Docker Configuration

@@ -6,11 +6,11 @@ task_definition:
   inputs:
     - name: "in"
       type: "zenoh"
-      key: "corebrum/examples/ros2/stream/in"
+      key: "cortex/examples/ros2/stream/in"
   outputs:
     - name: "out"
       type: "zenoh"
-      key: "corebrum/examples/ros2/stream/out"
+      key: "cortex/examples/ros2/stream/out"
   compute_logic:
     type: "expression"
     language: "python"

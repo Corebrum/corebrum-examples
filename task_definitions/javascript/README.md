@@ -12,7 +12,7 @@ This directory contains Corebrum task definitions that run **JavaScript (Node.js
 
 - Corebrum daemon and workers started with **javascript** capability, e.g.:
   ```bash
-  corebrum daemon --zenoh-router tcp://127.0.0.1:7447
+  cortex daemon --zenoh-router tcp://127.0.0.1:7447
   # When using CMOS: start-workers, then choose "javascript" when prompted for capabilities
   ```
 - `node` installed on worker machines (typically Node 16+).
@@ -24,7 +24,7 @@ This directory contains Corebrum task definitions that run **JavaScript (Node.js
 Computes factorial of `number` and returns result plus timing.
 
 ```bash
-corebrum submit --file task_definitions/javascript/factorial_from_url.yaml --input '{"number": 8}'
+cortex submit --file task_definitions/javascript/factorial_from_url.yaml --input '{"number": 8}'
 ```
 
 ### 2. Factorial (stdin/stdout style) — `factorial_stdin_stdout.yaml`
@@ -32,7 +32,7 @@ corebrum submit --file task_definitions/javascript/factorial_from_url.yaml --inp
 Same idea with input key `n`.
 
 ```bash
-corebrum submit --file task_definitions/javascript/factorial_stdin_stdout.yaml --input '{"n": 10}'
+cortex submit --file task_definitions/javascript/factorial_stdin_stdout.yaml --input '{"n": 10}'
 ```
 
 ### 3. Pi calculation — `pi_calculation.yaml`
@@ -40,7 +40,7 @@ corebrum submit --file task_definitions/javascript/factorial_stdin_stdout.yaml -
 Uses `Math.PI` and rounds to `decimal_places`.
 
 ```bash
-corebrum submit --file task_definitions/javascript/pi_calculation.yaml --input '{"decimal_places": 10}'
+cortex submit --file task_definitions/javascript/pi_calculation.yaml --input '{"decimal_places": 10}'
 ```
 
 ### 4. JavaScript with dependencies — `javascript_with_dependencies.yaml`
@@ -48,15 +48,15 @@ corebrum submit --file task_definitions/javascript/pi_calculation.yaml --input '
 Declares `dependencies: ["javascript"]` for worker matching; code is still inline (no npm packages in this example).
 
 ```bash
-corebrum submit --file task_definitions/javascript/javascript_with_dependencies.yaml --input '{"number": 6}'
+cortex submit --file task_definitions/javascript/javascript_with_dependencies.yaml --input '{"number": 6}'
 ```
 
 ## Checking results
 
 ```bash
-corebrum results <task-id>
+cortex results <task-id>
 # or
-corebrum status <task-id>
+cortex status <task-id>
 ```
 
 ## Comparison with Python

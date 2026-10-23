@@ -24,7 +24,7 @@ compute_logic:
     
     config = zenoh.Config()
     session = zenoh.open(config)
-    state_key = f"corebrum/memory/state/workers/{worker_id}"
+    state_key = f"cortex/memory/state/workers/{worker_id}"
     
     # Publish worker state to shared memory
     state = {

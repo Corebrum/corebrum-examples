@@ -5,11 +5,11 @@ task_definition:
   inputs:
     - name: "in"
       type: "zenoh"
-      key: "corebrum/examples/stream/input"
+      key: "cortex/examples/stream/input"
   outputs:
     - name: "out"
       type: "zenoh"
-      key: "corebrum/examples/stream/output"
+      key: "cortex/examples/stream/output"
   execution_mode: "stream_reactive"
   compute_logic:
     type: "expression"

@@ -12,7 +12,7 @@ compute_logic:
     import json
     
     session = zenoh.open()
-    cache_key = f"corebrum/storage/cache/factorial/{n}"
+    cache_key = f"cortex/storage/cache/factorial/{n}"
     
     # Check cache first
     cached = session.get(cache_key)

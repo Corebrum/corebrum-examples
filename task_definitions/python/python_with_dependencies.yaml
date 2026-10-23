@@ -8,7 +8,7 @@ task_definition:
   outputs:
     - name: "result"
       type: "zenoh"
-      key: "corebrum/examples/python_deps/result"
+      key: "cortex/examples/python_deps/result"
   validation: []
   metadata: {}
   dependencies: ["python"]

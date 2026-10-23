@@ -25,11 +25,11 @@ A one-shot task that calls an MCP server to perform a single operation.
 **Usage:**
 ```bash
 # Submit with default MCP server (localhost:3000)
-corebrum submit --file task_definitions/mcp/mcp_one_shot_job.yaml \
+cortex submit --file task_definitions/mcp/mcp_one_shot_job.yaml \
   --inputs '{"mcp_server_url": "http://localhost:3000", "tool_name": "web_search", "tool_args": {"query": "Corebrum mesh computing"}}'
 
 # Submit with custom MCP server
-corebrum submit --file task_definitions/mcp/mcp_one_shot_job.yaml \
+cortex submit --file task_definitions/mcp/mcp_one_shot_job.yaml \
   --inputs '{"mcp_server_url": "http://your-mcp-server:8080", "tool_name": "get_weather", "tool_args": {"location": "San Francisco"}}'
 ```
 
@@ -76,7 +76,7 @@ A streaming MCP job that processes ROS2 camera images through MCP AI tools and p
 **Usage:**
 ```bash
 # Submit ROS2 image analysis job
-corebrum submit --file task_definitions/mcp/mcp_ros2_image_analysis.yaml \
+cortex submit --file task_definitions/mcp/mcp_ros2_image_analysis.yaml \
   --inputs '{"mcp_server_url": "http://localhost:3000"}'
 
 # Monitor analysis results
@@ -129,7 +129,7 @@ A streaming MCP job that processes ROS2 sensor data (odometry, battery, etc.) th
 **Usage:**
 ```bash
 # Submit ROS2 sensor control job
-corebrum submit --file task_definitions/mcp/mcp_ros2_sensor_control.yaml \
+cortex submit --file task_definitions/mcp/mcp_ros2_sensor_control.yaml \
   --inputs '{"mcp_server_url": "http://localhost:3000"}'
 
 # Monitor velocity commands
@@ -182,7 +182,7 @@ zenoh sub -k rt/robot1/control/status
 **Usage:**
 ```bash
 # Submit streaming MCP job
-corebrum submit --file task_definitions/mcp/mcp_streaming_job.yaml \
+cortex submit --file task_definitions/mcp/mcp_streaming_job.yaml \
   --inputs '{"mcp_server_url": "http://localhost:3000"}'
 
 # In another terminal, publish trigger data
@@ -293,7 +293,7 @@ ros2 run realsense_camera realsense_camera_node
 zenoh-bridge-ros2dds
 
 # 3. Submit MCP image analysis job
-corebrum submit --file task_definitions/mcp/mcp_ros2_image_analysis.yaml
+cortex submit --file task_definitions/mcp/mcp_ros2_image_analysis.yaml
 
 # 4. Monitor results
 zenoh sub -k rt/robot1/camera/analysis
@@ -317,7 +317,7 @@ ros2 launch robot_bringup robot.launch.py
 zenoh-bridge-ros2dds
 
 # 3. Submit MCP sensor control job
-corebrum submit --file task_definitions/mcp/mcp_ros2_sensor_control.yaml
+cortex submit --file task_definitions/mcp/mcp_ros2_sensor_control.yaml
 
 # 4. Monitor velocity commands
 zenoh sub -k rt/robot1/cmd_vel
@@ -329,7 +329,7 @@ zenoh sub -k rt/robot1/cmd_vel
 
 ```bash
 # 1. Start streaming MCP job
-corebrum submit --file task_definitions/mcp/mcp_streaming_job.yaml
+cortex submit --file task_definitions/mcp/mcp_streaming_job.yaml
 
 # 2. Publish sensor data (e.g., from ROS2 robot)
 zenoh pub -k mcp/trigger/data '{"tool_name": "analyze_image", "arguments": {"image_url": "http://..."}}'

@@ -1,6 +1,6 @@
 # Per–AI-agent test scripts
 
-Scripts live next to the [integration hub smoke](../integration/smoke_hub_api.sh). They assume **`corebrum web`** (or your deployment) is listening on **`COREBRUM_URL`** (default `http://127.0.0.1:6502`) and that **Zenoh** is available for submit/register flows.
+Scripts live next to the [integration hub smoke](../integration/smoke_hub_api.sh). They assume **`cortex web`** (or your deployment) is listening on **`COREBRUM_URL`** (default `http://127.0.0.1:6502`) and that **Zenoh** is available for submit/register flows.
 
 | Script | What it validates |
 |--------|-------------------|
@@ -42,18 +42,18 @@ Or everything:
 Build the server from the main Corebrum tree:
 
 ```bash
-cd ../../corebrum/contrib/corebrum-mcp   # adjust if your clone layout differs
+cd ../../corebrum-cortex/contrib/corebrum-mcp   # adjust if your clone layout differs
 npm install && npm run build
 ```
 
 Then from `scripts/agents`:
 
 ```bash
-export COREBRUM_MCP_JS=/absolute/path/to/corebrum/contrib/corebrum-mcp/dist/index.js
+export COREBRUM_MCP_JS=/absolute/path/to/corebrum-cortex/contrib/corebrum-mcp/dist/index.js
 node test_claude_mcp.mjs
 ```
 
-If `corebrum` and `corebrum-examples` are **siblings**, the default path inside `test_claude_mcp.mjs` should resolve without `COREBRUM_MCP_JS`.
+If `cortex` and `corebrum-examples` are **siblings**, the default path inside `test_claude_mcp.mjs` should resolve without `COREBRUM_MCP_JS`.
 
 ## Dependencies
 

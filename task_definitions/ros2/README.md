@@ -18,19 +18,19 @@ Corebrum now provides native support for ROS2 message types with:
 #### 1. Simple Twist Publisher (`ros2_simple_twist_publisher.yaml`)
 Publishes ROS2 `geometry_msgs/Twist` messages with automatic CDR encoding:
 ```bash
-corebrum submit --file ros2_simple_twist_publisher.yaml
+cortex submit --file ros2_simple_twist_publisher.yaml
 ```
 
 #### 2. Simple Twist Subscriber (`ros2_twist_subscriber.yaml`)
 Subscribes to ROS2 `geometry_msgs/Twist` messages with automatic CDR decoding:
 ```bash
-corebrum submit --file ros2_twist_subscriber.yaml
+cortex submit --file ros2_twist_subscriber.yaml
 ```
 
 #### 3. Complete Demo (`ros2_message_type_demo.yaml`)
 Demonstrates all features: explicit message types, auto-detection, CDR encoding/decoding:
 ```bash
-corebrum submit --file ros2_message_type_demo.yaml
+cortex submit --file ros2_message_type_demo.yaml
 ```
 
 ### Message Type Specification
@@ -127,10 +127,10 @@ This script will:
 python3 monitor_twist_commands.py
 
 # Or use the built-in zenoh subscriber
-./../../../corebrum/target/debug/corebrum subscribe rt/cmd_vel
+./../../../corebrum-cortex/target/debug/cortex subscribe rt/cmd_vel
 
 # Check active zenoh topics
-./../../../corebrum/target/debug/corebrum topics
+./../../../corebrum-cortex/target/debug/cortex topics
 ```
 
 ## 📋 How It Works
@@ -160,7 +160,7 @@ python3 monitor_twist_commands.py
 ### Test Qwen Detection
 ```bash
 # Test if Qwen can detect people in your camera
-./../../../corebrum/target/debug/corebrum submit --file simple_qwen_test.yaml
+./../../../corebrum-cortex/target/debug/cortex submit --file simple_qwen_test.yaml
 ```
 
 ### Periodic Task Monitoring (Time Interval Trigger)
@@ -170,16 +170,16 @@ Corebrum supports time-based periodic tasks using the `time_interval` trigger. T
 **Example: Battery Level Monitor**
 ```bash
 # Submit a task that checks battery level every 15 minutes
-./../../../corebrum/target/debug/corebrum submit --file battery_monitor.yaml
+./../../../corebrum-cortex/target/debug/cortex submit --file battery_monitor.yaml
 
 # Monitor the battery status topic
-./../../../corebrum/target/debug/corebrum subscribe rt/robot1/battery/status
+./../../../corebrum-cortex/target/debug/cortex subscribe rt/robot1/battery/status
 
 # Check active stream tasks
-./../../../corebrum/target/debug/corebrum streams
+./../../../corebrum-cortex/target/debug/cortex streams
 
 # Cancel the monitoring task when done
-./../../../corebrum/target/debug/corebrum cancel <task-id>
+./../../../corebrum-cortex/target/debug/cortex cancel <task-id>
 ```
 
 **How it works:**
@@ -197,38 +197,38 @@ Corebrum supports time-based periodic tasks using the `time_interval` trigger. T
 
 ```bash
 # One-shot: read latest Zenoh message and produce a result
-./../../../corebrum/target/debug/corebrum submit --file zenoh_message_in.yaml
+./../../../corebrum-cortex/target/debug/cortex submit --file zenoh_message_in.yaml
 
 # Stream: subscribe to a Zenoh topic and publish processed messages
-./../../../corebrum/target/debug/corebrum submit --file zenoh_message_in_out.yaml
+./../../../corebrum-cortex/target/debug/cortex submit --file zenoh_message_in_out.yaml
 
 # Publish a test message to the input topic for the stream example
-./../../../corebrum/target/debug/corebrum publish corebrum/examples/ros2/stream/in '{"hello":"world"}'
+./../../../corebrum-cortex/target/debug/cortex publish cortex/examples/ros2/stream/in '{"hello":"world"}'
 
 # Subscribe to the output topic to see processed results
-./../../../corebrum/target/debug/corebrum subscribe corebrum/examples/ros2/stream/out
+./../../../corebrum-cortex/target/debug/cortex subscribe cortex/examples/ros2/stream/out
 ```
 
 ### Test with Camera Publisher
 ```bash
 # If you don't have a real camera publishing to zenoh, use the test publisher
-./../../../corebrum/target/debug/corebrum submit --file camera_publisher.yaml
+./../../../corebrum-cortex/target/debug/cortex submit --file camera_publisher.yaml
 ```
 
 ## 📊 Monitoring Commands
 
 ```bash
 # Check active zenoh topics
-./../../../corebrum/target/debug/corebrum topics
+./../../../corebrum-cortex/target/debug/cortex topics
 
 # Monitor velocity commands
-./../../../corebrum/target/debug/corebrum subscribe rt/cmd_vel
+./../../../corebrum-cortex/target/debug/cortex subscribe rt/cmd_vel
 
 # Check task status
-./../../../corebrum/target/debug/corebrum status <task-id>
+./../../../corebrum-cortex/target/debug/cortex status <task-id>
 
 # Get task results
-./../../../corebrum/target/debug/corebrum results <task-id>
+./../../../corebrum-cortex/target/debug/cortex results <task-id>
 ```
 
 ## 🔧 Customization
@@ -267,7 +267,7 @@ stream_config:
 - Make sure Qwen2.5VL is installed: `ollama pull qwen2.5vl:3b`
 
 **3. "No velocity commands"**
-- Check if the task is running: `./../../../corebrum/target/debug/corebrum status <task-id>`
+- Check if the task is running: `./../../../corebrum-cortex/target/debug/cortex status <task-id>`
 - Look at debug images in `/tmp/` to see what the camera sees
 
 **4. "Robot not stopping"**

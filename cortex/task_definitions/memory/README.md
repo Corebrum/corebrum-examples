@@ -11,7 +11,7 @@ Examples demonstrating Corebrum's memory system capabilities, including persiste
 
 2. **Start Corebrum Daemon**:
    ```bash
-   corebrum daemon --zenoh-router tcp://localhost:7447
+   cortex daemon --zenoh-router tcp://localhost:7447
    ```
 
 ## Examples
@@ -22,21 +22,21 @@ Fast in-memory caching for repeated computations.
 
 ```bash
 # First call - computes and caches in memory (uses default n=100 if no input provided)
-corebrum submit-and-wait --file cortex/task_definitions/memory/memory_cache_example.yaml \
+cortex submit-and-wait --file cortex/task_definitions/memory/memory_cache_example.yaml \
   --input '{"n": 100}'
 
 # Second call - retrieves from memory cache (very fast)
-corebrum submit-and-wait --file cortex/task_definitions/memory/memory_cache_example.yaml \
+cortex submit-and-wait --file cortex/task_definitions/memory/memory_cache_example.yaml \
   --input '{"n": 100}'
 
 # Without input - uses default value of n=100
-corebrum submit-and-wait --file cortex/task_definitions/memory/memory_cache_example.yaml
+cortex submit-and-wait --file cortex/task_definitions/memory/memory_cache_example.yaml
 ```
 
 **Key Features:**
 - Ephemeral in-memory storage (lost on router restart)
 - Very fast access times
-- Uses `corebrum/memory/cache/` namespace
+- Uses `cortex/memory/cache/` namespace
 - Default value of `n=100` if no input provided
 
 ### `state_sharing.yaml`
@@ -45,21 +45,21 @@ Real-time state sharing between tasks.
 
 ```bash
 # Task 1: Publish state
-corebrum submit --file cortex/task_definitions/memory/state_sharing.yaml \
+cortex submit --file cortex/task_definitions/memory/state_sharing.yaml \
   --input '{"worker_id": "worker-1", "active_tasks": 3}'
 
 # Task 2: Update state (in another task/worker)
-corebrum submit --file cortex/task_definitions/memory/state_sharing.yaml \
+cortex submit --file cortex/task_definitions/memory/state_sharing.yaml \
   --input '{"worker_id": "worker-1", "active_tasks": 5}'
 
 # Without input - uses defaults (worker-unknown, active_tasks=0)
-corebrum submit --file cortex/task_definitions/memory/state_sharing.yaml
+cortex submit --file cortex/task_definitions/memory/state_sharing.yaml
 ```
 
 **Key Features:**
 - Share state across tasks and workers via pub/sub
 - Real-time coordination without persistence overhead
-- Uses `corebrum/memory/state/` namespace
+- Uses `cortex/memory/state/` namespace
 - Default values: `worker_id="worker-unknown"`, `active_tasks=0` if not provided
 - **Note**: `session.get()` verification may not work for ephemeral memory without a storage backend, but the publish succeeds and data is available to subscribers
 
@@ -70,7 +70,7 @@ corebrum submit --file cortex/task_definitions/memory/state_sharing.yaml
 | Persistence | No (ephemeral) | Yes (persistent) |
 | Performance | Very Fast | Fast |
 | Use Case | Cache, temporary data | Long-term storage |
-| Key Namespace | `corebrum/memory/*` | `corebrum/storage/*` |
+| Key Namespace | `cortex/memory/*` | `cortex/storage/*` |
 
 ## Using Memory in Tasks
 
@@ -90,12 +90,12 @@ session = zenoh.open(config)
 n = inputs.get('n', 100)  # Use default if not provided
 
 # Store in memory (ephemeral)
-session.put("corebrum/memory/cache/key1", json.dumps(data).encode())
+session.put("cortex/memory/cache/key1", json.dumps(data).encode())
 
 # Retrieve from memory
 # session.get() returns an iterator of replies
 data = None
-replies = session.get("corebrum/memory/cache/key1")
+replies = session.get("cortex/memory/cache/key1")
 for reply in replies:
     try:
         sample = reply.ok()
@@ -122,7 +122,7 @@ if data:
 Search memories by content using BM25 text search:
 
 ```bash
-corebrum submit-and-wait --file cortex/task_definitions/memory/memory_search_example.yaml \
+cortex submit-and-wait --file cortex/task_definitions/memory/memory_search_example.yaml \
   --input '{"key_id": "your-key-id", "query": "door closed"}'
 ```
 
@@ -132,11 +132,11 @@ Store memories with explicit types:
 
 ```bash
 # Store durable memory (long-term)
-corebrum submit-and-wait --file cortex/task_definitions/memory/memory_with_type_example.yaml \
+cortex submit-and-wait --file cortex/task_definitions/memory/memory_with_type_example.yaml \
   --input '{"key_id": "your-key-id", "memory_key": "preference", "value": "Python", "memory_type": "durable"}'
 
 # Store ephemeral memory (temporary, auto-expires)
-corebrum submit-and-wait --file cortex/task_definitions/memory/memory_with_type_example.yaml \
+cortex submit-and-wait --file cortex/task_definitions/memory/memory_with_type_example.yaml \
   --input '{"key_id": "your-key-id", "memory_key": "observation", "value": "Door closed", "memory_type": "ephemeral"}'
 ```
 
@@ -146,20 +146,20 @@ Configure limits and check statistics:
 
 ```bash
 # Check memory statistics
-corebrum submit-and-wait --file cortex/task_definitions/memory/memory_limits_example.yaml \
+cortex submit-and-wait --file cortex/task_definitions/memory/memory_limits_example.yaml \
   --input '{"key_id": "your-key-id", "action": "stats"}'
 
 # Set memory limits
-corebrum submit-and-wait --file cortex/task_definitions/memory/memory_limits_example.yaml \
+cortex submit-and-wait --file cortex/task_definitions/memory/memory_limits_example.yaml \
   --input '{"key_id": "your-key-id", "action": "set_limits"}'
 
 # Trigger compaction
-corebrum submit-and-wait --file cortex/task_definitions/memory/memory_limits_example.yaml \
+cortex submit-and-wait --file cortex/task_definitions/memory/memory_limits_example.yaml \
   --input '{"key_id": "your-key-id", "action": "compact"}'
 ```
 
 ## Documentation
 
-- [Memory Architecture Guide](https://github.com/corebrum/corebrum/blob/main/docs/memory-architecture.md) - Complete guide to memory features
-- [Memory Backends Guide](https://github.com/corebrum/corebrum/blob/main/docs/memory-backends.md) - Zenoh memory backend configuration
+- [Memory Architecture Guide](https://github.com/Corebrum/corebrum-cortex/blob/main/docs/memory-architecture.md) - Complete guide to memory features
+- [Memory Backends Guide](https://github.com/Corebrum/corebrum-cortex/blob/main/docs/memory-backends.md) - Zenoh memory backend configuration
 

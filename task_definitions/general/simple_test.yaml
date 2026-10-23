@@ -8,7 +8,7 @@ task_definition:
   outputs:
     - name: "result"
       type: "zenoh"
-      key: "corebrum/examples/simple_test/result"
+      key: "cortex/examples/simple_test/result"
   validation: []
   metadata: {}
   compute_logic:

@@ -24,11 +24,11 @@ fi
 
 # Check if Corebrum is available
 echo "🔍 Checking if Corebrum is available..."
-if [ -f "./../../../corebrum/target/debug/corebrum" ]; then
+if [ -f "./../../../corebrum-cortex/target/debug/cortex" ]; then
     echo "✅ Corebrum binary found"
 else
-    echo "❌ Corebrum binary not found at ./../../../corebrum/target/debug/corebrum"
-    echo "   Please build corebrum first or check the path."
+    echo "❌ Corebrum binary not found at ./../../../corebrum-cortex/target/debug/cortex"
+    echo "   Please build cortex first or check the path."
     exit 1
 fi
 
@@ -44,7 +44,7 @@ echo ""
 
 # Submit the simple person-following task
 echo "📤 Submitting person_follow_simple.yaml..."
-SUBMIT_OUTPUT=$(./../../../corebrum/target/debug/corebrum submit --file person_follow_simple.yaml 2>&1)
+SUBMIT_OUTPUT=$(./../../../corebrum-cortex/target/debug/cortex submit --file person_follow_simple.yaml 2>&1)
 if [ $? -eq 0 ]; then
     TASK_ID=$(echo "$SUBMIT_OUTPUT" | grep -o '[0-9a-f-]\{36\}' | head -1)
     if [ -n "$TASK_ID" ]; then
@@ -69,7 +69,7 @@ echo ""
 cleanup() {
     echo ""
     echo "🛑 Stopping task..."
-    ./../../../corebrum/target/debug/corebrum cancel $TASK_ID > /dev/null 2>&1
+    ./../../../corebrum-cortex/target/debug/cortex cancel $TASK_ID > /dev/null 2>&1
     echo "✅ Task cancelled"
     exit 0
 }
@@ -80,7 +80,7 @@ trap cleanup SIGINT
 # Monitor task status and velocity commands
 while true; do
     # Check task status
-    STATUS=$(./../../../corebrum/target/debug/corebrum status $TASK_ID 2>/dev/null | grep -o "Status: [A-Za-z]*" | cut -d' ' -f2)
+    STATUS=$(./../../../corebrum-cortex/target/debug/cortex status $TASK_ID 2>/dev/null | grep -o "Status: [A-Za-z]*" | cut -d' ' -f2)
     
     if [ "$STATUS" = "COMPLETED" ] || [ "$STATUS" = "FAILED" ]; then
         echo "📋 Task finished with status: $STATUS"
@@ -91,7 +91,7 @@ while true; do
     echo -n "📊 Task status: $STATUS"
     
     # Check if velocity commands are being published to zenoh
-    if ./../../../corebrum/target/debug/corebrum topics | grep -q "rt/cmd_vel"; then
+    if ./../../../corebrum-cortex/target/debug/cortex topics | grep -q "rt/cmd_vel"; then
         echo " | 🚗 Velocity commands active (zenoh)"
     else
         echo " | ⏸️  No velocity commands (zenoh)"
@@ -104,13 +104,13 @@ echo ""
 echo "🏁 Test completed!"
 echo ""
 echo "💡 To monitor velocity commands in real-time, run:"
-echo "   ./../../../corebrum/target/debug/corebrum subscribe rt/cmd_vel"
+echo "   ./../../../corebrum-cortex/target/debug/cortex subscribe rt/cmd_vel"
 echo ""
 echo "💡 To check task results, run:"
-echo "   ./../../../corebrum/target/debug/corebrum results $TASK_ID"
+echo "   ./../../../corebrum-cortex/target/debug/cortex results $TASK_ID"
 echo ""
 echo "💡 To check debug images (if any were saved), run:"
 echo "   ls -la /tmp/debug_image*.jpg"
 echo ""
 echo "💡 To monitor all zenoh topics, run:"
-echo "   ./../../../corebrum/target/debug/corebrum topics"
+echo "   ./../../../corebrum-cortex/target/debug/cortex topics"
