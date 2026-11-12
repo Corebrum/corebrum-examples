@@ -53,4 +53,4 @@ submit-and-wait ../corebrum-examples/cortex/task_definitions/fleet/gpu_worker_pr
 | No `gpu_line` in results | Auto-hardware off or CPU-only workers — restart daemon with auto layout |
 | `torch_note` only | Normal without PyTorch on the worker; `nvidia-smi` fields still validate CUDA placement |
 
-Cortex-side details: `docs/gpu-fleet.md` in the [corebrum-cortex](https://github.com/corebrum/corebrum-cortex) repo.
+Cortex docs: [gpu-inferencing.md](https://github.com/Corebrum/corebrum-cortex/blob/master/docs/gpu-inferencing.md) (value prop) and [gpu-fleet.md](https://github.com/Corebrum/corebrum-cortex/blob/master/docs/gpu-fleet.md) (setup).
