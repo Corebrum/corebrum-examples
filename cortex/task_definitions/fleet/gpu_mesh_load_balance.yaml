@@ -1,0 +1,46 @@
+name: gpu_mesh_load_balance
+version: "1"
+description: >
+  FP16 matmul on CUDA for fan-out mesh tests (one job per GPU worker).
+metadata:
+  compute_requirements:
+    accelerator: auto
+    runtime: cuda
+dependencies:
+  - python
+  - cuda
+compute_logic:
+  type: script
+  language: python
+  timeout_seconds: 120
+  code: |
+    import os
+    import socket
+    import time
+    import torch
+
+    hostname = socket.gethostname()
+    job_tag = os.environ.get("CORTEX_PROBE_JOB_ID", "unknown")
+
+    if not torch.cuda.is_available():
+        raise RuntimeError(f"CUDA not available on {hostname}")
+
+    device = torch.device("cuda:0")
+    size = int(os.environ.get("CORTEX_GPU_MATMUL_SIZE", "4096"))
+    a = torch.randn(size, size, device=device, dtype=torch.float16)
+    b = torch.randn(size, size, device=device, dtype=torch.float16)
+    torch.cuda.synchronize()
+    t0 = time.perf_counter()
+    c = a @ b
+    torch.cuda.synchronize()
+    elapsed = time.perf_counter() - t0
+
+    result = {
+        "hostname": hostname,
+        "job_tag": job_tag,
+        "cuda_visible_devices": os.environ.get("CUDA_VISIBLE_DEVICES"),
+        "device_name": torch.cuda.get_device_name(0),
+        "matmul_size": size,
+        "elapsed_seconds": round(elapsed, 4),
+        "checksum": float(c[0, 0].item()),
+    }

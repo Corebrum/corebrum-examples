@@ -1,0 +1,61 @@
+name: gpu_worker_probe
+version: "1"
+description: >
+  Runs on a CUDA-capable worker; reports hostname and GPU binding env (Cortex fleet smoke test).
+metadata:
+  compute_requirements:
+    accelerator: gpu
+    runtime: cuda
+    vendor: nvidia
+dependencies:
+  - python
+  - gpu
+  - cuda
+compute_logic:
+  type: script
+  language: python
+  timeout_seconds: 60
+  code: |
+    import os
+    import socket
+    import subprocess
+
+    result = {
+        "hostname": socket.gethostname(),
+        "cortex_accelerator_index": os.environ.get("CORTEX_ACCELERATOR_INDEX"),
+        "cortex_accelerator_runtime": os.environ.get("CORTEX_ACCELERATOR_RUNTIME"),
+        "cortex_accelerator_vendor": os.environ.get("CORTEX_ACCELERATOR_VENDOR"),
+        "cuda_visible_devices": os.environ.get("CUDA_VISIBLE_DEVICES"),
+    }
+
+    try:
+        smi = subprocess.check_output(
+            [
+                "nvidia-smi",
+                "--query-gpu=index,name,uuid",
+                "--format=csv,noheader",
+            ],
+            text=True,
+            timeout=15,
+        )
+        lines = [ln.strip() for ln in smi.strip().split("\n") if ln.strip()]
+        visible = os.environ.get("CUDA_VISIBLE_DEVICES", "0")
+        idx = int(visible.split(",")[0]) if visible else 0
+        if idx < len(lines):
+            result["gpu_line"] = lines[idx]
+        else:
+            result["gpu_lines"] = lines
+    except Exception as err:
+        result["nvidia_smi_error"] = str(err)
+
+    try:
+        import torch  # optional; may auto-install on worker
+
+        result["torch_cuda_available"] = bool(torch.cuda.is_available())
+        if torch.cuda.is_available():
+            result["torch_device_name"] = torch.cuda.get_device_name(0)
+            x = torch.randn(2048, 2048, device="cuda")
+            y = x @ x
+            result["matmul_ok"] = float(y[0, 0].item())
+    except Exception as err:
+        result["torch_note"] = str(err)
